@@ -38,8 +38,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'django-tenant-schema'
-copyright = '%d, Bernardo Pires Carneiro' % datetime.date.today().year
+project = 'django_tenants'
+copyright = '%d, Bernardo Pires Carneiro / Thomas Turner' % datetime.date.today().year
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -178,7 +178,7 @@ htmlhelp_basename = 'tenantschemasdoc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'tenantschema.tex', 'tenantschemaDocumentation',
-   'Bernardo Pires Carneiro', 'manual'),
+   'Thomas Turner', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

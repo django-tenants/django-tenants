@@ -10,7 +10,7 @@ The classical Django filesystem template loader cannot make the search path for 
 .. code-block:: python
 
     TEMPLATE_LOADERS = (
-        'tenant_schemas.template_loaders.FilesystemLoader',
+        'django_tenants.template_loaders.FilesystemLoader',
         'django.template.loaders.filesystem.Loader',
         'django.template.loaders.app_directories.Loader'
     )
@@ -27,9 +27,9 @@ The multitenant cached loader works exactly like the Django cached loader but is
 .. code-block:: python
 
     TEMPLATE_LOADERS = (
-        ('tenant_schemas.template_loaders.CachedLoader', (
-          'tenant_schemas.template_loaders.FilesystemLoader',
-          'django.template.loaders.filesystem.Loader',
-          'django.template.loaders.app_directories.Loader')),
+        ('django_tenants.template_loaders.CachedLoader', (
+         'django_tenants.template_loaders.FilesystemLoader',
+         'django.template.loaders.filesystem.Loader',
+         'django.template.loaders.app_directories.Loader')),
     )
 

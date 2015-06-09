@@ -1,6 +1,6 @@
-===========================
-Using django-tenant-schemas
-===========================
+====================
+Using django-tenants
+====================
 Creating a Tenant
 -----------------
 Creating a tenant works just like any other model in django. The first thing we should do is to create the ``public`` tenant to make our main website available. We'll use the previous model we defined for ``Client``.

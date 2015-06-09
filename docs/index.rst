@@ -1,4 +1,4 @@
-Welcome to django-tenant-schemas documentation!
+Welcome to django-tenants documentation!
 ===============================================
 This application enables `Django <https://www.djangoproject.com/>`_ powered websites to have multiple tenants via `PostgreSQL schemas <http://www.postgresql.org/docs/9.1/static/ddl-schemas.html>`_. A vital feature for every Software-as-a-Service website.
 
@@ -43,6 +43,9 @@ Shared Applications
 +++++++++++++++++++
 An application is considered to be shared when its tables are in the ``public`` schema. Some apps make sense being shared. Suppose you have some sort of public data set, for example, a table containing census data. You want every tenant to be able to query it. This application enables shared apps by always adding the ``public`` schema to the search path, making these apps also always available.
 
+
+
+
 Contents
 --------
 
@@ -55,4 +58,4 @@ Contents
    templates
    test
    involved
-
+   credits
