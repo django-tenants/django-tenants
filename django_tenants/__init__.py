@@ -2,12 +2,12 @@ import django
 import warnings
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from tenant_schemas.utils import get_public_schema_name, get_tenant_model
+from django_tenants.utils import get_public_schema_name, get_tenant_model
 
 
 recommended_config = """
-Warning: You should put 'tenant_schemas' at the end of INSTALLED_APPS:
-INSTALLED_APPS = TENANT_APPS + SHARED_APPS + ('tenant_schemas',)
+Warning: You should put 'django_tenants' at the end of INSTALLED_APPS:
+INSTALLED_APPS = TENANT_APPS + SHARED_APPS + ('django_tenants',)
 This is necessary to overwrite built-in django management commands with
 their schema-aware implementations.
 """
@@ -23,12 +23,10 @@ if not settings.TENANT_APPS:
 if not hasattr(settings, 'TENANT_MODEL'):
     raise ImproperlyConfigured('TENANT_MODEL setting not set')
 
-if django.VERSION < (1, 7, 0) and settings.INSTALLED_APPS[-1] != 'tenant_schemas':
-    warnings.warn(recommended_config, SyntaxWarning)
 
-if 'tenant_schemas.routers.TenantSyncRouter' not in settings.DATABASE_ROUTERS:
+if 'django_tenants.routers.TenantSyncRouter' not in settings.DATABASE_ROUTERS:
     raise ImproperlyConfigured("DATABASE_ROUTERS setting must contain "
-                               "'tenant_schemas.routers.TenantSyncRouter'.")
+                               "'django_tenants.routers.TenantSyncRouter'.")
 
 if hasattr(settings, 'PG_EXTRA_SEARCH_PATHS'):
     if get_public_schema_name() in settings.PG_EXTRA_SEARCH_PATHS:

@@ -2,7 +2,7 @@ import django
 from django.conf import settings
 from django.db import utils
 from django.views.generic import TemplateView
-from tenant_schemas.utils import remove_www
+from django_tenants.utils import remove_www
 from customers.models import Client
 
 

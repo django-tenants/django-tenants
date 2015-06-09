@@ -18,7 +18,7 @@ sys.path.insert(0, TENANT_APPS_DIR)
 
 DATABASES = {
     'default': {
-        'ENGINE': 'tenant_schemas.postgresql_backend',  # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+        'ENGINE': 'django_tenants.postgresql_backend',  # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
         'NAME': 'tenant_tutorial',                      # Or path to database file if using sqlite3.
         'USER': 'postgres',
         'PASSWORD': 'root',
@@ -97,7 +97,7 @@ TEMPLATE_LOADERS = (
 )
 
 DATABASE_ROUTERS = (
-    'tenant_schemas.routers.TenantSyncRouter',
+    'django_tenants.routers.TenantSyncRouter',
 )
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
@@ -132,7 +132,7 @@ import os
 TEMPLATE_DIRS = (os.path.join(os.path.dirname(__file__), '..', 'templates').replace('\\', '/'),)
 
 SHARED_APPS = (
-    'tenant_schemas',  # mandatory
+    'django_tenants',  # mandatory
     'customers',  # you must list the app where your tenant model resides in
 
     'django.contrib.auth',
@@ -154,7 +154,7 @@ import django
 if django.VERSION >= (1, 7, 0):
     INSTALLED_APPS = list(set(TENANT_APPS + SHARED_APPS))
 else:
-    INSTALLED_APPS = TENANT_APPS + SHARED_APPS + ('tenant_schemas',)
+    INSTALLED_APPS = TENANT_APPS + SHARED_APPS + ('django_tenants',)
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 

@@ -17,7 +17,7 @@ Your ``DATABASE_ENGINE`` setting needs to be changed to
 
     DATABASES = {
         'default': {
-            'ENGINE': 'tenant_schemas.postgresql_backend',
+            'ENGINE': 'django_tenants.postgresql_backend',
             # ..
         }
     }
@@ -55,7 +55,7 @@ Now we have to create your tenant model. Your tenant model can contain whichever
 .. code-block:: python
 
     from django.db import models
-    from tenant_schemas.models import TenantMixin
+    from django_tenants.models import TenantMixin
     
     class Client(TenantMixin):
         name = models.CharField(max_length=100)

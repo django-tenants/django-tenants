@@ -1,19 +1,14 @@
 import django
 from django.conf import settings
 from django.core.management.base import CommandError, BaseCommand
-from tenant_schemas.utils import django_is_in_test_mode
-
-try:
-    from south.management.commands.migrate import Command as MigrateCommand
-except ImportError:
-    MigrateCommand = BaseCommand
+from django_tenants.utils import django_is_in_test_mode
 
 
-class Command(MigrateCommand):
+class Command(BaseCommand):
 
     def handle(self, *args, **options):
         database = options.get('database', 'default')
-        if (settings.DATABASES[database]['ENGINE'] == 'tenant_schemas.postgresql_backend' or
+        if (settings.DATABASES[database]['ENGINE'] == 'django_tenants.postgresql_backend' or
                 MigrateCommand is BaseCommand):
             raise CommandError("migrate has been disabled, for database '{0}'. Use migrate_schemas "
                                "instead. Please read the documentation if you don't know why you "

@@ -7,8 +7,8 @@ except ImportError:
     from django.utils.importlib import import_module  # allows python 2.6 to work
 
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-from tenant_schemas.utils import get_public_schema_name, get_limit_set_calls
-from tenant_schemas.postgresql_backend.introspection import DatabaseSchemaIntrospection
+from django_tenants.utils import get_public_schema_name, get_limit_set_calls
+from django_tenants.postgresql_backend.introspection import DatabaseSchemaIntrospection
 import django.db.utils
 import psycopg2
 

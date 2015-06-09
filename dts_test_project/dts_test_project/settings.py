@@ -34,7 +34,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 SHARED_APPS = (
-    'tenant_schemas',  # mandatory
+    'django_tenants',  # mandatory
     'customers',  # you must list the app where your tenant model resides in
 
     'django.contrib.auth',
@@ -52,20 +52,7 @@ TENANT_MODEL = "customers.Client"  # app.Model
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
-import django
-if django.VERSION >= (1, 7, 0):
-    INSTALLED_APPS = list(set(TENANT_APPS + SHARED_APPS))
-else:
-    INSTALLED_APPS = TENANT_APPS + SHARED_APPS + ('tenant_schemas',)
-
-MIDDLEWARE_CLASSES = (
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-)
+INSTALLED_APPS = list(set(TENANT_APPS + SHARED_APPS))
 
 ROOT_URLCONF = 'dts_test_project.urls'
 
@@ -77,7 +64,7 @@ WSGI_APPLICATION = 'dts_test_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'tenant_schemas.postgresql_backend',
+        'ENGINE': 'django_tenants.postgresql_backend',
         'NAME': 'dts_test_project',
         'USER': 'postgres',
         'PASSWORD': 'root',
@@ -87,7 +74,7 @@ DATABASES = {
 }
 
 DATABASE_ROUTERS = (
-    'tenant_schemas.routers.TenantSyncRouter',
+    'django_tenants.routers.TenantSyncRouter',
 )
 
 MIDDLEWARE_CLASSES = (

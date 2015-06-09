@@ -10,7 +10,7 @@ try:
     from django.utils.six.moves import input
 except ImportError:
     input = raw_input
-from tenant_schemas.utils import get_tenant_model, get_public_schema_name
+from django_tenants.utils import get_tenant_model, get_public_schema_name
 
 
 class BaseTenantCommand(BaseCommand):

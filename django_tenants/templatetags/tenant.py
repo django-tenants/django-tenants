@@ -1,6 +1,6 @@
 from django.template import Library
 from django.template.defaulttags import url as default_url, URLNode
-from tenant_schemas.utils import clean_tenant_url
+from django_tenants.utils import clean_tenant_url
 
 register = Library()
 

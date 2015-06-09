@@ -1,8 +1,8 @@
-from optparse import make_option
+
 from django.core.management.base import BaseCommand, CommandError
 from django.core.management import call_command, get_commands, load_command_class
 from django.db import connection
-from tenant_schemas.management.commands import InteractiveTenantOption
+from django_tenants.management.commands import InteractiveTenantOption
 
 
 class Command(InteractiveTenantOption, BaseCommand):

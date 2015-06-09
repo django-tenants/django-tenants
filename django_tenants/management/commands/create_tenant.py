@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from django.utils.encoding import force_str
 from django.utils.six.moves import input
 from django.db.utils import IntegrityError
-from tenant_schemas.utils import get_tenant_model
+from django_tenants.utils import get_tenant_model
 
 
 class Command(BaseCommand):

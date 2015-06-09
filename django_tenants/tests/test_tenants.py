@@ -4,10 +4,10 @@ from django.contrib.auth.models import User
 from django.db import connection
 
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
-from tenant_schemas.test.cases import TenantTestCase
-from tenant_schemas.tests.models import Tenant, NonAutoSyncTenant
-from tenant_schemas.tests.testcases import BaseTestCase
-from tenant_schemas.utils import tenant_context, schema_context, schema_exists, get_tenant_model, get_public_schema_name
+from django_tenants.test.cases import TenantTestCase
+from django_tenants.tests.models import Tenant, NonAutoSyncTenant
+from django_tenants.tests.testcases import BaseTestCase
+from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, get_public_schema_name
 
 
 class TenantDataAndSettingsTest(BaseTestCase):
@@ -19,7 +19,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
     @classmethod
     def setUpClass(cls):
         super(TenantDataAndSettingsTest, cls).setUpClass()
-        settings.SHARED_APPS = ('tenant_schemas', )
+        settings.SHARED_APPS = ('django_tenants', )
         settings.TENANT_APPS = ('dts_test_app',
                                 'django.contrib.contenttypes',
                                 'django.contrib.auth', )
@@ -128,7 +128,7 @@ class TenantSyncTest(BaseTestCase):
         Tests that if an app is in SHARED_APPS, it does not get synced to
         the a tenant schema.
         """
-        settings.SHARED_APPS = ('tenant_schemas',  # 2 tables
+        settings.SHARED_APPS = ('django_tenants',  # 2 tables
                                 'django.contrib.auth',  # 6 tables
                                 'django.contrib.contenttypes', )  # 1 table
         settings.TENANT_APPS = ('django.contrib.sessions', )
@@ -144,7 +144,7 @@ class TenantSyncTest(BaseTestCase):
         Tests that if an app is in TENANT_APPS, it does not get synced to
         the public schema.
         """
-        settings.SHARED_APPS = ('tenant_schemas',
+        settings.SHARED_APPS = ('django_tenants',
                                 'django.contrib.auth',
                                 'django.contrib.contenttypes', )
         settings.TENANT_APPS = ('django.contrib.sessions', )  # 1 table
@@ -162,7 +162,7 @@ class TenantSyncTest(BaseTestCase):
         Tests that both SHARED_APPS and TENANT_APPS can have apps in common.
         In this case they should get synced to both tenant and public schemas.
         """
-        settings.SHARED_APPS = ('tenant_schemas',  # 2 tables
+        settings.SHARED_APPS = ('django_tenants',  # 2 tables
                                 'django.contrib.auth',  # 6 tables
                                 'django.contrib.contenttypes',  # 1 table
                                 'django.contrib.sessions', )  # 1 table
@@ -184,7 +184,7 @@ class TenantSyncTest(BaseTestCase):
         Tests that even if content types is in SHARED_APPS, it's
         not required in TENANT_APPS.
         """
-        settings.SHARED_APPS = ('tenant_schemas',  # 2 tables
+        settings.SHARED_APPS = ('django_tenants',  # 2 tables
                                 'django.contrib.contenttypes', )  # 1 table
         settings.TENANT_APPS = ('django.contrib.sessions', )  # 1 table
         settings.INSTALLED_APPS = settings.SHARED_APPS + settings.TENANT_APPS
@@ -204,7 +204,7 @@ class SharedAuthTest(BaseTestCase):
     @classmethod
     def setUpClass(cls):
         super(SharedAuthTest, cls).setUpClass()
-        settings.SHARED_APPS = ('tenant_schemas',
+        settings.SHARED_APPS = ('django_tenants',
                                 'django.contrib.auth',
                                 'django.contrib.contenttypes', )
         settings.TENANT_APPS = ('dts_test_app', )

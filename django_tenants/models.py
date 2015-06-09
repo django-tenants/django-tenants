@@ -3,10 +3,10 @@ from django.conf import settings
 from django.db import models, connection
 from django.core.management import call_command
 
-from tenant_schemas.postgresql_backend.base import _check_schema_name
-from tenant_schemas.signals import post_schema_sync, schema_needs_to_be_sync
-from tenant_schemas.utils import django_is_in_test_mode, schema_exists
-from tenant_schemas.utils import get_public_schema_name
+from django_tenants.postgresql_backend.base import _check_schema_name
+from django_tenants.signals import post_schema_sync, schema_needs_to_be_sync
+from django_tenants.utils import django_is_in_test_mode, schema_exists
+from django_tenants.utils import get_public_schema_name
 
 
 class TenantMixin(models.Model):

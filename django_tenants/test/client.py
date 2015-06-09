@@ -1,5 +1,5 @@
 from django.test import RequestFactory, Client
-from tenant_schemas.middleware import TenantMiddleware
+from django_tenants.middleware import TenantMiddleware
 
 
 class TenantRequestFactory(RequestFactory):

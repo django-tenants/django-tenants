@@ -1,12 +1,10 @@
-import django
 
-if django.VERSION >= (1, 7, 0):
-    from django.core.management.commands.migrate import Command as MigrateCommand
+from django.core.management.commands.migrate import Command as MigrateCommand
 from django.db import connection, DEFAULT_DB_ALIAS
 from django.conf import settings
 
-from tenant_schemas.utils import get_tenant_model, get_public_schema_name, schema_exists
-from tenant_schemas.management.commands import SyncCommon
+from django_tenants.utils import get_tenant_model, get_public_schema_name, schema_exists
+from django_tenants.management.commands import SyncCommon
 
 
 class MigrateSchemasCommand(SyncCommon):
@@ -65,12 +63,3 @@ class MigrateSchemasCommand(SyncCommon):
 
         command.execute(*self.args, **options)
         connection.set_schema_to_public()
-
-
-if django.VERSION >= (1, 8, 0):
-    Command = MigrateSchemasCommand
-elif django.VERSION >= (1, 7, 0):
-    from .legacy.migrate_schemas_1_7 import MigrateSchemasCommand as MigrateSchemasCommand_1_7
-    Command = MigrateSchemasCommand_1_7
-else:
-    from .legacy.migrate_schemas import Command

@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 from django.http import Http404
-from tenant_schemas.utils import get_tenant_model, remove_www_and_dev, get_public_schema_name
+from django_tenants.utils import get_tenant_model, remove_www_and_dev, get_public_schema_name
 from django.db import utils
 
 

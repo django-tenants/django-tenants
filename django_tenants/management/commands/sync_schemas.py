@@ -1,15 +1,11 @@
 import django
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ImproperlyConfigured
-from django.db.models import get_apps, get_models
-if "south" in settings.INSTALLED_APPS:
-    from south.management.commands.syncdb import Command as SyncdbCommand
-else:
-    from django.core.management.commands.syncdb import Command as SyncdbCommand
+
+from django.core.management.commands.syncdb import Command as SyncdbCommand
 from django.db import connection
-from tenant_schemas.utils import get_tenant_model, get_public_schema_name
-from tenant_schemas.management.commands import SyncCommon
+from django_tenants.utils import get_tenant_model, get_public_schema_name
+from django_tenants.management.commands import SyncCommon
 
 
 class Command(SyncCommon):

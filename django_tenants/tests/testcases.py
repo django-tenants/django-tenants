@@ -4,7 +4,7 @@ from django.core.management import call_command
 from django.db import connection
 from django.test import TestCase
 
-from tenant_schemas.utils import get_public_schema_name
+from django_tenants.utils import get_public_schema_name
 
 
 class BaseTestCase(TestCase):
@@ -14,8 +14,8 @@ class BaseTestCase(TestCase):
     """
     @classmethod
     def setUpClass(cls):
-        settings.TENANT_MODEL = 'tenant_schemas.Tenant'
-        settings.SHARED_APPS = ('tenant_schemas', )
+        settings.TENANT_MODEL = 'django_tenants.Tenant'
+        settings.SHARED_APPS = ('django_tenants', )
         settings.TENANT_APPS = ('dts_test_app',
                                 'django.contrib.contenttypes',
                                 'django.contrib.auth', )

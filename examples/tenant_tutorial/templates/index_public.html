@@ -86,7 +86,7 @@ Client(domain_url='tenant1.trendy-sass.com',
     <p>Saving a tenant that didn't exist before will create their schema and sync <code>TENANT_APPS</code> automatically. You should see
     the following lines as the result.</p>
 {% if DJANGO17 %}<pre>Operations to perform:
-  Synchronize unmigrated apps: customers, tenant_schemas
+  Synchronize unmigrated apps: customers, django_tenants
   Apply all migrations: contenttypes, auth, sessions
 Synchronizing apps without migrations:
   Creating tables...

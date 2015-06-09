@@ -7,7 +7,7 @@ Run these tests from the project ``dts_test_project``, it comes prepacked with t
 
 .. code-block:: bash
 
-    ./manage.py test tenant_schemas.tests
+    ./manage.py test django_tenants.tests
 
 Updating your app's tests to work with django_tenants
 -----------------------------------------------------

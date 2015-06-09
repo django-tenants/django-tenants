@@ -1,17 +1,17 @@
 from django.conf import settings
 from django.test.client import RequestFactory
-from tenant_schemas import get_public_schema_name
+from django_tenants import get_public_schema_name
 
-from tenant_schemas.middleware import TenantMiddleware
-from tenant_schemas.tests.models import Tenant
-from tenant_schemas.tests.testcases import BaseTestCase
+from django_tenants.middleware import TenantMiddleware
+from django_tenants.tests.models import Tenant
+from django_tenants.tests.testcases import BaseTestCase
 
 
 class RoutesTestCase(BaseTestCase):
     @classmethod
     def setUpClass(cls):
         super(RoutesTestCase, cls).setUpClass()
-        settings.SHARED_APPS = ('tenant_schemas', )
+        settings.SHARED_APPS = ('django_tenants', )
         settings.TENANT_APPS = ('dts_test_app',
                                 'django.contrib.contenttypes',
                                 'django.contrib.auth', )
