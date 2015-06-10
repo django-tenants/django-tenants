@@ -198,8 +198,7 @@ tenant specific apps. Complete instructions can be found at
 Credits
 -------
 
-I would like to thank the original author of this project Bernardo Pires under the name
- `django-tenant-schemas`_.
+I would like to thank the original author of this project Bernardo Pires under the name `django-tenant-schemas`_.
 
 Requirements
 ------------
