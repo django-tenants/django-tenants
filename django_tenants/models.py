@@ -94,27 +94,9 @@ class TenantMixin(models.Model):
         cursor.execute('CREATE SCHEMA %s' % self.schema_name)
 
         if sync_schema:
-            if django.VERSION >= (1, 7, 0,):
-                call_command('migrate_schemas',
-                             schema_name=self.schema_name,
-                             interactive=False,
-                             verbosity=verbosity)
-            else:
-                # default is faking all migrations and syncing directly to the current models state
-                fake_all_migrations = getattr(settings, 'TENANT_CREATION_FAKES_MIGRATIONS', True)
-                call_command('sync_schemas',
-                             schema_name=self.schema_name,
-                             tenant=True,
-                             public=False,
-                             interactive=False,
-                             migrate_all=fake_all_migrations,
-                             verbosity=verbosity)
-
-                # run/fake all migrations
-                if 'south' in settings.INSTALLED_APPS and not django_is_in_test_mode():
-                    call_command('migrate_schemas',
-                                 fake=fake_all_migrations,
-                                 schema_name=self.schema_name,
-                                 verbosity=verbosity)
+            call_command('migrate_schemas',
+                         schema_name=self.schema_name,
+                         interactive=False,
+                         verbosity=verbosity)
 
         connection.set_schema_to_public()

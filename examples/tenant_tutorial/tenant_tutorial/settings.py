@@ -150,11 +150,8 @@ TENANT_APPS = (
 
 TENANT_MODEL = "customers.Client"  # app.Model
 
-import django
-if django.VERSION >= (1, 7, 0):
-    INSTALLED_APPS = list(set(TENANT_APPS + SHARED_APPS))
-else:
-    INSTALLED_APPS = TENANT_APPS + SHARED_APPS + ('django_tenants',)
+INSTALLED_APPS = list(set(TENANT_APPS + SHARED_APPS))
+
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 

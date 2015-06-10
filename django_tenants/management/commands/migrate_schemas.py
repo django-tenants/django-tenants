@@ -63,3 +63,5 @@ class MigrateSchemasCommand(SyncCommon):
 
         command.execute(*self.args, **options)
         connection.set_schema_to_public()
+
+Command = MigrateSchemasCommand

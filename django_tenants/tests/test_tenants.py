@@ -121,7 +121,7 @@ class TenantSyncTest(BaseTestCase):
     Tests if the shared apps and the tenant apps get synced correctly
     depending on if the public schema or a tenant is being synced.
     """
-    MIGRATION_TABLE_SIZE = 1 if django.VERSION >= (1, 7, 0) else 0
+    MIGRATION_TABLE_SIZE = 1
 
     def test_shared_apps_does_not_sync_tenant_apps(self):
         """

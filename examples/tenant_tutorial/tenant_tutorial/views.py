@@ -14,9 +14,6 @@ class HomeView(TemplateView):
 
         hostname_without_port = remove_www(self.request.get_host().split(':')[0])
 
-        if django.VERSION >= (1, 7, 0):
-            context['DJANGO17'] = True
-
         try:
             Client.objects.get(schema_name='public')
         except utils.DatabaseError:
