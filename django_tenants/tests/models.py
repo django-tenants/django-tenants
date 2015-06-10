@@ -9,6 +9,7 @@ class Tenant(TenantMixin):
         app_label = 'django_tenants'
 
 
+
 class NonAutoSyncTenant(TenantMixin):
     auto_create_schema = False
 

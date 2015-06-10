@@ -1,5 +1,3 @@
-import django
-import warnings
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django_tenants.utils import get_public_schema_name, get_tenant_model

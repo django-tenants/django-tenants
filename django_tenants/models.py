@@ -1,12 +1,22 @@
 import django
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models, connection
 from django.core.management import call_command
 
 from django_tenants.postgresql_backend.base import _check_schema_name
 from django_tenants.signals import post_schema_sync, schema_needs_to_be_sync
-from django_tenants.utils import django_is_in_test_mode, schema_exists
+from django_tenants.utils import django_is_in_test_mode, schema_exists, get_tenant_model
 from django_tenants.utils import get_public_schema_name
+
+
+
+class TenantDomain(models.Model):
+    url = models.CharField(max_length=128, unique=True)
+
+    def __unicode__(self):
+        return self.url
+
 
 
 class TenantMixin(models.Model):
@@ -27,9 +37,15 @@ class TenantMixin(models.Model):
     to be automatically created upon save.
     """
 
-    domain_url = models.CharField(max_length=128, unique=True)
     schema_name = models.CharField(max_length=63, unique=True,
                                    validators=[_check_schema_name])
+
+    tenant_domains = models.ManyToManyField(TenantDomain)
+    """
+    I really wanted a FK on the tenant model however this didn't work as
+    this model is a abstract class. This is a cass for OneToMany field
+    however they exist yet. So the next bast think is a ManyToMany field.
+    """
 
     class Meta:
         abstract = True
@@ -100,3 +116,4 @@ class TenantMixin(models.Model):
                          verbosity=verbosity)
 
         connection.set_schema_to_public()
+

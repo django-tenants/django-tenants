@@ -38,7 +38,7 @@ def tenant_context(tenant):
 
 
 def get_tenant_model():
-    return get_model(*settings.TENANT_MODEL.split("."))
+    return get_model(settings.TENANT_MODEL)
 
 
 def get_public_schema_name():
