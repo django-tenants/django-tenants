@@ -8,7 +8,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-__version__ = "1.4.0"
+__version__ = "1.0.0"
 
 setup(
     name='django-tenants',
@@ -20,7 +20,6 @@ setup(
         'django_tenants.postgresql_backend',
         'django_tenants.management',
         'django_tenants.management.commands',
-        'django_tenants.management.commands.legacy',
         'django_tenants.templatetags',
         'django_tenants.test',
         'django_tenants.tests',
