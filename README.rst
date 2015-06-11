@@ -102,7 +102,7 @@ Setup & Documentation
 
 **This is just a short setup guide**, it is **strongly** recommended
 that you read the complete version at
-`django-tenant-schemas.readthedocs.org`_.
+`django-tenants.readthedocs.org`_.
 
 Your ``DATABASE_ENGINE`` setting needs to be changed to
 
@@ -175,7 +175,7 @@ will automatically create and sync the schema.
     from customers.models import Client
 
     # create your public tenant
-    tenant = Client(domain_url='tenant.my-domain.com',
+    tenant = Client(domain_urls=['tenant.my-domain.com'],
                     schema_name='tenant1',
                     name='My First Tenant',
                     paid_until='2014-12-05',
@@ -192,7 +192,7 @@ so you shouldn’t need to change anything at your views.
 You’re all set, but we have left key details outside of this short
 tutorial, such as creating the public tenant and configuring shared and
 tenant specific apps. Complete instructions can be found at
-`django-tenant-schemas.readthedocs.org`_.
+`django-tenants.readthedocs.org`_.
 
 
 Credits
@@ -217,6 +217,5 @@ Requirements
 .. |PyPi downloads| image:: https://pypip.in/d/django-tenant-schemas/badge.png
    :target: https://crate.io/packages/django-tenant-schemas/
 .. _setup: https://django-tenant-schemas.readthedocs.org/en/latest/install.html
-.. _django-tenant-schemas.readthedocs.org: https://django-tenant-schemas.readthedocs.org/en/latest/
-.. _django-tenant-schemas.readthedocs.org: https://django-tenant-schemas.readthedocs.org/en/latest/
+.. _django-tenants.readthedocs.org: https://django-tenants.readthedocs.org/en/latest/
 .. _django-tenant-schemas: http://github.com/bernardopires/django-tenant-schemas

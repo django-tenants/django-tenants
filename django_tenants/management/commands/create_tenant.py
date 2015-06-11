@@ -25,24 +25,31 @@ class Command(BaseCommand):
         self.option_list += (make_option('-s', action="store_true",
                                          help='Create a superuser afterwards.'),)
 
-
-
     def handle(self, *args, **options):
 
         tenant = {}
         for field in self.fields:
-            tenant[field.name] = options.get(field.name, None)
+            if field.name == 'domain_urls':
+                tenant[field.name] = options.get(field.name, '').split(';')
+            else:
+                tenant[field.name] = options.get(field.name, None)
 
         saved = False
         while not saved:
             for field in self.fields:
+
                 if tenant.get(field.name, '') == '':
                     input_msg = field.verbose_name
                     default = field.get_default()
                     if default:
                         input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
-                    tenant[field.name] = input(force_str('%s: ' % input_msg)) or default
 
+                    input_value = input(force_str('%s: ' % input_msg)) or default
+
+                    if field.name == 'domain_urls':
+                        tenant[field.name] = input_value.split(';')
+                    else:
+                        tenant[field.name] = input_value
             saved = self.store_tenant(**tenant)
             if not saved:
                 tenant = {}
@@ -61,5 +68,4 @@ class Command(BaseCommand):
             self.stderr.write("Error: %s" % '; '.join(e.messages))
             return False
         except IntegrityError:
-            self.stderr.write("Error: Invalid value(s).")
             return False

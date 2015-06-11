@@ -14,7 +14,7 @@ class TenantTutorialMiddleware(object):
         TenantModel = get_tenant_model()
 
         try:
-            request.tenant = TenantModel.objects.get(domain_url=hostname_without_port)
+            request.tenant = TenantModel.objects.get(domain_urls_contains=[hostname_without_port])
         except utils.DatabaseError:
             request.urlconf = settings.PUBLIC_SCHEMA_URLCONF
             return

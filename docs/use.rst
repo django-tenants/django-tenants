@@ -10,7 +10,7 @@ Creating a tenant works just like any other model in django. The first thing we 
     from customers.models import Client
 
     # create your public tenant
-    tenant = Client(domain_url='my-domain.com', # don't add your port or www here! on a local server you'll want to use localhost here
+    tenant = Client(domain_urls=['my-domain.com'], # don't add your port or www here! on a local server you'll want to use localhost here
                     schema_name='public',
                     name='Schemas Inc.',
                     paid_until='2016-12-05',
@@ -24,7 +24,7 @@ Now we can create our first real tenant.
     from customers.models import Client
 
     # create your first real tenant
-    tenant = Client(domain_url='tenant.my-domain.com', # don't add your port or www here!
+    tenant = Client(domain_urls=['tenant.my-domain.com'], # don't add your port or www here!
                     schema_name='tenant1',
                     name='Fonzy Tenant',
                     paid_until='2014-12-05',

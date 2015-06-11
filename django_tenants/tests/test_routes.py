@@ -17,7 +17,7 @@ class RoutesTestCase(BaseTestCase):
                                 'django.contrib.auth', )
         settings.INSTALLED_APPS = settings.SHARED_APPS + settings.TENANT_APPS
         cls.sync_shared()
-        cls.public_tenant = Tenant(domain_url='test.com', schema_name=get_public_schema_name())
+        cls.public_tenant = Tenant(domain_urls=['test.com'], schema_name=get_public_schema_name())
         cls.public_tenant.save()
 
     def setUp(self):
@@ -26,7 +26,7 @@ class RoutesTestCase(BaseTestCase):
         self.tm = TenantMiddleware()
 
         self.tenant_domain = 'tenant.test.com'
-        self.tenant = Tenant(domain_url=self.tenant_domain, schema_name='test')
+        self.tenant = Tenant(domain_urls=[self.tenant_domain], schema_name='test')
         self.tenant.save()
 
     def test_tenant_routing(self):
@@ -49,7 +49,7 @@ class RoutesTestCase(BaseTestCase):
         """
         request_url = '/any/request/'
         request = self.factory.get('/any/request/',
-                                   HTTP_HOST=self.public_tenant.domain_url)
+                                   HTTP_HOST=self.public_tenant.domain_urls[0])
         self.tm.process_request(request)
 
         self.assertEquals(request.path_info, request_url)

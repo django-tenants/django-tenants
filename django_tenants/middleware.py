@@ -25,7 +25,7 @@ class TenantMiddleware(object):
         hostname = self.hostname_from_request(request)
 
         request.tenant = get_object_or_404(
-            get_tenant_model(), domain_url=hostname)
+            get_tenant_model(), domain_urls__contains=[hostname])
         connection.set_tenant(request.tenant)
 
         # Content type can no longer be cached as public and tenant schemas

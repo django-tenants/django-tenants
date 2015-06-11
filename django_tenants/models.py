@@ -1,6 +1,7 @@
 import django
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.postgres.fields import ArrayField
 from django.db import models, connection
 from django.core.management import call_command
 
@@ -40,12 +41,7 @@ class TenantMixin(models.Model):
     schema_name = models.CharField(max_length=63, unique=True,
                                    validators=[_check_schema_name])
 
-    tenant_domains = models.ManyToManyField(TenantDomain)
-    """
-    I really wanted a FK on the tenant model however this didn't work as
-    this model is a abstract class. This is a cass for OneToMany field
-    however they exist yet. So the next bast think is a ManyToMany field.
-    """
+    domain_urls = ArrayField(models.URLField(max_length=200))
 
     class Meta:
         abstract = True
