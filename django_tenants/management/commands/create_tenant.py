@@ -29,10 +29,11 @@ class Command(BaseCommand):
 
         tenant = {}
         for field in self.fields:
-            if field.name == 'domain_urls':
-                tenant[field.name] = options.get(field.name, '').split(';')
+            input_value = options.get(field.name, None)
+            if input_value is not None and field.name == 'domain_urls':
+                tenant[field.name] = input_value.split(';')
             else:
-                tenant[field.name] = options.get(field.name, None)
+                tenant[field.name] = input_value
 
         saved = False
         while not saved:
