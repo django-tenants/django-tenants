@@ -11,15 +11,6 @@ from django_tenants.utils import django_is_in_test_mode, schema_exists, get_tena
 from django_tenants.utils import get_public_schema_name
 
 
-
-class TenantDomain(models.Model):
-    url = models.CharField(max_length=128, unique=True)
-
-    def __unicode__(self):
-        return self.url
-
-
-
 class TenantMixin(models.Model):
     """
     All tenant models must inherit this class.
@@ -41,7 +32,7 @@ class TenantMixin(models.Model):
     schema_name = models.CharField(max_length=63, unique=True,
                                    validators=[_check_schema_name])
 
-    domain_urls = ArrayField(models.URLField(max_length=200))
+    domain_urls = ArrayField(models.CharField(max_length=200, unique=True))
 
     class Meta:
         abstract = True
