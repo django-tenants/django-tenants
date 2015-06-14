@@ -1,6 +1,9 @@
 django-tenants
 ==============
 
+.. image:: https://badge.fury.io/py/django-tenants.svg
+    :target: http://badge.fury.io/py/django-tenants
+
 This application enables `django`_ powered websites to have multiple
 tenants via `PostgreSQL schemas`_. A vital feature for every
 Software-as-a-Service website.
