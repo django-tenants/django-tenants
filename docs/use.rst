@@ -29,7 +29,7 @@ Now we can create our first real tenant.
                     name='Fonzy Tenant',
                     paid_until='2014-12-05',
                     on_trial=True)
-    tenant.save() # sync_schemas automatically called, your tenant is ready to be used!
+    tenant.save() # migrate_schemas automatically called, your tenant is ready to be used!
     
 Because you have the tenant middleware installed, any request made to ``tenant.my-domain.com`` will now automatically set your PostgreSQL's ``search_path`` to ``tenant1, public``, making shared apps available too. The tenant will be made available at ``request.tenant``. By the way, the current schema is also available at ``connection.schema_name``, which is useful, for example, if you want to hook to any of django's signals. 
 
@@ -52,33 +52,12 @@ Every command except tenant_command runs by default on all tenants. You can also
 
 .. code-block:: bash
 
-    ./manage.py sync_schemas --schema=customer1
-
-sync_schemas    
-~~~~~~~~~~~~
-
-The command ``sync_schemas`` is the most important command on this app. The way it works is that it calls Django's ``syncdb`` in two different ways. First, it calls ``syncdb`` for the ``public`` schema, only syncing the shared apps. Then it runs ``syncdb`` for every tenant in the database, this time only syncing the tenant apps.
-
-.. warning::
-
-   You should never directly call ``syncdb``. We perform some magic in order to make ``syncdb`` only sync the appropriate apps.
-
-The options given to ``sync_schemas`` are passed to every ``syncdb``. So if you use South, you may find this handy
-
-.. code-block:: bash
-
-    ./manage.py sync_schemas --migrate
-
-You can also use the option ``--tenant`` to only sync tenant apps or ``--shared`` to only sync shared apps.
-
-.. code-block:: bash
-
-    ./manage.py sync_schemas --shared # will only sync the public schema
+    ./manage.py migrate_schemas --schema=customer1
 
 migrate_schemas    
 ~~~~~~~~~~~~~~~
 
-We've also packed south's migrate command in a compatible way with this app. It will also respect the ``SHARED_APPS`` and ``TENANT_APPS`` settings, so if you're migrating the ``public`` schema it will only migrate ``SHARED_APPS``. If you're migrating tenants, it will only migrate ``TENANT_APPS``.
+We've also packed the django migrate command in a compatible way with this app. It will also respect the ``SHARED_APPS`` and ``TENANT_APPS`` settings, so if you're migrating the ``public`` schema it will only migrate ``SHARED_APPS``. If you're migrating tenants, it will only migrate ``TENANT_APPS``.
 
 .. code-block:: bash
 

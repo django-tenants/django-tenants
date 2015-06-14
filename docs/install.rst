@@ -103,7 +103,7 @@ You also have to set where your tenant model is.
 
     TENANT_MODEL = "customers.Client" # app.Model
     
-Now run ``migrate_schemas --shared`` (``sync_schemas --shared`` if you're on Django 1.6 or older), this will create the shared apps on the ``public`` schema. Note: your database should be empty if this is the first time you're running this command.
+Now run ``migrate_schemas --shared``, this will create the shared apps on the ``public`` schema. Note: your database should be empty if this is the first time you're running this command.
 
 .. code-block:: bash
 
@@ -144,7 +144,7 @@ Optional Settings
 
     :Default: ``'True'``
     
-    Sets if the models will be synced directly to the last version and all migration subsequently faked. Useful in the cases where migrations can not be faked and need to be ran individually. Be aware that setting this to `False` may significantly slow down the process of creating tenants. Only relevant if `South <http://south.aeracode.org/>`_ is used.
+    Sets if the models will be synced directly to the last version and all migration subsequently faked. Useful in the cases where migrations can not be faked and need to be ran individually. Be aware that setting this to `False` may significantly slow down the process of creating tenants.
 
 Tenant View-Routing
 -------------------
