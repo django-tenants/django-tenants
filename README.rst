@@ -147,13 +147,16 @@ Create your tenant model
 .. code-block:: python
 
     from django.db import models
-    from django_tenants.models import TenantMixin
+    from django_tenants.models import TenantMixin, DomainMixin
 
     class Client(TenantMixin):
         name = models.CharField(max_length=100)
         paid_until =  models.DateField()
         on_trial = models.BooleanField()
         created_on = models.DateField(auto_now_add=True)
+
+    class Domain(DomainMixin):
+        pass
 
 Define on ``settings.py`` which model is your tenant model. Assuming you
 created ``Client`` inside an app named ``customers``, your
@@ -162,6 +165,7 @@ created ``Client`` inside an app named ``customers``, your
 .. code-block:: python
 
     TENANT_MODEL = "customers.Client" # app.Model
+    TENANT_DOMAIN_MODEL = "customers.Domain" # app.Model
 
 Now run ``migrate_schemas``, this will sync your apps to the ``public``
 schema.
@@ -175,15 +179,21 @@ will automatically create and sync the schema.
 
 .. code-block:: python
 
-    from customers.models import Client
+    from customers.models import Client, Domain
 
     # create your public tenant
-    tenant = Client(domain_urls=['tenant.my-domain.com'],
-                    schema_name='tenant1',
+    tenant = Client(schema_name='tenant1',
                     name='My First Tenant',
                     paid_until='2014-12-05',
                     on_trial=True)
     tenant.save()
+
+    # Add one or more domains for the tenant
+    domain = Domain()
+    domain.domain = 'tenant.my-domain.com'
+    domain.tenant = tenant
+    domain.is_primary = True
+    domain.save()
 
 Any request made to ``tenant.my-domain.com`` will now automatically set
 your PostgreSQL’s ``search_path`` to ``tenant1`` and ``public``, making
