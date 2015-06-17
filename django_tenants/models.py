@@ -102,22 +102,31 @@ class TenantMixin(models.Model):
 
         connection.set_schema_to_public()
 
+    def get_primary_domain(self):
+        """
+        Returns the primary domain of the tenant
+        """
+        try:
+            domain = self.domains.get(is_primary=True)
+            return domain
+        except get_tenant_domain_model().DoesNotExist:
+            return None
+
 
 class DomainMixin(models.Model):
     """
     All models that store the domains must inherit this class
     """
     domain = models.CharField(max_length=253, unique=True, db_index=True)
-    tenant = models.ForeignKey(settings.TENANT_MODEL, db_index=True)
-    https_enabled = models.BooleanField(default=False)
+    tenant = models.ForeignKey(settings.TENANT_MODEL, db_index=True, related_name='domains')
 
     # Set this to true if this is the primary domain
     is_primary = models.BooleanField(default=True)
 
     @transaction.atomic
     def save(self, *args, **kwargs):
-        # Get all primary domains
-        domain_list = get_tenant_domain_model().objects.filter(tenant=self.tenant, is_primary=True)
+        # Get all other primary domains with the same tenant
+        domain_list = self.__class__.objects.filter(tenant=self.tenant, is_primary=True).exclude(pk=self.pk)
         if len(domain_list) == 0:
             # We have no primary domain yet, so set as primary domain by default
             self.is_primary = True
