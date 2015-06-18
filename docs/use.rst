@@ -7,30 +7,42 @@ Creating a tenant works just like any other model in django. The first thing we 
 
 .. code-block:: python
 
-    from customers.models import Client
+    from customers.models import Client, Domain
 
     # create your public tenant
-    tenant = Client(domain_urls=['my-domain.com'], # don't add your port or www here! on a local server you'll want to use localhost here
-                    schema_name='public',
+    tenant = Client(schema_name='public',
                     name='Schemas Inc.',
                     paid_until='2016-12-05',
                     on_trial=False)
     tenant.save()
 
+    # Add one or more domains for the tenant
+    domain = Domain()
+    domain.domain = 'my-domain.com' # don't add your port or www here! on a local server you'll want to use localhost here
+    domain.tenant = tenant
+    domain.is_primary = True
+    domain.save()
+
 Now we can create our first real tenant.
 
 .. code-block:: python
 
-    from customers.models import Client
+    from customers.models import Client, Domain
 
     # create your first real tenant
-    tenant = Client(domain_urls=['tenant.my-domain.com'], # don't add your port or www here!
-                    schema_name='tenant1',
+    tenant = Client(schema_name='tenant1',
                     name='Fonzy Tenant',
                     paid_until='2014-12-05',
                     on_trial=True)
     tenant.save() # migrate_schemas automatically called, your tenant is ready to be used!
-    
+
+    # Add one or more domains for the tenant
+    domain = Domain()
+    domain.domain = 'tenant.my-domain.com' # don't add your port or www here!
+    domain.tenant = tenant
+    domain.is_primary = True
+    domain.save()
+
 Because you have the tenant middleware installed, any request made to ``tenant.my-domain.com`` will now automatically set your PostgreSQL's ``search_path`` to ``tenant1, public``, making shared apps available too. The tenant will be made available at ``request.tenant``. By the way, the current schema is also available at ``connection.schema_name``, which is useful, for example, if you want to hook to any of django's signals. 
 
 Any call to the methods ``filter``, ``get``, ``save``, ``delete`` or any other function involving a database connection will now be done at the tenant's schema, so you shouldn't need to change anything at your views.

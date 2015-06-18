@@ -2,8 +2,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 from django.shortcuts import get_object_or_404
-from django_tenants.utils import (get_tenant_model, remove_www,
-                                  get_public_schema_name)
+from .utils import get_tenant_model, remove_www, get_public_schema_name, get_tenant_domain_model
 
 
 class TenantMiddleware(object):
@@ -24,8 +23,9 @@ class TenantMiddleware(object):
         connection.set_schema_to_public()
         hostname = self.hostname_from_request(request)
 
-        request.tenant = get_object_or_404(
-            get_tenant_model(), domain_urls__contains=[hostname])
+        domain = get_object_or_404(get_tenant_domain_model().objects.select_related('tenant'),
+                                   domain=hostname)
+        request.tenant = domain.tenant
         connection.set_tenant(request.tenant)
 
         # Content type can no longer be cached as public and tenant schemas

@@ -41,6 +41,10 @@ def get_tenant_model():
     return get_model(settings.TENANT_MODEL)
 
 
+def get_tenant_domain_model():
+    return get_model(settings.TENANT_DOMAIN_MODEL)
+
+
 def get_public_schema_name():
     return getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
 

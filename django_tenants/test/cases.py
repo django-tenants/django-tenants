@@ -3,17 +3,20 @@ from django.core.management import call_command
 from django.db import connection
 from django.test import TestCase
 
-from django_tenants.utils import get_tenant_model
-from django_tenants.utils import get_public_schema_name
+from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name
 
 
 class TenantTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.sync_shared()
-        tenant_domain = 'tenant.test.com'
-        cls.tenant = get_tenant_model()(domain_urls=[tenant_domain], schema_name='test')
+        cls.tenant = get_tenant_model()(schema_name='test')
         cls.tenant.save(verbosity=0)  # todo: is there any way to get the verbosity from the test command here?
+
+        # Set up domain
+        tenant_domain = 'tenant.test.com'
+        domain = get_tenant_domain_model()(domain=tenant_domain, tenant=cls.tenant)
+        domain.save()
 
         connection.set_tenant(cls.tenant)
 

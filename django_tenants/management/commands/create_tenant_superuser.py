@@ -1,4 +1,4 @@
-from django_tenants.management.commands import TenantWrappedCommand
+from . import TenantWrappedCommand
 from django.contrib.auth.management.commands import createsuperuser
 
 

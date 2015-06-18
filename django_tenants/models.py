@@ -2,13 +2,13 @@ import django
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import ArrayField
-from django.db import models, connection
+from django.db import models, connection, transaction
 from django.core.management import call_command
 
-from django_tenants.postgresql_backend.base import _check_schema_name
-from django_tenants.signals import post_schema_sync, schema_needs_to_be_sync
-from django_tenants.utils import django_is_in_test_mode, schema_exists, get_tenant_model
-from django_tenants.utils import get_public_schema_name
+from .postgresql_backend.base import _check_schema_name
+from .signals import post_schema_sync, schema_needs_to_be_sync
+from .utils import django_is_in_test_mode, schema_exists, get_tenant_model, get_tenant_domain_model
+from .utils import get_public_schema_name
 
 
 class TenantMixin(models.Model):
@@ -31,8 +31,6 @@ class TenantMixin(models.Model):
 
     schema_name = models.CharField(max_length=63, unique=True,
                                    validators=[_check_schema_name])
-
-    domain_urls = ArrayField(models.CharField(max_length=200, unique=True))
 
     class Meta:
         abstract = True
@@ -104,3 +102,42 @@ class TenantMixin(models.Model):
 
         connection.set_schema_to_public()
 
+    def get_primary_domain(self):
+        """
+        Returns the primary domain of the tenant
+        """
+        try:
+            domain = self.domains.get(is_primary=True)
+            return domain
+        except get_tenant_domain_model().DoesNotExist:
+            return None
+
+
+class DomainMixin(models.Model):
+    """
+    All models that store the domains must inherit this class
+    """
+    domain = models.CharField(max_length=253, unique=True, db_index=True)
+    tenant = models.ForeignKey(settings.TENANT_MODEL, db_index=True, related_name='domains')
+
+    # Set this to true if this is the primary domain
+    is_primary = models.BooleanField(default=True)
+
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+        # Get all other primary domains with the same tenant
+        domain_list = self.__class__.objects.filter(tenant=self.tenant, is_primary=True).exclude(pk=self.pk)
+        if len(domain_list) == 0:
+            # We have no primary domain yet, so set as primary domain by default
+            self.is_primary = True
+        else:
+            if self.is_primary:
+                # Remove primary status of existing domains for tenant
+                for domain in domain_list:
+                    domain.is_primary = False
+                    domain.save()
+
+        super(DomainMixin, self).save(*args, **kwargs)
+
+    class Meta:
+        abstract = True
