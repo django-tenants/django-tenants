@@ -45,7 +45,6 @@ class Command(BaseCommand):
             input_value = options.get(field.name, None)
             domain_data[field.name] = input_value
 
-
         while True:
             for field in self.tenant_fields:
                 if tenant_data.get(field.name, '') == '':
@@ -62,6 +61,8 @@ class Command(BaseCommand):
             tenant_data = {}
 
         while True:
+            domain_data['tenant'] = tenant
+            print self.domain_fields
             for field in self.domain_fields:
                 if domain_data.get(field.name, '') == '':
                     input_msg = field.verbose_name
@@ -93,7 +94,8 @@ class Command(BaseCommand):
 
     def store_tenant_domain(self, **fields):
         try:
-            domain = get_tenant_model().objects.create(**fields)
+            print fields
+            domain = get_tenant_domain_model().objects.create(**fields)
             domain.save()
             return domain
         except exceptions.ValidationError as e:

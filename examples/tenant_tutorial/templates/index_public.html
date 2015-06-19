@@ -17,27 +17,27 @@
     {% endfor %}
     </ul><br>
     <p>Just run the command below on your shell to sync <code>SHARED_APPS</code>. Make sure your environment
-    has <code>Django</code> and <code>django-tenant-schemas</code> available.</p>
+    has <code>Django</code> and <code>django-tenants</code> available.</p>
 
     <pre>$ python manage.py migrate_schemas --shared</pre>
     <p>When you're done refresh this page.</p>
 {% elif no_public_tenant %}
     <h2>Second Step: Create a public tenant</h2>
-    <h3>So how does django-tenant-schemas work?</h3>
-    <p><code>django-tenant-schemas</code> uses the request's hostname to try to find a tenant.
+    <h3>So how does django-tenants work?</h3>
+    <p><code>django-tenants</code> uses the request's hostname to try to find a tenant.
         When a match is found,
         <a href="http://www.postgresql.org/docs/8.1/static/ddl-schemas.html">PostgreSQL's search path</a>
         is automatically set to be this tenant.</p>
     <br>
-    <p>For this request, <code>django-tenant-schemas</code> couldn't find any tenant for the current address (<code>{{ hostname }}</code>).
-        When no tenant is found, <code>django-tenant-schemas</code> normally returns a <code>404</code>, but since
+    <p>For this request, <code>django-tenants</code> couldn't find any tenant for the current address (<code>{{ hostname }}</code>).
+        When no tenant is found, <code>django-tenants</code> normally returns a <code>404</code>, but since
         this is a tutorial and no tenant exists yet, we let it proceed.
     <h3>Recommended Tenant's URLs Structure</h3>
     <p>Let's assume you have your main website at <code>trendy-sass.com</code>. The recommended structure is
         to put your tenants at subdomains, like <code>tenant1.trendy-sass.com</code>,
         <code>tenant2.trendy-sass.com</code> and so forth.</p>
     <h3>Creating the public tenant</h3>
-    <p><code>django-tenant-schemas</code> requires a tenant for all addresses you use, including your main website,
+    <p><code>django-tenants</code> requires a tenant for all addresses you use, including your main website,
         which we will from now on refer to as the public tenant.</p>
     <br>
     <p>Our model is called <code>Customer</code> and looks like this (taken from <code>models.py</code>):</p>
@@ -55,7 +55,7 @@ Client(domain_url='{{ hostname }}',
     schema_name='public',
     name='Trendy SaSS',
     description='Public Tenant').save()</pre>
-    <p>Done! <code>django-tenant-schemas</code> will now be able to locate our public tenant and won't return 404. Refresh this page to see the next step.</p>
+    <p>Done! <code>django-tenants</code> will now be able to locate our public tenant and won't return 404. Refresh this page to see the next step.</p>
 {% elif only_public_tenant %}
     <h2>Third Step: Create Tenants</h2>
     <p>We've already created the public tenant, now it's time to create some tenants for subdomains. I assume you're running this on your local machine,
