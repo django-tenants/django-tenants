@@ -48,14 +48,19 @@ Make sure you have ``django.core.context_processors.request`` listed under ``TEM
         #...
     )
     
-The Tenant Model
-================
-Now we have to create your tenant model. Your tenant model can contain whichever fields you want, however, you **must** inherit from ``TenantMixin``. This Mixin only has two fields (``domain_url`` and ``schema_name``) and both are required. Here's an example, suppose we have an app named ``customers`` and we want to create a model called ``Client``.
+The Tenant & Domain Model
+=========================
+Now we have to create your tenant model.
+ Your tenant model can contain whichever fields you want, however, you **must** inherit from ``TenantMixin``.
+  This Mixin only has one field ``schema_name`` which is required.
+   You also have to have a table for your domain names for this you use the you **must** inherit from ``DomainMixin`` .
+    Here's an example, suppose we have an app named ``customers`` and we want to create a model called ``Client``.
+
 
 .. code-block:: python
 
     from django.db import models
-    from django_tenants.models import TenantMixin
+    from django_tenants.models import TenantMixin, DomainMixin
     
     class Client(TenantMixin):
         name = models.CharField(max_length=100)
@@ -64,7 +69,10 @@ Now we have to create your tenant model. Your tenant model can contain whichever
         created_on = models.DateField(auto_now_add=True)
         
         # default true, schema will be automatically created and synced when it is saved
-        auto_create_schema = True 
+        auto_create_schema = True
+
+    class Domain(DomainMixin):
+        pass
 
 Configure Tenant and Shared Applications
 ========================================
@@ -97,12 +105,14 @@ To make use of shared and tenant-specific applications, there are two settings c
 
     INSTALLED_APPS = list(set(SHARED_APPS + TENANT_APPS))
 
-You also have to set where your tenant model is.
+You also have to set where your tenant & domain models are located.
 
 .. code-block:: python
 
     TENANT_MODEL = "customers.Client" # app.Model
-    
+
+    TENANT_DOMAIN_MODEL = "customers.Domain"  # app.Model
+
 Now run ``migrate_schemas --shared``, this will create the shared apps on the ``public`` schema. Note: your database should be empty if this is the first time you're running this command.
 
 .. code-block:: bash
@@ -145,6 +155,7 @@ Optional Settings
     :Default: ``'True'``
     
     Sets if the models will be synced directly to the last version and all migration subsequently faked. Useful in the cases where migrations can not be faked and need to be ran individually. Be aware that setting this to `False` may significantly slow down the process of creating tenants.
+
 
 Tenant View-Routing
 -------------------
