@@ -50,10 +50,7 @@ Make sure you have ``django.core.context_processors.request`` listed under ``TEM
     
 The Tenant & Domain Model
 =========================
-Now we have to create your tenant model.
- Your tenant model can contain whichever fields you want, however, you **must** inherit from ``TenantMixin``.
-  This Mixin only has one field ``schema_name`` which is required.
-   You also have to have a table for your domain names for this you use the you **must** inherit from ``DomainMixin`` .
+Now we have to create your tenant model. Your tenant model can contain whichever fields you want, however, you **must** inherit from ``TenantMixin``. This Mixin only has one field ``schema_name`` which is required. You also have to have a table for your domain names for this you use the you **must** inherit from ``DomainMixin`` .
     Here's an example, suppose we have an app named ``customers`` and we want to create a model called ``Client``.
 
 
