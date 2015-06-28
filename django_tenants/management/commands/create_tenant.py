@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
         for field in self.domain_fields:
             self.option_list += (make_option('--%s' % field.name,
-                                             help='Specifies the %s for tenant.' % field.name), )
+                                             help="Specifies the %s for the tenant's domain." % field.name), )
 
         self.option_list += (make_option('-s', action="store_true",
                                          help='Create a superuser afterwards.'),)
@@ -95,6 +95,7 @@ class Command(BaseCommand):
         try:
             domain = get_tenant_domain_model().objects.create(**fields)
             domain.save()
+            return domain
         except exceptions.ValidationError as e:
             self.stderr.write("Error: %s" % '; '.join(e.messages))
             return None
