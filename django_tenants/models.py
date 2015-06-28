@@ -1,7 +1,6 @@
 import django
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.postgres.fields import ArrayField
 from django.db import models, connection, transaction
 from django.core.management import call_command
 
@@ -127,16 +126,11 @@ class DomainMixin(models.Model):
     def save(self, *args, **kwargs):
         # Get all other primary domains with the same tenant
         domain_list = self.__class__.objects.filter(tenant=self.tenant, is_primary=True).exclude(pk=self.pk)
-        if len(domain_list) == 0:
-            # We have no primary domain yet, so set as primary domain by default
-            self.is_primary = True
-        else:
-            if self.is_primary:
-                # Remove primary status of existing domains for tenant
-                for domain in domain_list:
-                    domain.is_primary = False
-                    domain.save()
-
+        # If we have no primary domain yet, set as primary domain by default
+        self.is_primary = self.is_primary or (not domain_list.exists())
+        if self.is_primary:
+            # Remove primary status of existing domains for tenant
+            domain_list.update(is_primary=False)
         super(DomainMixin, self).save(*args, **kwargs)
 
     class Meta:
