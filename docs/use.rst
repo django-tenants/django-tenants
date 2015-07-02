@@ -47,16 +47,39 @@ Because you have the tenant middleware installed, any request made to ``tenant.m
 
 Any call to the methods ``filter``, ``get``, ``save``, ``delete`` or any other function involving a database connection will now be done at the tenant's schema, so you shouldn't need to change anything at your views.
 
+Deleting a tenant
+-----------------
+
+You can delete tenants by just deleting the entry via the Django ORM. There is a flag that can set on the tenant model called ``auto_drop_schema``. The default for ``auto_drop_schema`` is False. WARNING SETTING ``AUTO_DROP_SCHEMA`` TO TRUE WITH DELETE WITH TENANT!
+
+
 Signals
 -------
 
 
 There are two signal one called ```post_schema_sync``` and the other called ```schema_needs_to_be_sync```
 
-```post_schema_sync``` get called after the schema been migrated.
+```post_schema_sync``` will get called after the schema been migrated.
 
-```schema_needs_to_be_sync``` get called if the schema needs to be migrated.
+```schema_needs_to_be_sync``` will get called if the schema needs to be migrated. ```auto_create_schema``` (on the tenant model) has to be set to False for this signal to get called. This signal is very useful when tenants are created via a background process such as celery.
 
+Example
+
+.. code-block:: python
+
+    @receiver(schema_needs_to_be_sync, sender=TenantMixin)
+    def created_user_client_in_background(sender, **kwargs):
+        client = kwargs['tenant']
+        print ("created_user_client_in_background %s" % client.schema_name)
+        from clients.tasks import setup_tenant
+        task = setup_tenant.delay(client)
+
+    @receiver(post_schema_sync, sender=TenantMixin)
+    def created_user_client(sender, **kwargs):
+
+        client = kwargs['tenant']
+
+        # send email to client to as tenant is ready to use
 
 Management commands
 -------------------
