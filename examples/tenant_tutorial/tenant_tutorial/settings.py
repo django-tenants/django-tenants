@@ -102,6 +102,7 @@ DATABASE_ROUTERS = (
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
+
 MIDDLEWARE_CLASSES = (
     'tenant_tutorial.middleware.TenantTutorialMiddleware',
     'django.middleware.common.CommonMiddleware',

@@ -6,70 +6,76 @@ multi-tenant setting
 import hashlib
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.template.base import TemplateDoesNotExist
-from django.template.loader import (BaseLoader, get_template_from_string,
-                                    find_template_loader, make_origin)
+from django.template.base import TemplateDoesNotExist, Template
 from django.utils.encoding import force_bytes
 from django.utils._os import safe_join
 from django.db import connection
+from django.template.loaders.base import Loader as BaseLoader
 
 
 class CachedLoader(BaseLoader):
     is_usable = True
 
-    def __init__(self, loaders):
+    def __init__(self, engine, loaders):
         self.template_cache = {}
-        self._loaders = loaders
-        self._cached_loaders = []
+        self.find_template_cache = {}
+        self.loaders = engine.get_template_loaders(loaders)
+        super(CachedLoader, self).__init__(engine)
 
-    @property
-    def loaders(self):
-        # Resolve loaders on demand to avoid circular imports
-        if not self._cached_loaders:
-            # Set self._cached_loaders atomically. Otherwise, another thread
-            # could see an incomplete list. See #17303.
-            cached_loaders = []
-            for loader in self._loaders:
-                cached_loaders.append(find_template_loader(loader))
-            self._cached_loaders = cached_loaders
-        return self._cached_loaders
+    def cache_key(self, template_name, template_dirs):
+        if connection.tenant and template_dirs:
+            return '-'.join([str(connection.tenant.pk), template_name,
+                                hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
+        if template_dirs:
+            # If template directories were specified, use a hash to differentiate
+            return '-'.join([template_name, hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
+        else:
+            return template_name
 
     def find_template(self, name, dirs=None):
-        for loader in self.loaders:
-            try:
-                template, display_name = loader(name, dirs)
-                return template, make_origin(display_name, loader, name, dirs)
-            except TemplateDoesNotExist:
-                pass
-        raise TemplateDoesNotExist(name)
+        """
+        Helper method. Lookup the template :param name: in all the configured loaders
+        """
+        key = self.cache_key(name, dirs)
+        try:
+            result = self.find_template_cache[key]
+        except KeyError:
+            result = None
+            for loader in self.loaders:
+                try:
+                    template, display_name = loader(name, dirs)
+                except TemplateDoesNotExist:
+                    pass
+                else:
+                    origin = self.engine.make_origin(display_name, loader, name, dirs)
+                    result = template, origin
+                    break
+        self.find_template_cache[key] = result
+        if result:
+            return result
+        else:
+            self.template_cache[key] = TemplateDoesNotExist
+            raise TemplateDoesNotExist(name)
 
     def load_template(self, template_name, template_dirs=None):
-        if connection.tenant:
-            key = '-'.join([str(connection.tenant.pk), template_name])
-        else:
-            key = template_name
-        if template_dirs:
-            # If template directories were specified, use a hash to
-            # differentiate
-            if connection.tenant:
-                key = '-'.join([str(connection.tenant.pk), template_name,
-                                hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
-            else:
-                key = '-'.join([template_name, hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
-
-        if key not in self.template_cache:
+        key = self.cache_key(template_name, template_dirs)
+        template_tuple = self.template_cache.get(key)
+        # A cached previous failure:
+        if template_tuple is TemplateDoesNotExist:
+            raise TemplateDoesNotExist
+        elif template_tuple is None:
             template, origin = self.find_template(template_name, template_dirs)
             if not hasattr(template, 'render'):
                 try:
-                    template = get_template_from_string(template, origin, template_name)
+                    template = Template(template, origin, template_name, self.engine)
                 except TemplateDoesNotExist:
                     # If compiling the template we found raises TemplateDoesNotExist,
                     # back off to returning the source and display name for the template
                     # we were asked to load. This allows for correct identification (later)
                     # of the actual template that does not exist.
-                    return template, origin
-            self.template_cache[key] = template
-        return self.template_cache[key], None
+                    self.template_cache[key] = (template, origin)
+            self.template_cache[key] = (template, None)
+        return self.template_cache[key]
 
     def reset(self):
         "Empty the template cache."
