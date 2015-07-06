@@ -34,6 +34,42 @@ class TenantMixin(models.Model):
     class Meta:
         abstract = True
 
+    def __enter__(self):
+        """
+        Syntax sugar which helps in celery tasks, cron jobs, and other scripts
+
+        Usage:
+            with Tenant.objects.get(schema_name='test') as tenant:
+                # run some code in tenant test
+            # run some code in previous tenant (public probably)
+        """
+        self._previous_tenant = connection.tenant
+        self.activate()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        connection.set_tenant(self._previous_tenant)
+
+    def activate(self):
+        """
+        Syntax sugar that helps at django shell with fast tenant changing
+
+        Usage:
+            Tenant.objects.get(schema_name='test').activate()
+        """
+        connection.set_tenant(self)
+
+    @classmethod
+    def deactivate(cls):
+        """
+        Syntax sugar, return to public schema
+
+        Usage:
+            test_tenant.deactivate()
+            # or simpler
+            Tenant.deactivate()
+        """
+        connection.set_schema_to_public()
+
     def save(self, verbosity=1, *args, **kwargs):
         is_new = self.pk is None
 
