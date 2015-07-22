@@ -211,7 +211,9 @@ tenant specific apps. Complete instructions can be found at
 Credits
 -------
 
-I would like to thank the original author of this project Bernardo Pires under the name `django-tenant-schemas`_.
+I would like to thank two of the original authors of this project.
+1. Bernardo Pires under the name `django-tenant-schemas`_.
+2. Vlada Macek under the name of `django-schemata`_.
 
 Requirements
 ------------
@@ -232,3 +234,4 @@ Requirements
 .. _setup: https://django-tenant-schemas.readthedocs.org/en/latest/install.html
 .. _django-tenants.readthedocs.org: https://django-tenants.readthedocs.org/en/latest/
 .. _django-tenant-schemas: http://github.com/bernardopires/django-tenant-schemas
+.. _django-schemata: https://github.com/tuttle/django-schemata
