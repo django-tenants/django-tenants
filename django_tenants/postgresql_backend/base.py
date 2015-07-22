@@ -122,7 +122,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             if self.schema_name == public_schema_name:
                 search_paths = [public_schema_name]
             elif self.include_public_schema:
-                search_paths = [self.schema_name, public_sc hema_name]
+                search_paths = [self.schema_name, public_schema_name]
             else:
                 search_paths = [self.schema_name]
 
