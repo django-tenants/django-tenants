@@ -212,7 +212,9 @@ Credits
 -------
 
 I would like to thank two of the original authors of this project.
+
 1. Bernardo Pires under the name `django-tenant-schemas`_.
+
 2. Vlada Macek under the name of `django-schemata`_.
 
 Requirements
