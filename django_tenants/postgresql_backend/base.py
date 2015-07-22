@@ -122,7 +122,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             if self.schema_name == public_schema_name:
                 search_paths = [public_schema_name]
             elif self.include_public_schema:
-                search_paths = [self.schema_name, public_schema_name]
+                search_paths = [self.schema_name, public_sc hema_name]
             else:
                 search_paths = [self.schema_name]
 
@@ -148,5 +148,9 @@ class FakeTenant:
     def __init__(self, schema_name):
         self.schema_name = schema_name
 
-DatabaseError = original_backend.DatabaseError
-IntegrityError = original_backend.IntegrityError
+if ORIGINAL_BACKEND == "django.contrib.gis.db.backends.postgis":
+	DatabaseError = django.db.utils.DatabaseError
+	IntegrityError = psycopg2.IntegrityError
+else:
+	DatabaseError = original_backend.DatabaseError
+	IntegrityError = original_backend.IntegrityError
