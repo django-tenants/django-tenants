@@ -52,6 +52,10 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         self.introspection = DatabaseSchemaIntrospection(self)
         self.set_schema_to_public()
 
+    def close(self):
+        self.search_path_set = False
+        super(DatabaseWrapper, self).close()
+
     def set_tenant(self, tenant, include_public=True):
         """
         Main API method to current database schema,
