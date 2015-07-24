@@ -22,10 +22,11 @@ class CachedLoader(BaseLoader):
         self.loaders = engine.get_template_loaders(loaders)
         super(CachedLoader, self).__init__(engine)
 
-    def cache_key(self, template_name, template_dirs):
+    @staticmethod
+    def cache_key(template_name, template_dirs):
         if connection.tenant and template_dirs:
             return '-'.join([str(connection.tenant.pk), template_name,
-                                hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
+                             hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
         if template_dirs:
             # If template directories were specified, use a hash to differentiate
             return '-'.join([template_name, hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
@@ -78,14 +79,17 @@ class CachedLoader(BaseLoader):
         return self.template_cache[key]
 
     def reset(self):
-        "Empty the template cache."
+        """
+        Empty the template cache.
+        """
         self.template_cache.clear()
 
 
 class FilesystemLoader(BaseLoader):
     is_usable = True
 
-    def get_template_sources(self, template_name, template_dirs=None):
+    @staticmethod
+    def get_template_sources(template_name, template_dirs=None):
         """
         Returns the absolute paths to "template_name", when appended to each
         directory in "template_dirs". Any paths that don't lie inside one of the
@@ -119,7 +123,7 @@ class FilesystemLoader(BaseLoader):
         for filepath in self.get_template_sources(template_name, template_dirs):
             try:
                 with open(filepath, 'rb') as fp:
-                    return (fp.read().decode(settings.FILE_CHARSET), filepath)
+                    return fp.read().decode(settings.FILE_CHARSET), filepath
             except IOError:
                 tried.append(filepath)
         if tried:
