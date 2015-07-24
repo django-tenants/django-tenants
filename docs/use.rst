@@ -112,10 +112,10 @@ Or
 
 in case you're just switching your ``myapp`` application to use South migrations.
 
-PostGis
+PostGIS
 ~~~~~~~
 
-If you want to run PostGis add the following to your Django settings file
+If you want to run PostGIS add the following to your Django settings file
 
 .. code-block:: python
 
