@@ -178,7 +178,7 @@ When set, ``django-tenant-schemas`` will set the search path only once per reque
 Running in Development
 ----------------------
 
-If you want to use django-tenant in development you will have to fake a domain name. You can do this by editing the hosts file or using a program such as ``Acrylic DNS Proxy (Windows``.
+If you want to use django-tenant in development you will have to fake a domain name. You can do this by editing the hosts file or using a program such as ``Acrylic DNS Proxy (Windows)``.
 
 
 Third Party Apps
