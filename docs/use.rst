@@ -175,6 +175,12 @@ The hook for ensuring the ``search_path`` is set properly happens inside the ``D
 When set, ``django-tenant-schemas`` will set the search path only once per request. The default is ``False``.
 
 
+Running in Development
+----------------------
+
+If you want to use django-tenant in development you will have to fake a domain name. You can do this by editing the hosts file or using a program such as ``Acrylic DNS Proxy (Windows``.
+
+
 Third Party Apps
 ----------------
 Support for Celery is available at `tenant-schemas-celery <https://github.com/maciej-gol/tenant-schemas-celery>`_.
