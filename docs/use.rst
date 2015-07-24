@@ -112,6 +112,15 @@ Or
 
 in case you're just switching your ``myapp`` application to use South migrations.
 
+PostGis
+~~~~~~~
+
+If you want to run PostGis add the following to your Django settings file
+
+.. code-block:: python
+
+    ORIGINAL_BACKEND = "django.contrib.gis.db.backends.postgis"
+
 tenant_command    
 ~~~~~~~~~~~~~~
 
