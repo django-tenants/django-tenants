@@ -1,10 +1,7 @@
 import re
 import warnings
 from django.conf import settings
-try:
-    from importlib import import_module
-except ImportError:
-    from django.utils.importlib import import_module  # allows python 2.6 to work
+from importlib import import_module
 
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django_tenants.utils import get_public_schema_name, get_limit_set_calls
