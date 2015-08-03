@@ -1,13 +1,12 @@
-import django
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connection
 
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 from django_tenants.test.cases import TenantTestCase
-from django_tenants.tests.models import Tenant, NonAutoSyncTenant
 from django_tenants.tests.testcases import BaseTestCase
-from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, get_public_schema_name
+from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, get_public_schema_name, \
+    get_tenant_domain_model
 
 
 class TenantDataAndSettingsTest(BaseTestCase):
@@ -19,20 +18,28 @@ class TenantDataAndSettingsTest(BaseTestCase):
     @classmethod
     def setUpClass(cls):
         super(TenantDataAndSettingsTest, cls).setUpClass()
-        settings.SHARED_APPS = ('django_tenants', )
+        settings.SHARED_APPS = ('django_tenants',
+                                'customers')
         settings.TENANT_APPS = ('dts_test_app',
                                 'django.contrib.contenttypes',
                                 'django.contrib.auth', )
         settings.INSTALLED_APPS = settings.SHARED_APPS + settings.TENANT_APPS
         cls.sync_shared()
-        Tenant(domain_urls=['test.com'], schema_name=get_public_schema_name()).save()
+
+        tenant = get_tenant_model()(schema_name=get_public_schema_name())
+        tenant.save()
+        domain = get_tenant_domain_model()(tenant=tenant, domain='test.com')
+        domain.save()
 
     def test_tenant_schema_is_created(self):
         """
         When saving a tenant, it's schema should be created.
         """
-        tenant = Tenant(domain_urls=['something.test.com'], schema_name='test')
+        tenant = get_tenant_model()(schema_name='test')
         tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
 
         self.assertTrue(schema_exists(tenant.schema_name))
 
@@ -41,11 +48,13 @@ class TenantDataAndSettingsTest(BaseTestCase):
         When saving a tenant that has the flag auto_create_schema as
         False, the schema should not be created when saving the tenant.
         """
-        self.assertFalse(schema_exists('non_auto_sync_tenant'))
 
-        tenant = NonAutoSyncTenant(domain_urls=['something.test.com'],
-                                   schema_name='test')
+        tenant = get_tenant_model()(schema_name='test')
+        tenant.auto_create_schema = False
         tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
 
         self.assertFalse(schema_exists(tenant.schema_name))
 
@@ -53,8 +62,11 @@ class TenantDataAndSettingsTest(BaseTestCase):
         """
         When editing an existing tenant, all data should be kept.
         """
-        tenant = Tenant(domain_urls=['something.test.com'], schema_name='test')
+        tenant = get_tenant_model()(schema_name='test')
         tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
 
         # go to tenant's path
         connection.set_tenant(tenant)
@@ -74,13 +86,19 @@ class TenantDataAndSettingsTest(BaseTestCase):
         self.assertEquals(DummyModel.objects.count(), 2)
 
     def test_switching_search_path(self):
-        tenant1 = Tenant(domain_urls=['something.test.com'],
-                         schema_name='tenant1')
+        tenant1 = get_tenant_model()(schema_name='tenant1')
         tenant1.save()
 
+        domain1 = get_tenant_domain_model()(tenant=tenant1, domain='something.test.com')
+        domain1.save()
+
         connection.set_schema_to_public()
-        tenant2 = Tenant(domain_urls=['example.com'], schema_name='tenant2')
+
+        tenant2 = get_tenant_model()(schema_name='tenant2')
         tenant2.save()
+
+        domain2 = get_tenant_domain_model()(tenant=tenant2, domain='example.com')
+        domain2.save()
 
         # go to tenant1's path
         connection.set_tenant(tenant1)
@@ -104,8 +122,11 @@ class TenantDataAndSettingsTest(BaseTestCase):
             self.assertEqual(3, DummyModel.objects.count())
 
     def test_switching_tenant_without_previous_tenant(self):
-        tenant = Tenant(domain_urls=['something.test.com'], schema_name='test')
+        tenant = get_tenant_model()(schema_name='test')
         tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
 
         connection.tenant = None
         with tenant_context(tenant):
@@ -129,6 +150,7 @@ class TenantSyncTest(BaseTestCase):
         the a tenant schema.
         """
         settings.SHARED_APPS = ('django_tenants',  # 2 tables
+                                'customers',
                                 'django.contrib.auth',  # 6 tables
                                 'django.contrib.contenttypes', )  # 1 table
         settings.TENANT_APPS = ('django.contrib.sessions', )
@@ -145,13 +167,17 @@ class TenantSyncTest(BaseTestCase):
         the public schema.
         """
         settings.SHARED_APPS = ('django_tenants',
+                                'customers',
                                 'django.contrib.auth',
                                 'django.contrib.contenttypes', )
         settings.TENANT_APPS = ('django.contrib.sessions', )  # 1 table
         settings.INSTALLED_APPS = settings.SHARED_APPS + settings.TENANT_APPS
         self.sync_shared()
-        tenant = Tenant(domain_urls=['arbitrary.test.com'], schema_name='test')
+        tenant = get_tenant_model()(schema_name='test')
         tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='arbitrary.test.com')
+        domain.save()
 
         tenant_tables = self.get_tables_list_in_schema(tenant.schema_name)
         self.assertEqual(1+self.MIGRATION_TABLE_SIZE, len(tenant_tables))
@@ -163,14 +189,18 @@ class TenantSyncTest(BaseTestCase):
         In this case they should get synced to both tenant and public schemas.
         """
         settings.SHARED_APPS = ('django_tenants',  # 2 tables
+                                'customers',
                                 'django.contrib.auth',  # 6 tables
                                 'django.contrib.contenttypes',  # 1 table
                                 'django.contrib.sessions', )  # 1 table
         settings.TENANT_APPS = ('django.contrib.sessions', )  # 1 table
         settings.INSTALLED_APPS = settings.SHARED_APPS + settings.TENANT_APPS
         self.sync_shared()
-        tenant = Tenant(domain_urls=['arbitrary.test.com'], schema_name='test')
+        tenant = get_tenant_model()(schema_name='test')
         tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='arbitrary.test.com')
+        domain.save()
 
         shared_tables = self.get_tables_list_in_schema(get_public_schema_name())
         tenant_tables = self.get_tables_list_in_schema(tenant.schema_name)
@@ -185,12 +215,15 @@ class TenantSyncTest(BaseTestCase):
         not required in TENANT_APPS.
         """
         settings.SHARED_APPS = ('django_tenants',  # 2 tables
+                                'customers',
                                 'django.contrib.contenttypes', )  # 1 table
         settings.TENANT_APPS = ('django.contrib.sessions', )  # 1 table
         settings.INSTALLED_APPS = settings.SHARED_APPS + settings.TENANT_APPS
         self.sync_shared()
-        tenant = Tenant(domain_urls=['something.test.com'], schema_name='test')
+        tenant = get_tenant_model()(schema_name='test')
         tenant.save()
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
 
         shared_tables = self.get_tables_list_in_schema(get_public_schema_name())
         tenant_tables = self.get_tables_list_in_schema(tenant.schema_name)
@@ -204,17 +237,24 @@ class SharedAuthTest(BaseTestCase):
     @classmethod
     def setUpClass(cls):
         super(SharedAuthTest, cls).setUpClass()
+
         settings.SHARED_APPS = ('django_tenants',
+                                'customers',
                                 'django.contrib.auth',
                                 'django.contrib.contenttypes', )
         settings.TENANT_APPS = ('dts_test_app', )
         settings.INSTALLED_APPS = settings.SHARED_APPS + settings.TENANT_APPS
         cls.sync_shared()
-        Tenant(domain_urls=['test.com'], schema_name=get_public_schema_name()).save()
+        tenant = get_tenant_model()(schema_name=get_public_schema_name())
+        tenant.save()
+        domain = get_tenant_domain_model()(tenant=tenant, domain='test.com')
+        domain.save()
 
         # Create a tenant
-        cls.tenant = Tenant(domain_urls=['tenant.test.com'], schema_name='tenant')
+        cls.tenant = get_tenant_model()(schema_name='tenant')
         cls.tenant.save()
+        cls.domain = get_tenant_domain_model()(tenant=cls.tenant, domain='tenant.test.com')
+        cls.domain.save()
 
         # Create some users
         with schema_context(get_public_schema_name()):  # this could actually also be executed inside a tenant

@@ -1,4 +1,3 @@
-import django
 from django.conf import settings
 from django.core.management import call_command
 from django.db import connection
@@ -14,8 +13,10 @@ class BaseTestCase(TestCase):
     """
     @classmethod
     def setUpClass(cls):
-        settings.TENANT_MODEL = 'django_tenants.Tenant'
-        settings.SHARED_APPS = ('django_tenants', )
+        settings.TENANT_MODEL = 'customers.Client'
+        settings.TENANT_DOMAIN_MODEL = 'customers.Domain'
+        settings.SHARED_APPS = ('django_tenants',
+                                'customers')
         settings.TENANT_APPS = ('dts_test_app',
                                 'django.contrib.contenttypes',
                                 'django.contrib.auth', )

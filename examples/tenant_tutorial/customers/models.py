@@ -7,5 +7,6 @@ class Client(TenantMixin):
     description = models.TextField(max_length=200)
     created_on = models.DateField(auto_now_add=True)
 
+
 class Domain(DomainMixin):
     pass

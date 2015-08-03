@@ -1,12 +1,10 @@
-import django
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.db import models, connection, transaction
 from django.core.management import call_command
 
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
-from .utils import django_is_in_test_mode, schema_exists, get_tenant_model, get_tenant_domain_model
+from .utils import schema_exists, get_tenant_domain_model
 from .utils import get_public_schema_name
 
 

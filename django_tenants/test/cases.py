@@ -1,4 +1,3 @@
-import django
 from django.core.management import call_command
 from django.db import connection
 from django.test import TestCase
@@ -15,7 +14,7 @@ class TenantTestCase(TestCase):
 
         # Set up domain
         tenant_domain = 'tenant.test.com'
-        domain = get_tenant_domain_model()(domain=tenant_domain, tenant=cls.tenant)
+        domain = get_tenant_domain_model()(tenant=cls.tenant, domain=tenant_domain)
         domain.save()
 
         connection.set_tenant(cls.tenant)

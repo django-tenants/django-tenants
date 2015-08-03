@@ -11,6 +11,7 @@ from django.utils.encoding import force_bytes
 from django.utils._os import safe_join
 from django.db import connection
 from django.template.loaders.base import Loader as BaseLoader
+from django_tenants.postgresql_backend.base import FakeTenant
 
 
 class CachedLoader(BaseLoader):
@@ -95,7 +96,7 @@ class FilesystemLoader(BaseLoader):
         directory in "template_dirs". Any paths that don't lie inside one of the
         template dirs are excluded from the result set, for security reasons.
         """
-        if not connection.tenant:
+        if not connection.tenant or isinstance(connection.tenant, FakeTenant):
             return
         if not template_dirs:
             try:
