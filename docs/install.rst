@@ -101,7 +101,7 @@ To make use of shared and tenant-specific applications, there are two settings c
         'myapp.houses', 
     )
 
-    INSTALLED_APPS = list(set(SHARED_APPS + TENANT_APPS))
+    INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
 You also have to set where your tenant & domain models are located.
 
