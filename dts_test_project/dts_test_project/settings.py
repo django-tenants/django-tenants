@@ -56,7 +56,7 @@ TENANT_DOMAIN_MODEL = "customers.Domain"  # app.Model
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
-INSTALLED_APPS = list(set(TENANT_APPS + SHARED_APPS))
+INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
 ROOT_URLCONF = 'dts_test_project.urls'
 
