@@ -9,8 +9,6 @@ def run_migrations(args, options, schema_name):
     from django.core.management.base import OutputWrapper
     from django.db import connection
 
-    connection.close()
-
     style = color.color_style()
 
     def style_func(msg):
