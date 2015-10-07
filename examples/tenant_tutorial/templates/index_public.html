@@ -51,8 +51,7 @@ class Client(TenantMixin):
     <p>To create a tenant run the following commands:</p>
 <pre>from customers.models import Client</pre>
 <pre>
-Client(domain_url='{{ hostname }}',
-    schema_name='public',
+Client(schema_name='public',
     name='Trendy SaSS',
     description='Public Tenant').save()</pre>
     <p>Done! <code>django-tenants</code> will now be able to locate our public tenant and won't return 404. Refresh this page to see the next step.</p>
@@ -76,8 +75,7 @@ Client(domain_url='{{ hostname }}',
 <pre>$ ./manage.py shell</pre>
 <pre>from customers.models import Client</pre>
 <pre>
-Client(domain_url='tenant1.trendy-sass.com',
-    schema_name='tenant1',
+Client(schema_name='tenant1',
     name='Tenant1 - Awesome',
     description='Our first real tenant, awesome!').save()</pre>
     <p>Saving a tenant that didn't exist before will create their schema and sync <code>TENANT_APPS</code> automatically. You should see
@@ -95,8 +93,7 @@ Running migrations:
   Applying sessions.0001_initial... OK</pre>
     <p>This means your tenant was installed successfully. Now create the second tenant.</p>
 <pre>
-Client(domain_url='tenant2.trendy-sass.com',
-    schema_name='tenant2',
+Client(schema_name='tenant2',
     name='Tenant2 - Even Awesome-r',
     description='A second tenant, even more awesome!').save()</pre>
 
