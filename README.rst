@@ -172,7 +172,7 @@ created ``Client`` inside an app named ``customers``, your
 Now run ``migrate_schemas``, this will sync your apps to the ``public``
 schema.
 
-::
+.. code-block:: bash
 
     python manage.py migrate_schemas --shared
 
@@ -214,7 +214,7 @@ Parallel migrations
 
 You can run tenant migrations in parallel like this:
 
-::
+.. code-block:: bash
 
     python manage.py migrate_schemas --executor=multiprocessing
 
