@@ -1,24 +1,32 @@
-import django
+import sys
 
-if django.VERSION >= (1, 7, 0):
-    from django.core.management.commands.migrate import Command as MigrateCommand
-
+from django.core.management.commands.migrate import Command as MigrateCommand
 from django_tenants.utils import get_public_schema_name
 
 
 def run_migrations(args, options, schema_name):
-    from .base import MigrateCommand
-
     from django.core.management import color
+    from django.core.management.base import OutputWrapper
     from django.db import connection
 
     connection.close()
 
-    if int(options.get('verbosity', 1)) >= 1:
-        style = color.color_style()
-        print style.NOTICE("=== Running migrate for schema %s" % schema_name)
+    style = color.color_style()
+
+    def style_func(msg):
+        return '[%s] %s' % (
+            style.NOTICE(schema_name),
+            msg
+        )
+
     connection.set_schema(schema_name)
-    MigrateCommand().execute(*args, **options)
+    stdout = OutputWrapper(sys.stdout)
+    stdout.style_func = style_func
+    stderr = OutputWrapper(sys.stderr)
+    stderr.style_func = style_func
+    if int(options.get('verbosity', 1)) >= 1:
+        stdout.write(style.NOTICE("=== Starting migration"))
+    MigrateCommand(stdout=stdout, stderr=stderr).execute(*args, **options)
     connection.set_schema_to_public()
 
 
@@ -33,11 +41,3 @@ class MigrationExecutor(object):
 
     def run_migrations(self, tenants=None):
         raise NotImplementedError
-
-    """
-    def public_apps(self):
-        return settings.SHARED_APPS
-
-    def tenant_apps(self):
-        return settings.TENANT_APPS
-    """
