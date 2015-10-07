@@ -136,11 +136,14 @@ class SyncCommon(BaseCommand):
         parser.add_argument('--shared', action='store_true', dest='shared', default=False,
                             help='Tells Django to populate only shared applications.')
         parser.add_argument("-s", "--schema", dest="schema_name")
+        parser.add_argument('--executor', action='store', dest='executor', default=None,
+                            help='Executor to be used for running migrations [standard|multiprocessing]')
 
     def handle(self, *args, **options):
         self.sync_tenant = options.get('tenant')
         self.sync_public = options.get('shared')
         self.schema_name = options.get('schema_name')
+        self.executor = options.get('executor')
         self.installed_apps = settings.INSTALLED_APPS
         self.args = args
         self.options = options
