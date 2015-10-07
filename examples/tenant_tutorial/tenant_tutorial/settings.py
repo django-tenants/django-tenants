@@ -151,7 +151,7 @@ TENANT_APPS = (
 
 TENANT_MODEL = "customers.Client"  # app.Model
 
-TENANT_DOMAIN_MODEL = "customers.DomainName"  # app.Model
+TENANT_DOMAIN_MODEL = "customers.Domain"  # app.Model
 
 INSTALLED_APPS = list(set(TENANT_APPS + SHARED_APPS))
 
