@@ -42,8 +42,7 @@ def call_git_describe():
                   stdout=PIPE, stderr=PIPE)
         p.stderr.close()
         line = p.stdout.readlines()[0]
-        return line.strip().decode('utf-8')
-
+        return line.strip().decode('utf-8').split('-')[0]
     except:
         return None
 
