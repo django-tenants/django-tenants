@@ -3,8 +3,8 @@ django-tenants
 
 .. image:: https://badge.fury.io/py/django-tenants.svg
     :target: http://badge.fury.io/py/django-tenants
-.. image:: https://travis-ci.org/CGenie/django-tenants.svg?branch=master
-    :target: https://travis-ci.org/CGenie/django-tenants
+.. image:: https://travis-ci.org/tomturner/django-tenants.svg?branch=master
+    :target: https://travis-ci.org/tomturner/django-tenants
 
 This application enables `django`_ powered websites to have multiple
 tenants via `PostgreSQL schemas`_. A vital feature for every
