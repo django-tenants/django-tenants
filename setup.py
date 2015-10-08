@@ -12,7 +12,7 @@ __version__ = "1.0.3"
 
 setup(
     name='django-tenants',
-    version='1.0.3',
+    version=get_git_version(),
     author='Thomas Turner',
     author_email='tom@twt.me.uk',
     packages=[
