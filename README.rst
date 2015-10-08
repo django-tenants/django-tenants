@@ -209,26 +209,6 @@ tutorial, such as creating the public tenant and configuring shared and
 tenant specific apps. Complete instructions can be found at
 `django-tenants.readthedocs.org`_.
 
-Parallel migrations
--------------------
-
-You can run tenant migrations in parallel like this:
-
-.. code-block:: bash
-
-    python manage.py migrate_schemas --executor=multiprocessing
-
-In fact, you can write your own executor which will run tenant migrations in
-any way you want, just take a look at ``django_tenants/migration_executors``.
-
-The ``multiprocessing`` executor accepts the following settings:
-
-* ``TENANT_MULTIPROCESSING_MAX_PROCESSES`` (default: 2) - maximum number of
-  processes for migration pool (this is to avoid exhausting the database
-  connection pool)
-* ``TENANT_MULTIPROCESSING_CHUNKS`` (default: 2) - number of migrations to be
-  sent at once to every worker
-
 Credits
 -------
 

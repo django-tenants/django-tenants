@@ -112,14 +112,27 @@ Or
 
 in case you're just switching your ``myapp`` application to use South migrations.
 
-PostGIS
-~~~~~~~
 
-If you want to run PostGIS add the following to your Django settings file
+migrate_schemas in Parallel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: python
+You can run tenant migrations in parallel like this:
 
-    ORIGINAL_BACKEND = "django.contrib.gis.db.backends.postgis"
+.. code-block:: bash
+
+    python manage.py migrate_schemas --executor=multiprocessing
+
+In fact, you can write your own executor which will run tenant migrations in
+any way you want, just take a look at ``django_tenants/migration_executors``.
+
+The ``multiprocessing`` executor accepts the following settings:
+
+* ``TENANT_MULTIPROCESSING_MAX_PROCESSES`` (default: 2) - maximum number of
+  processes for migration pool (this is to avoid exhausting the database
+  connection pool)
+* ``TENANT_MULTIPROCESSING_CHUNKS`` (default: 2) - number of migrations to be
+  sent at once to every worker
+
 
 tenant_command    
 ~~~~~~~~~~~~~~
@@ -160,6 +173,14 @@ For example if you have a field in the ``TenantMixin`` model called company you 
 If no argument are specified for a field then you be promted for the values.
 There is an additional argument of -s which sets up a superuser for that tenant.
 
+PostGIS
+-------
+
+If you want to run PostGIS add the following to your Django settings file
+
+.. code-block:: python
+
+    ORIGINAL_BACKEND = "django.contrib.gis.db.backends.postgis"
 
 
 Performance Considerations
