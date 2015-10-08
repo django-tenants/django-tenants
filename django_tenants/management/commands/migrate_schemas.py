@@ -1,8 +1,7 @@
 
-from django.core.management.commands.migrate import Command as MigrateCommand
-from django.db import connection, DEFAULT_DB_ALIAS
-from django.conf import settings
+from django.db import DEFAULT_DB_ALIAS
 
+from django_tenants.migration_executors import get_executor
 from django_tenants.utils import get_tenant_model, get_public_schema_name, schema_exists
 from django_tenants.management.commands import SyncCommon
 
@@ -42,26 +41,23 @@ class MigrateSchemasCommand(SyncCommon):
         if self.sync_public and not self.schema_name:
             self.schema_name = self.PUBLIC_SCHEMA_NAME
 
+        executor = get_executor(codename=self.executor)(self.args, self.options)
+
         if self.sync_public:
-            self.run_migrations(self.schema_name, settings.SHARED_APPS, options)
+            executor.run_migrations(tenants=[self.PUBLIC_SCHEMA_NAME])
         if self.sync_tenant:
             if self.schema_name and self.schema_name != self.PUBLIC_SCHEMA_NAME:
                 if not schema_exists(self.schema_name):
                     raise RuntimeError('Schema "{}" does not exist'.format(
                         self.schema_name))
                 else:
-                    self.run_migrations(self.schema_name, settings.TENANT_APPS, options)
+                    tenants = [self.schema_name]
             else:
-                all_tenants = get_tenant_model().objects.exclude(schema_name=get_public_schema_name())
-                for tenant in all_tenants:
-                    self.run_migrations(tenant.schema_name, settings.TENANT_APPS, options)
+                tenants = [
+                    t.schema_name for t in get_tenant_model().objects.only('schema_name').exclude(schema_name=self.PUBLIC_SCHEMA_NAME)
+                ]
 
-    def run_migrations(self, schema_name, included_apps, options):
-        self._notice("=== Running migrate for schema %s" % schema_name)
-        connection.set_schema(schema_name)
-        command = MigrateCommand()
+            executor.run_migrations(tenants=tenants)
 
-        command.execute(*self.args, **options)
-        connection.set_schema_to_public()
 
 Command = MigrateSchemasCommand

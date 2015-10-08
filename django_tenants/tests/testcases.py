@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.core.management import call_command
 from django.db import connection
@@ -47,4 +49,5 @@ class BaseTestCase(TestCase):
         call_command('migrate_schemas',
                      schema_name=get_public_schema_name(),
                      interactive=False,
+                     executor=os.environ.get('EXECUTOR', 'standard'),
                      verbosity=0)
