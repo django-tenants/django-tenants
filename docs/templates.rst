@@ -17,6 +17,41 @@ The classical Django filesystem template loader cannot make the search path for 
 
 This loader is looking for templates based on the setting ``MULTITENANT_TEMPLATE_DIRS`` instead of the path in ``TEMPLATE_DIRS``. Templates are not searched directly in each directory ``template_dir`` but in the directory ``os.path.join(template_dir, tenant.domain_urls)``. If ``template_dir`` contains a ``%s`` formatting placeholder the directory used is ``template_dir % tenant.domain_urls`` so that you can store your templates in a subdirectory of your tenant directory. Like with the Django ``FilesystemLoader`` the first found file is returned.
 
+Examples
+~~~~~~~~
+
+Assume you project is called "my_project". And you have two tenants, with schema names "tenant_1" and "tenant_2"
+
+.. code-block:: python
+
+    MULTITENANT_TEMPLATE_DIRS = [
+        'tenant_templates'
+    ]
+
+
+would look in these directories for templates:
+
+.. code-block:: python
+
+    my_project/tenant_templates/tenant_1/
+    my_project/tenant_templates/tenant_2/
+
+and this:
+
+.. code-block:: python
+
+    MULTITENANT_TEMPLATE_DIRS = [
+        'tenant/%s/templates'
+    ]
+
+would look in one of these:
+
+.. code-block:: python
+
+    my_project/tenant/tenant_1/templates/
+
+    my_project/tenant/tenant_2/templates/
+
 Multitenant aware cached template loader
 ----------------------------------------
 
