@@ -24,12 +24,6 @@ class BaseTestCase(TransactionTestCase):
 
         cls.available_apps = settings.INSTALLED_APPS
 
-        # Django calls syncdb by default for the test database, but we want
-        # a blank public schema for this set of tests.
-        #connection.set_schema_to_public()
-        #with connection.cursor() as cursor:
-        #    cursor.execute('DROP SCHEMA %s CASCADE; CREATE SCHEMA %s;'
-        #                   % (get_public_schema_name(), get_public_schema_name(), ))
         super(BaseTestCase, cls).setUpClass()
 
     def setUp(self):
