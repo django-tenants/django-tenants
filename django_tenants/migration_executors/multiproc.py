@@ -13,7 +13,7 @@ class MultiprocessingExecutor(MigrationExecutor):
         tenants = tenants or []
 
         if self.PUBLIC_SCHEMA_NAME in tenants:
-            run_migrations(self.args, self.options, self.PUBLIC_SCHEMA_NAME)
+            run_migrations(self.args, self.options, self.codename, self.PUBLIC_SCHEMA_NAME)
             tenants.pop(tenants.index(self.PUBLIC_SCHEMA_NAME))
 
         if tenants:
@@ -38,7 +38,8 @@ class MultiprocessingExecutor(MigrationExecutor):
             run_migrations_p = functools.partial(
                 run_migrations,
                 self.args,
-                self.options
+                self.options,
+                self.codename
             )
             p = multiprocessing.Pool(processes=processes)
             p.map(

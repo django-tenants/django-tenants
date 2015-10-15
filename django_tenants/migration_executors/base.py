@@ -4,7 +4,7 @@ from django.core.management.commands.migrate import Command as MigrateCommand
 from django_tenants.utils import get_public_schema_name
 
 
-def run_migrations(args, options, schema_name):
+def run_migrations(args, options, executor_codename, schema_name):
     from django.core.management import color
     from django.core.management.base import OutputWrapper
     from django.db import connection
@@ -12,7 +12,8 @@ def run_migrations(args, options, schema_name):
     style = color.color_style()
 
     def style_func(msg):
-        return '[%s] %s' % (
+        return '[%s:%s] %s' % (
+            style.NOTICE(executor_codename),
             style.NOTICE(schema_name),
             msg
         )

@@ -8,8 +8,8 @@ class StandardExecutor(MigrationExecutor):
         tenants = tenants or []
 
         if self.PUBLIC_SCHEMA_NAME in tenants:
-            run_migrations(self.args, self.options, self.PUBLIC_SCHEMA_NAME)
+            run_migrations(self.args, self.options, self.codename, self.PUBLIC_SCHEMA_NAME)
             tenants.pop(tenants.index(self.PUBLIC_SCHEMA_NAME))
 
         for schema_name in tenants:
-            run_migrations(self.args, self.options, schema_name)
+            run_migrations(self.args, self.options, self.codename, schema_name)
