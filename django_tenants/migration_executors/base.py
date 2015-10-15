@@ -11,9 +11,6 @@ def run_migrations(args, options, executor_codename, schema_name):
 
     style = color.color_style()
 
-    connection.close()
-    connection.connection = None
-
     def style_func(msg):
         return '[%s:%s] %s' % (
             style.NOTICE(executor_codename),
