@@ -6,9 +6,9 @@ from version import get_git_version
 try:
     from setuptools import setup
 except ImportError:
-    from distutils.core import setup
+    from distutils.core import setp
 
-__version__ = "1.0.3"
+__version__ = "1.1.2"
 
 setup(
     name='django-tenants',
