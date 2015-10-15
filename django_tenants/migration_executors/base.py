@@ -29,6 +29,10 @@ def run_migrations(args, options, executor_codename, schema_name):
     if int(options.get('verbosity', 1)) >= 1:
         stdout.write(style.NOTICE("=== Starting migration"))
     MigrateCommand(stdout=stdout, stderr=stderr).execute(*args, **options)
+
+    connection.close()
+    connection.connection = None
+
     connection.set_schema_to_public()
 
 

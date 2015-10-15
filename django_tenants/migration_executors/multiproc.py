@@ -30,9 +30,7 @@ class MultiprocessingExecutor(MigrationExecutor):
 
             from django.db import connection
 
-            # Let every process make its connection, but don't close the
-            # main connection
-            c = connection.connection
+            connection.close()
             connection.connection = None
 
             run_migrations_p = functools.partial(
@@ -47,6 +45,3 @@ class MultiprocessingExecutor(MigrationExecutor):
                 tenants,
                 chunks
             )
-
-            # Revert the original connection
-            connection.connection = c

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 pushd dts_test_project
 
 EXECUTORS=( standard multiprocessing )
