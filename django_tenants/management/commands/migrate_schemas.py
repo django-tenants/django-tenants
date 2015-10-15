@@ -53,9 +53,10 @@ class MigrateSchemasCommand(SyncCommon):
                 else:
                     tenants = [self.schema_name]
             else:
-                tenants = [
-                    t.schema_name for t in get_tenant_model().objects.only('schema_name').exclude(schema_name=self.PUBLIC_SCHEMA_NAME)
-                ]
+                tenants = get_tenant_model().objects.only(
+                    'schema_name').exclude(
+                    schema_name=self.PUBLIC_SCHEMA_NAME).values_list(
+                    'schema_name', flat=True)
 
             executor.run_migrations(tenants=tenants)
 

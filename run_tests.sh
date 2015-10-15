@@ -1,7 +1,11 @@
 #!/bin/bash
 
+set -e
+
 pushd dts_test_project
 
-EXECUTOR=standard python manage.py test django_tenants.tests
+EXECUTORS=( standard multiprocessing )
 
-EXECUTOR=multiprocessing python manage.py test django_tenants.tests
+for executor in "${EXECUTORS[@]}"; do
+    EXECUTOR=$executor python manage.py test django_tenants.tests
+done
