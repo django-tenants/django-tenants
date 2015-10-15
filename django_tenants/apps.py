@@ -17,6 +17,8 @@ class DjangoTenantsConfig(AppConfig):
     verbose_name = "Django tenants"
 
     def ready(self):
+        from django.db import connection
+
         # Test for configuration recommendations. These are best practices,
         # they avoid hard to find bugs and unexpected behaviour.
         if not hasattr(settings, 'TENANT_APPS'):
@@ -41,9 +43,18 @@ class DjangoTenantsConfig(AppConfig):
                     % get_public_schema_name())
 
             # make sure no tenant schema is in settings.PG_EXTRA_SEARCH_PATHS
-            invalid_schemas = set(settings.PG_EXTRA_SEARCH_PATHS).intersection(
-            get_tenant_model().objects.all().values_list('schema_name', flat=True))
-            if invalid_schemas:
-                raise ImproperlyConfigured(
-                    "Do not include tenant schemas (%s) on PG_EXTRA_SEARCH_PATHS."
-                    % list(invalid_schemas))
+
+            # first check that the model table is created
+            model = get_tenant_model()
+            c = connection.cursor()
+            c.execute(
+                'SELECT 1 FROM information_schema.tables WHERE table_name = %s;',
+                [model._meta.db_table]
+            )
+            if c.fetchone():
+                invalid_schemas = set(settings.PG_EXTRA_SEARCH_PATHS).intersection(
+                    model.objects.all().values_list('schema_name', flat=True))
+                if invalid_schemas:
+                    raise ImproperlyConfigured(
+                        "Do not include tenant schemas (%s) on PG_EXTRA_SEARCH_PATHS."
+                        % list(invalid_schemas))
