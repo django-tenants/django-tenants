@@ -1,10 +1,12 @@
 import sys
 
+from django.db import transaction
+
 from django.core.management.commands.migrate import Command as MigrateCommand
 from django_tenants.utils import get_public_schema_name
 
 
-def run_migrations(args, options, executor_codename, schema_name):
+def run_migrations(args, options, executor_codename, schema_name, allow_atomic=True):
     from django.core.management import color
     from django.core.management.base import OutputWrapper
     from django.db import connection
@@ -27,8 +29,16 @@ def run_migrations(args, options, executor_codename, schema_name):
         stdout.write(style.NOTICE("=== Starting migration"))
     MigrateCommand(stdout=stdout, stderr=stderr).execute(*args, **options)
 
-    connection.close()
-    connection.connection = None
+    try:
+        transaction.commit()
+        connection.close()
+        connection.connection = None
+    except transaction.TransactionManagementError:
+        if not allow_atomic:
+            raise
+
+        # We are in atomic transaction, don't close connections
+        pass
 
     connection.set_schema_to_public()
 
