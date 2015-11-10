@@ -26,6 +26,7 @@ Because django will not create tenants for you during your tests, we have packed
 
     class BaseSetup(TenantTestCase):
         def setUp(self):
+            super(BaseSetup, self).setUp()
             self.c = TenantClient(self.tenant)
             
         def test_user_profile_view(self):
