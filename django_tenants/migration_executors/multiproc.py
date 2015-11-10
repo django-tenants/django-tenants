@@ -37,7 +37,8 @@ class MultiprocessingExecutor(MigrationExecutor):
                 run_migrations,
                 self.args,
                 self.options,
-                self.codename
+                self.codename,
+                allow_atomic=False
             )
             p = multiprocessing.Pool(processes=processes)
             p.map(

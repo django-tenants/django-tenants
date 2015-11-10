@@ -1,12 +1,14 @@
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db import connection
+from django.db import connection, transaction
 
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, get_public_schema_name, \
     get_tenant_domain_model
+
+from django_tenants.migration_executors import get_executor
 
 
 class TenantDataAndSettingsTest(BaseTestCase):
@@ -69,6 +71,33 @@ class TenantDataAndSettingsTest(BaseTestCase):
         self.assertTrue(schema_exists(tenant.schema_name))
 
         self.created = [domain, tenant]
+
+    def test_tenant_schema_is_created_atomically(self):
+        """
+        When saving a tenant, it's schema should be created.
+        This should work in atomic transactions too.
+        """
+        executor = get_executor()
+        Tenant = get_tenant_model()
+
+        schema_name = 'test'
+
+        @transaction.atomic()
+        def atomically_create_tenant():
+            t = Tenant(schema_name=schema_name)
+            t.save()
+
+            self.created = [t]
+
+        if executor == 'simple':
+            atomically_create_tenant()
+
+            self.assertTrue(schema_exists(schema_name))
+        elif executor == 'multiprocessing':
+            # Unfortunately, it's impossible for the multiprocessing executor
+            # to assert atomic transactions when creating a tenant
+            with self.assertRaises(transaction.TransactionManagementError):
+                atomically_create_tenant()
 
     def test_non_auto_sync_tenant(self):
         """
