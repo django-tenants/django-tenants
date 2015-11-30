@@ -6,7 +6,7 @@ from version import get_git_version
 try:
     from setuptools import setup
 except ImportError:
-    from distutils.core import setp
+    from distutils.core import setup
 
 __version__ = "1.1.2"
 
