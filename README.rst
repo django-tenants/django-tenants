@@ -244,8 +244,8 @@ Requirements
    :target: https://crate.io/packages/django-tenant-schemas/
 .. |PyPi downloads| image:: https://pypip.in/d/django-tenant-schemas/badge.png
    :target: https://crate.io/packages/django-tenant-schemas/
-.. _setup: https://django-tenant-schemas.readthedocs.org/en/latest/install.html
-.. _examples: https://django-tenant-schemas.readthedocs.org/en/latest/examples.html
+.. _setup: https://django-tenants-schema.readthedocs.org/en/latest/install.html
+.. _examples: https://django-tenant.readthedocs.org/en/latest/examples.html
 .. _django-tenants.readthedocs.org: https://django-tenants.readthedocs.org/en/latest/
 .. _django-tenant-schemas: http://github.com/bernardopires/django-tenant-schemas
 .. _django-schemata: https://github.com/tuttle/django-schemata
