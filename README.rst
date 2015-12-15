@@ -214,21 +214,12 @@ tenant specific apps. Complete instructions can be found at
 Running the example project
 ---------------------------
 
-You can run the example project by using vagrant. You will need.
+django-tenants comes with an example project please see
 
-1. VirtualBox
+`django-tenants.readthedocs.org/en/latest/examples.html`_.
 
-2. Vagrant
 
-3. Fabric  (pip install fabric)
 
-4. Fabtools (pip install fabtools)
-
-Then you can run ./provision_vagrant.sh
-
-Then you can run ./vagrant_create_tenant.sh
-
-Make sure you add and entry in you host file
 
 Credits
 -------
