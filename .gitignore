@@ -7,3 +7,4 @@ _build/
 dist/
 django_tenants.egg-info
 .idea/
+.vagrant
