@@ -24,7 +24,6 @@ def vagrant():
 
 
 @task
-@hosts(['vagrant@127.0.0.1:2222'])
 def provision_vagrant():
     vagrant()
     update_index()
@@ -91,3 +90,7 @@ def django_migrate():
 @task
 def create_tenant():
     django_manage("create_tenant")
+
+@task
+def runserver():
+    django_manage("runserver 0.0.0.0:8080")

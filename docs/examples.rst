@@ -26,8 +26,19 @@ You can run the example project with vagrant. You will need.
 
 4. Fabtools (pip install fabtools)
 
-Then you can run ./provision_vagrant.sh
+Then you can run
 
-Then you can run ./vagrant_create_tenant.sh
+.. code-block:: bash
+
+    fab vagrant provision_vagrant
+
+    fab vagrant reset_database
+
+    fab vagrant create_tenant
+
+    fab vagrant runserver
+
+
+Now port 8080 is open and ready to use
 
 Make sure you add and entry in you host file
