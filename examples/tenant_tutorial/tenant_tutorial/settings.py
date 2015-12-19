@@ -147,6 +147,7 @@ TENANT_APPS = (
     # The following Django contrib apps must be in TENANT_APPS
     'django.contrib.contenttypes',
     'django.contrib.auth',
+    'tenant_only',
 )
 
 TENANT_MODEL = "customers.Client"  # app.Model
