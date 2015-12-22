@@ -242,9 +242,16 @@ a PostgreSQL instance, location of which you can customize using the ``DATABASE_
 env variable) or use `docker-compose`_ like this:
 
 .. code-block:: bash
+    ## Start Docker service
+    # start docker   # with Upstart
+    # systemctl start docker  # with systemd
 
-    docker-compose up postgres
-    docker-compose run django-tenants-test
+    ## Install docker-compose (you might want to do this in Python virtualenv)
+    # pip install docker-compose
+
+    ## In main directory of this repo do:
+    docker-compose up postgres  # starts dockerized PostgreSQL service
+    docker-compose run django-tenants-test  # runs django-tenants tests
 
 (note that upon first run the ``Dockerfile`` will be built).
 
