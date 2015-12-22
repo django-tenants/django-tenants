@@ -1,0 +1,14 @@
+postgres:
+  image: postgres:latest
+
+django-tenants-test:
+  build: .
+  links:
+    - postgres
+  volumes:
+    - .:/code
+  command: ./run_tests.sh
+  environment:
+    DATABASE_HOST: postgres
+  ports:
+    - "8080:8080"

@@ -72,7 +72,7 @@ DATABASES = {
         'NAME': 'dts_test_project',
         'USER': 'postgres',
         'PASSWORD': 'root',
-        'HOST': 'localhost',
+        'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
         'PORT': '',
     }
 }
