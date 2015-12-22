@@ -242,6 +242,7 @@ a PostgreSQL instance, location of which you can customize using the ``DATABASE_
 env variable) or use `docker-compose`_ like this:
 
 .. code-block:: bash
+
     ## Start Docker service
     # start docker   # with Upstart
     # systemctl start docker  # with systemd
