@@ -2,7 +2,8 @@
 
 set -e
 
-DATABASE=$DATABASE_HOST || localhost
+DATABASE=${DATABASE_HOST:-localhost}
+echo "Database: $DATABASE"
 
 while ! nc "$DATABASE" "5432" >/dev/null 2>&1 < /dev/null; do
   i=`expr $i + 1`
