@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 
 from os.path import exists
-from version import get_git_version
 
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
 
-__version__ = "1.1.2"
+__version__ = "1.1.4"
 
 setup(
     name='django-tenants',
-    version=get_git_version(),
+    version=__version__,
     author='Thomas Turner',
     author_email='tom@twt.me.uk',
     packages=[
