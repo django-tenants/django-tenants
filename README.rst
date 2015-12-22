@@ -234,6 +234,27 @@ Requirements
  - Django 1.8 if you want to use 1.7 or lower please use `django-tenant-schemas`_.
  - PostgreSQL
 
+Testing
+-------
+
+If you want to run test you can either run ``run_tests.sh`` (which requires access to
+a PostgreSQL instance, location of which you can customize using the ``DATABASE_HOST``
+env variable) or use `docker-compose`_ like this:
+
+.. code-block:: bash
+    ## Start Docker service
+    # start docker   # with Upstart
+    # systemctl start docker  # with systemd
+
+    ## Install docker-compose (you might want to do this in Python virtualenv)
+    # pip install docker-compose
+
+    ## In main directory of this repo do:
+    docker-compose up postgres  # starts dockerized PostgreSQL service
+    docker-compose run django-tenants-test  # runs django-tenants tests
+
+(note that upon first run the ``Dockerfile`` will be built).
+
 
 .. _django: https://www.djangoproject.com/
 .. _PostgreSQL schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
@@ -249,3 +270,4 @@ Requirements
 .. _django-tenants.readthedocs.org: https://django-tenants.readthedocs.org/en/latest/
 .. _django-tenant-schemas: http://github.com/bernardopires/django-tenant-schemas
 .. _django-schemata: https://github.com/tuttle/django-schemata
+.. _docker-compose: https://docs.docker.com/engine/reference/run/
