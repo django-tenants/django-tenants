@@ -6,7 +6,8 @@ multi-tenant setting
 import hashlib
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.template.base import TemplateDoesNotExist, Template
+from django.template.base import Template
+from django.template.exceptions import TemplateDoesNotExist
 from django.utils.encoding import force_bytes
 from django.utils._os import safe_join
 from django.db import connection
