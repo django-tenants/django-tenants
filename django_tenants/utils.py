@@ -58,8 +58,8 @@ def clean_tenant_url(url_string):
     Removes the TENANT_TOKEN from a particular string
     """
     if hasattr(settings, 'PUBLIC_SCHEMA_URLCONF'):
-        if (settings.PUBLIC_SCHEMA_URLCONF
-                and url_string.startswith(settings.PUBLIC_SCHEMA_URLCONF)):
+        if (settings.PUBLIC_SCHEMA_URLCONF and
+                url_string.startswith(settings.PUBLIC_SCHEMA_URLCONF)):
             url_string = url_string[len(settings.PUBLIC_SCHEMA_URLCONF):]
     return url_string
 
