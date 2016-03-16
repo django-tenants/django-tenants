@@ -64,10 +64,10 @@ class RoutesTestCase(BaseTestCase):
                                    HTTP_HOST=self.tenant_domain)
         self.tm.process_request(request)
 
-        self.assertEquals(request.path_info, request_url)
+        self.assertEqual(request.path_info, request_url)
 
         # request.tenant should also have been set
-        self.assertEquals(request.tenant, self.tenant)
+        self.assertEqual(request.tenant, self.tenant)
 
     def test_public_schema_routing(self):
         """
@@ -78,7 +78,7 @@ class RoutesTestCase(BaseTestCase):
                                    HTTP_HOST=self.public_domain.domain)
         self.tm.process_request(request)
 
-        self.assertEquals(request.path_info, request_url)
+        self.assertEqual(request.path_info, request_url)
 
         # request.tenant should also have been set
-        self.assertEquals(request.tenant, self.public_tenant)
+        self.assertEqual(request.tenant, self.public_tenant)
