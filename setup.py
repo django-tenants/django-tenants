@@ -7,7 +7,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 
 setup(
     name='django-tenants',
@@ -30,9 +30,20 @@ setup(
     description='Tenant support for Django using PostgreSQL schemas.',
     long_description=open('README.rst').read() if exists("README.rst") else "",
     classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Environment :: Web Environment',
         'License :: OSI Approved :: MIT License',
         'Framework :: Django',
+        'Framework :: Django :: 1.8',
+        'Framework :: Django :: 1.9',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     install_requires=[
         'Django >= 1.8.0',
