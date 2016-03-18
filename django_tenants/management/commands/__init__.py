@@ -85,7 +85,7 @@ class InteractiveTenantOption(object):
         if not all_tenants:
             raise CommandError("""There are no tenants in the system.
 To learn how create a tenant, see:
-https://django-tenant-schemas.readthedocs.org/en/latest/use.html#creating-a-tenant""")
+https://django-tenants.readthedocs.org/en/latest/use.html#creating-a-tenant""")
 
         if options.get('schema_name'):
             tenant_schema = options['schema_name']
