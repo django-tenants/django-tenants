@@ -25,10 +25,47 @@ Because django will not create tenants for you during your tests, we have packed
     from django_tenants.test.client import TenantClient
 
     class BaseSetup(TenantTestCase):
+
         def setUp(self):
             super(BaseSetup, self).setUp()
             self.c = TenantClient(self.tenant)
             
+        def test_user_profile_view(self):
+            response = self.c.get(reverse('user_profile'))
+            self.assertEqual(response.status_code, 200)
+
+
+Additional information
+----------------------
+
+You may have other fields on your tenant or domain model which are required fields.
+If you have there are two routines to look at ``setup_tenant`` and ``setup_domain``
+
+.. code-block:: python
+
+    from django_tenants.test.cases import TenantTestCase
+    from django_tenants.test.client import TenantClient
+
+    class BaseSetup(TenantTestCase):
+
+        def setup_tenant(self, tenant):
+            """
+            Add any additional setting to the tenant before it get saved. This is required if you have
+            required fields.
+            """
+            tenant.company_name = "Test Company"
+
+        def setup_domain(self, tenant):
+            """
+            Add any additional setting to the domain before it get saved. This is required if you have
+            required fields.
+            """
+            domain.ssl = True
+
+        def setUp(self):
+            super(BaseSetup, self).setUp()
+            self.c = TenantClient(self.tenant)
+
         def test_user_profile_view(self):
             response = self.c.get(reverse('user_profile'))
             self.assertEqual(response.status_code, 200)

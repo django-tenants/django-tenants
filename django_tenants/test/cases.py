@@ -6,14 +6,34 @@ from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_
 
 
 class TenantTestCase(TransactionTestCase):
+    def setup_tenant(self, tenant):
+        """
+        Add any additional setting to the tenant before it get saved. This is required if you have
+        required fields.
+        :param tenant:
+        :return:
+        """
+        pass
+
+    def setup_domain(self, domain):
+        """
+        Add any additional setting to the domain before it get saved. This is required if you have
+        required fields.
+        :param domain:
+        :return:
+        """
+        pass
+
     def setUp(self):
         self.sync_shared()
         self.tenant = get_tenant_model()(schema_name='test')
+        self.setup_tenant(self.tenant)
         self.tenant.save(verbosity=0)  # todo: is there any way to get the verbosity from the test command here?
 
         # Set up domain
         tenant_domain = 'tenant.test.com'
         self.domain = get_tenant_domain_model()(tenant=self.tenant, domain=tenant_domain)
+        self.setup_domain(self.domain)
         self.domain.save()
 
         connection.set_tenant(self.tenant)
