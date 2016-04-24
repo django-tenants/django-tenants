@@ -1,12 +1,15 @@
 from optparse import make_option
+from django.conf import settings
 from django.core import exceptions
 from django.core.management.base import BaseCommand
 from django.utils.encoding import force_str
 from django.utils.six.moves import input
 from django.db.utils import IntegrityError
-from django.db import connection
+from django.db import connections, DEFAULT_DB_ALIAS
 from django_tenants.clone import CloneSchema
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model
+
+tenant_db = settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS)
 
 
 class Command(BaseCommand):
@@ -86,8 +89,8 @@ class Command(BaseCommand):
 
 
     def store_tenant(self, clone_schema_from, **fields):
-        connection.set_schema_to_public()
-        cursor = connection.cursor()
+        connections(tenant_db).set_schema_to_public()
+        cursor = connections(tenant_db).cursor()
 
         try:
             tenant = get_tenant_model()(**fields)
