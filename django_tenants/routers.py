@@ -27,13 +27,14 @@ class TenantSyncRouter(object):
     def allow_migrate(self, db, app_label, model_name=None, **hints):
         # the imports below need to be done here else django <1.5 goes crazy
         # https://code.djangoproject.com/ticket/20704
-        from django.db import connection
+        from django.db import connections, DEFAULT_DB_ALIAS
         from django_tenants.utils import get_public_schema_name
 
-        if connection.schema_name == get_public_schema_name():
+        if connections(DEFAULT_DB_ALIAS).schema_name == get_public_schema_name():
             if not self.app_in_list(app_label, settings.SHARED_APPS):
                 return False
-        else:
+
+        if connections(settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS)).schema_name != get_public_schema_name():
             if not self.app_in_list(app_label, settings.TENANT_APPS):
                 return False
 

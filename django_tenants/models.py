@@ -7,8 +7,8 @@ from .signals import post_schema_sync, schema_needs_to_be_sync
 from .utils import schema_exists, get_tenant_domain_model
 from .utils import get_public_schema_name
 
-public_connect = connections(settings.get('PERSIST_DEFAULT_DATABASE', DEFAULT_DB_ALIAS))
-tenant_connect = connections(settings.get('PERSIST_ADB_DATABASE', 'adb_data'))
+public_db = connections(settings.get('DEFAULT_DATABASE', DEFAULT_DB_ALIAS))
+tenant_db = connections(settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS))
 
 
 class TenantMixin(models.Model):
@@ -44,11 +44,11 @@ class TenantMixin(models.Model):
                 # run some code in tenant test
             # run some code in previous tenant (public probably)
         """
-        self._previous_tenant = tenant_connect.tenant
+        self._previous_tenant = tenant_db.tenant
         self.activate()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        tenant_connect.set_tenant(self._previous_tenant)
+        tenant_db.set_tenant(self._previous_tenant)
 
     def activate(self):
         """
@@ -57,7 +57,7 @@ class TenantMixin(models.Model):
         Usage:
             Tenant.objects.get(schema_name='test').activate()
         """
-        tenant_connect.set_tenant(self)
+        tenant_db.set_tenant(self)
 
     @classmethod
     def deactivate(cls):
@@ -69,18 +69,18 @@ class TenantMixin(models.Model):
             # or simpler
             Tenant.deactivate()
         """
-        tenant_connect.set_schema_to_public()
+        tenant_db.set_schema_to_public()
 
     def save(self, verbosity=1, *args, **kwargs):
         is_new = self.pk is None
 
-        if is_new and public_connect.schema_name != get_public_schema_name():
+        if is_new and public_db.schema_name != get_public_schema_name():
             raise Exception("Can't create tenant outside the public schema. "
-                            "Current schema is %s." % public_connect.schema_name)
-        elif not is_new and tenant_connect not in (self.schema_name, get_public_schema_name()):
+                            "Current schema is %s." % public_db.schema_name)
+        elif not is_new and tenant_db not in (self.schema_name, get_public_schema_name()):
             raise Exception("Can't update tenant outside it's own schema or "
                             "the public schema. Current schema is %s."
-                            % tenant_connect.schema_name)
+                            % tenant_db.schema_name)
 
         super(TenantMixin, self).save(*args, **kwargs)
 
@@ -101,13 +101,13 @@ class TenantMixin(models.Model):
         Deletes this row. Drops the tenant's schema if the attribute
         auto_drop_schema set to True.
         """
-        if tenant_connect.schema_name not in (self.schema_name, get_public_schema_name()):
+        if tenant_db.schema_name not in (self.schema_name, get_public_schema_name()):
             raise Exception("Can't delete tenant outside it's own schema or "
                             "the public schema. Current schema is %s."
-                            % tenant_connect.schema_name)
+                            % tenant_db.schema_name)
 
         if schema_exists(self.schema_name) and (self.auto_drop_schema or force_drop):
-            cursor = tenant_connect.cursor()
+            cursor = tenant_db.cursor()
             cursor.execute('DROP SCHEMA %s CASCADE' % self.schema_name)
 
         super(TenantMixin, self).delete(*args, **kwargs)
@@ -122,7 +122,7 @@ class TenantMixin(models.Model):
 
         # safety check
         _check_schema_name(self.schema_name)
-        cursor = tenant_connect.cursor()
+        cursor = tenant_db.cursor()
 
         if check_if_exists and schema_exists(self.schema_name):
             return False
@@ -136,7 +136,7 @@ class TenantMixin(models.Model):
                          interactive=False,
                          verbosity=verbosity)
 
-        tenant_connect.set_schema_to_public()
+        tenant_db.set_schema_to_public()
 
     def get_primary_domain(self):
         """

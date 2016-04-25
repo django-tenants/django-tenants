@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from django.conf import settings
-from django.db import connection
+from django.db import connections, DEFAULT_DB_ALIAS
 
 try:
     from django.apps import apps
@@ -10,31 +10,33 @@ except ImportError:
 
 from django.core import mail
 
+tenant_db = connections(settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS))
+
 
 @contextmanager
 def schema_context(schema_name):
-    previous_tenant = connection.tenant
+    previous_tenant = tenant_db.tenant
     try:
-        connection.set_schema(schema_name)
+        tenant_db.set_schema(schema_name)
         yield
     finally:
         if previous_tenant is None:
-            connection.set_schema_to_public()
+            tenant_db.set_schema_to_public()
         else:
-            connection.set_tenant(previous_tenant)
+            tenant_db.set_tenant(previous_tenant)
 
 
 @contextmanager
 def tenant_context(tenant):
-    previous_tenant = connection.tenant
+    previous_tenant = tenant_db.tenant
     try:
-        connection.set_tenant(tenant)
+        tenant_db.set_tenant(tenant)
         yield
     finally:
         if previous_tenant is None:
-            connection.set_schema_to_public()
+            tenant_db.set_schema_to_public()
         else:
-            connection.set_tenant(previous_tenant)
+            tenant_db.set_tenant(previous_tenant)
 
 
 def get_tenant_model():
@@ -92,7 +94,7 @@ def django_is_in_test_mode():
 
 
 def schema_exists(schema_name):
-    cursor = connection.cursor()
+    cursor = tenant_db.cursor()
 
     # check if this schema already exists in the db
     sql = 'SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER(%s))'

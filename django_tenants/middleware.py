@@ -20,21 +20,21 @@ class TenantMiddleware(object):
     def process_request(self, request):
         # what type of config are we looking at? session or url based?
         if settings.TENANT_SELECTION_METHOD == 'session':
-            connections(settings.get('PERSIST_DEFAULT_DATABASE', DEFAULT_DB_ALIAS)).set_schema_to_public()
+            connections(settings.get('DEFAULT_DATABASE', DEFAULT_DB_ALIAS)).set_schema_to_public()
 
-            connections(settings.get('PERSIST_ADB_DATABASE', 'adb_data')).set_schema(
+            connections(settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS)).set_schema(
                 request.session.get('SELECTED_SCHEMA', 'public'))
 
         else:
             # Connection needs first to be at the public schema, as this is where
             # the tenant metadata is stored.
-            connections(settings.get('PERSIST_DEFAULT_DATABASE', DEFAULT_DB_ALIAS)).set_schema_to_public()
+            connections(settings.get('DEFAULT_DATABASE', DEFAULT_DB_ALIAS)).set_schema_to_public()
             hostname = self.hostname_from_request(request)
 
             domain = get_object_or_404(get_tenant_domain_model().objects.select_related('tenant'),
                                        domain=hostname)
             request.tenant = domain.tenant
-            connections(settings.get('PERSIST_ADB_DATABASE', 'adb_data')).set_schema(request.tenant.schema_name)
+            connections(settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS)).set_schema(request.tenant.schema_name)
 
             # Content type can no longer be cached as public and tenant schemas
             # have different models. If someone wants to change this, the cache
