@@ -4,7 +4,7 @@ from django.core.management import call_command, get_commands, load_command_clas
 from django.db import connections, DEFAULT_DB_ALIAS
 from . import InteractiveTenantOption
 
-tenant_db = settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS)
+tenant_db = connections[settings.TENANT_DATABASE]
 
 class Command(InteractiveTenantOption, BaseCommand):
     help = "Wrapper around django commands for use with an individual tenant"

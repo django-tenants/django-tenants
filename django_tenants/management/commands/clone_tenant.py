@@ -9,8 +9,6 @@ from django.db import connections, DEFAULT_DB_ALIAS
 from django_tenants.clone import CloneSchema
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model
 
-tenant_db = settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS)
-
 
 class Command(BaseCommand):
     help = 'Clones a tenant'
@@ -89,8 +87,8 @@ class Command(BaseCommand):
 
 
     def store_tenant(self, clone_schema_from, **fields):
-        connections(tenant_db).set_schema_to_public()
-        cursor = connections(tenant_db).cursor()
+        connections[DEFAULT_DB_ALIAS].set_schema_to_public()
+        cursor = connections[settings.TENANT_DATABASE].cursor()
 
         try:
             tenant = get_tenant_model()(**fields)

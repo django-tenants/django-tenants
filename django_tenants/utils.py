@@ -10,7 +10,7 @@ except ImportError:
 
 from django.core import mail
 
-tenant_db = connections(settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS))
+tenant_db = connections[settings.TENANT_DATABASE]
 
 
 @contextmanager

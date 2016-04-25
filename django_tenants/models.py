@@ -7,8 +7,8 @@ from .signals import post_schema_sync, schema_needs_to_be_sync
 from .utils import schema_exists, get_tenant_domain_model
 from .utils import get_public_schema_name
 
-public_db = connections(settings.get('DEFAULT_DATABASE', DEFAULT_DB_ALIAS))
-tenant_db = connections(settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS))
+public_db = connections[DEFAULT_DB_ALIAS]
+tenant_db = connections[settings.TENANT_DATABASE]
 
 
 class TenantMixin(models.Model):

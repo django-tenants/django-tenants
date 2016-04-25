@@ -3,7 +3,7 @@ from django.core.management import call_command, get_commands, load_command_clas
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connections, DEFAULT_DB_ALIAS
 
-tenant_db = settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS)
+tenant_db = connections[settings.TENANT_DATABASE]
 
 try:
     from django.utils.six.moves import input

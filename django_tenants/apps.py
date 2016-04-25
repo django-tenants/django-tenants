@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db import DEFAULT_DB_ALIAS
 from django.apps import AppConfig
 from django.core.exceptions import ImproperlyConfigured
 from django_tenants.utils import get_public_schema_name, get_tenant_model
@@ -31,6 +32,14 @@ class DjangoTenantsConfig(AppConfig):
         if not hasattr(settings, 'TENANT_MODEL'):
             raise ImproperlyConfigured('TENANT_MODEL setting not set')
 
+        if not hasattr(settings, 'DEFAULT_DATABASE'):
+            settings.configure(DEFAULT_DATABASE=DEFAULT_DB_ALIAS)
+
+        if not hasattr(settings, 'TENANT_DATABASE'):
+            settings.configure(TENANT_DATABASE=DEFAULT_DB_ALIAS)
+
+        if not hasattr(settings, 'TENANT_SELECTION_METHOD'):
+            settings.configure(TENANT_SELECTION_METHOD='domain')
 
         if 'django_tenants.routers.TenantSyncRouter' not in settings.DATABASE_ROUTERS:
             raise ImproperlyConfigured("DATABASE_ROUTERS setting must contain "

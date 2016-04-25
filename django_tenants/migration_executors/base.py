@@ -6,8 +6,6 @@ from django.db import transaction, DEFAULT_DB_ALIAS
 from django.core.management.commands.migrate import Command as MigrateCommand
 from django_tenants.utils import get_public_schema_name
 
-tenant_db = settings.get('TENANT_DATABASE', DEFAULT_DB_ALIAS)
-
 
 def run_migrations(args, options, executor_codename, schema_name, allow_atomic=True):
     from django.core.management import color
@@ -16,9 +14,9 @@ def run_migrations(args, options, executor_codename, schema_name, allow_atomic=T
 
     PUBLIC_SCHEMA_NAME = get_public_schema_name()
 
-    connect_db = connections(tenant_db)
+    connect_db = connections[settings.TENANT_DATABASE]
     if schema_name == PUBLIC_SCHEMA_NAME:
-        connect_db = connections(DEFAULT_DB_ALIAS)
+        connect_db = connections[DEFAULT_DB_ALIAS]
 
     style = color.color_style()
 
