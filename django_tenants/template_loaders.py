@@ -21,7 +21,6 @@ else:
     from django.template.exceptions import TemplateDoesNotExist
 
 
-
 class CachedLoader(BaseLoader):
     is_usable = True
 

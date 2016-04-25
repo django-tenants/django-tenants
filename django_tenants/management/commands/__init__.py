@@ -1,8 +1,9 @@
 from django.conf import settings
 from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import BaseCommand, CommandError
-from django.db import connection
+from django.db import connections, DEFAULT_DB_ALIAS
 
+tenant_db = connections[settings.TENANT_DATABASE]
 
 try:
     from django.utils.six.moves import input
@@ -51,7 +52,7 @@ class BaseTenantCommand(BaseCommand):
                   + self.style.SQL_TABLE(tenant.schema_name)
                   + self.style.NOTICE("' then calling %s:" % command_name))
 
-        connection.set_tenant(tenant)
+        connections(tenant_db).set_tenant(tenant)
 
         # call the original command with the args it knows
         call_command(command_name, *args, **options)
@@ -62,7 +63,7 @@ class BaseTenantCommand(BaseCommand):
         """
         if options['schema_name']:
             # only run on a particular schema
-            connection.set_schema_to_public()
+            connections(tenant_db).set_schema_to_public()
             self.execute_command(get_tenant_model().objects.get(schema_name=options['schema_name']), self.COMMAND_NAME,
                                  *args, **options)
         else:
@@ -118,7 +119,7 @@ class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):
 
     def handle(self, *args, **options):
         tenant = self.get_tenant_from_options_or_interactive(**options)
-        connection.set_tenant(tenant)
+        connections(tenant_db).set_tenant(tenant)
 
         self.command_instance.execute(*args, **options)
 
