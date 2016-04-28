@@ -41,9 +41,8 @@ class Command(InteractiveTenantOption, BaseCommand):
         tenant = self.get_tenant_from_options_or_interactive(**options)
         connection.set_tenant(tenant)
 
-        command_name = options['command_name'][0]
-
-        call_command(command_name, *args, **options)
-
-
-
+        command = options.pop('command_name')
+        command_name = command[0]
+        command_argv = command[1:]
+        
+        call_command(command_name, *command_argv, **options)
