@@ -43,7 +43,7 @@ Now we can create our first real tenant.
     domain.is_primary = True
     domain.save()
 
-Because you have the tenant middleware installed, any request made to ``tenant.my-domain.com`` will now automatically set your PostgreSQL's ``search_path`` to ``tenant1, public``, making shared apps available too. The tenant will be made available at ``request.tenant``. By the way, the current schema is also available at ``connection.schema_name``, which is useful, for example, if you want to hook to any of django's signals. 
+Because you have the tenant middleware installed, any request made to ``tenant.my-domain.com`` will now automatically set your PostgreSQL's ``search_path`` to ``tenant1, public``, making shared apps available too. The tenant will be made available at ``request.tenant``. By the way, the current schema is also available at ``connection.schema_name``, which is useful, for example, if you want to hook to any of django's signals.
 
 Any call to the methods ``filter``, ``get``, ``save``, ``delete`` or any other function involving a database connection will now be done at the tenant's schema, so you shouldn't need to change anything at your views.
 
@@ -89,7 +89,7 @@ Every command except tenant_command runs by default on all tenants. You can also
 
     ./manage.py migrate_schemas --schema=customer1
 
-migrate_schemas    
+migrate_schemas
 ~~~~~~~~~~~~~~~
 
 We've also packed the django migrate command in a compatible way with this app. It will also respect the ``SHARED_APPS`` and ``TENANT_APPS`` settings, so if you're migrating the ``public`` schema it will only migrate ``SHARED_APPS``. If you're migrating tenants, it will only migrate ``TENANT_APPS``.
@@ -134,7 +134,7 @@ The ``multiprocessing`` executor accepts the following settings:
   sent at once to every worker
 
 
-tenant_command    
+tenant_command
 ~~~~~~~~~~~~~~
 
 To run any command on an individual schema, you can use the special ``tenant_command``, which creates a wrapper around your command so that it only runs on the schema you specify. For example
@@ -148,7 +148,7 @@ If you don't specify a schema, you will be prompted to enter one. Otherwise, you
 .. code-block:: bash
 
     ./manage.py tenant_command loaddata --schema=customer1
-    
+
 create_tenant_superuser
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -159,7 +159,7 @@ The command ``create_tenant_superuser`` is already automatically wrapped to have
     ./manage.py create_tenant_superuser --username='admin' --schema=customer1
 
 
-create_tenant   
+create_tenant
 ~~~~~~~~~~~~~
 
 The command ``create_tenant`` creates a new schema
@@ -193,7 +193,7 @@ The hook for ensuring the ``search_path`` is set properly happens inside the ``D
     #in settings.py:
     TENANT_LIMIT_SET_CALLS = True
 
-When set, ``django-tenant-schemas`` will set the search path only once per request. The default is ``False``.
+When set, ``django-tenants`` will set the search path only once per request. The default is ``False``.
 
 
 Running in Development
