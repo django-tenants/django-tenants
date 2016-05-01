@@ -141,7 +141,7 @@ class TenantMixin(models.Model):
         """
         try:
             domain = self.domains.get(is_primary=True)
-            return domain.domain
+            return domain
         except get_tenant_domain_model().DoesNotExist:
             return None
 
