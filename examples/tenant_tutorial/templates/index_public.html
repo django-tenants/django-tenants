@@ -73,11 +73,14 @@ Client(schema_name='public',
     <p>We can now add tenants using these URLs and our project will be able to find them and identify them as our tenants. Back to the django shell:</p>
 
 <pre>$ ./manage.py shell</pre>
-<pre>from customers.models import Client</pre>
+<pre>from customers.models import Client, Domain</pre>
 <pre>
-Client(schema_name='tenant1',
+tenant = Client(schema_name='tenant1',
     name='Tenant1 - Awesome',
-    description='Our first real tenant, awesome!').save()</pre>
+    description='Our first real tenant, awesome!')
+
+tenant.save()
+</pre>
     <p>Saving a tenant that didn't exist before will create their schema and sync <code>TENANT_APPS</code> automatically. You should see
     the following lines as the result.</p>
   <pre>Operations to perform:
@@ -91,11 +94,31 @@ Running migrations:
   Applying contenttypes.0001_initial... OK
   Applying auth.0001_initial... OK
   Applying sessions.0001_initial... OK</pre>
+
+Now add one domain to your tenant.
+
+<pre>
+domain = Domain()
+domain.domain = 'tenant1.trendy-sass.com'
+domain.tenant = tenant
+domain.is_primary = True
+domain.save()
+</pre>
+
     <p>This means your tenant was installed successfully. Now create the second tenant.</p>
 <pre>
-Client(schema_name='tenant2',
+tenant = Client(schema_name='tenant2',
     name='Tenant2 - Even Awesome-r',
-    description='A second tenant, even more awesome!').save()</pre>
+    description='A second tenant, even more awesome!')
+
+tenant.save()
+
+domain = Domain()
+domain.domain = 'tenant2.trendy-sass.com'
+domain.tenant = tenant
+domain.is_primary = True
+domain.save()
+</pre>
 
     <p>Now try visiting <a href="http://tenant1.trendy-sass.com:8000">tenant1.trendy-sass.com</a> and
         <a href="http://tenant2.trendy-sass.com:8000">tenant2.trendy-sass.com</a> or refresh this page.</p>
@@ -105,9 +128,9 @@ Client(schema_name='tenant2',
     <h3>Where to go from here</h3>
     <p>There are some interesting features that we did not cover.</p>
     <ul>
-        <li><a href="https://django-tenant-schemas.readthedocs.org/en/latest/install.html#south-migrations">South Migrations</a>. This app supports <code>South</code> migrations.</li>
-        <li><a href="https://django-tenant-schemas.readthedocs.org/en/latest/install.html#tenant-view-routing">Tenant View-Routing</a>. Serve different views for the same path. (this tutorial makes use of this feature)</li>
-        <li><a href="https://django-tenant-schemas.readthedocs.org/en/latest/use.html#management-commands">Management Commands</a>. Run a command for a particular tenant.</li>
+        <li><a href="https://django-tenants.readthedocs.org/en/latest/install.html#south-migrations">South Migrations</a>. This app supports <code>South</code> migrations.</li>
+        <li><a href="https://django-tenants.readthedocs.org/en/latest/install.html#tenant-view-routing">Tenant View-Routing</a>. Serve different views for the same path. (this tutorial makes use of this feature)</li>
+        <li><a href="https://django-tenants.readthedocs.org/en/latest/use.html#management-commands">Management Commands</a>. Run a command for a particular tenant.</li>
     </ul>
 {% endif %}
 {% endblock %}
