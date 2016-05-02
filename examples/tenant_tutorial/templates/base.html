@@ -41,15 +41,15 @@
 <div id="footer">
   <p style="float: left;">Current Tenant:
       {% if request.tenant %}
-      <a href="http://{{ request.tenant.domain_urls }}:8000">{{ request.tenant.name }}</a>
-      (<code>{{ request.tenant.schema_name }}</code>, <code>{{ request.tenant.domain_urls }}</code>).
+      <a href="http://{{ request.tenant.get_primary_domain.domain }}:8000">{{ request.tenant.name }}</a>
+      (<code>{{ request.tenant.schema_name }}</code>, <code>{{ request.tenant.get_primary_domain.domain }}</code>).
 
       Available Tenants:
       {% else %}
       None.
       {% endif %}
   {% for tenant in tenants_list %}
-      <a href="http://{{ tenant.domain_url }}:8000">{{ tenant.name }}</a> &middot;
+      <a href="http://{{ tenant.get_primary_domain.domain }}:8000">{{ tenant.name }}</a> &middot;
   {% endfor %}</p>
   <p style="float: right;">
     <a href="https://github.com/tomturner/django-tenants">django-tenants</a> &middot; <a href="https://django-tenants.readthedocs.org/en/latest/">Documentation</a>
