@@ -35,17 +35,14 @@ def provision_vagrant():
 
 
 @task
-@hosts(['vagrant@127.0.0.1:2222'])
 def create_superuser():
-    vagrant()
-    django_manage("createsuperuser --email=vagrant@twt.me.uk", True)
+    django_manage("createsuperuser")
 
 
 @task
 def django_manage(command):
     with cd("/vagrant/examples/tenant_tutorial/"):
         run("python manage.py %s" % command)
-
 
 
 def update_requirements():
@@ -58,7 +55,6 @@ def update_requirements():
 
 
     sudo("pip install psycopg2==2.6.1 django==1.9")
-    
 
 
 @task
@@ -90,6 +86,7 @@ def django_migrate():
 @task
 def create_tenant():
     django_manage("create_tenant")
+
 
 @task
 def runserver():
