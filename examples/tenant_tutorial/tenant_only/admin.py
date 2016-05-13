@@ -1,3 +1,13 @@
 from django.contrib import admin
 
-# Register your models here.
+from tenant_only.models import TableOne, TableTwo
+
+
+@admin.register(TableOne)
+class TableOneAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(TableTwo)
+class TableTwoAdmin(admin.ModelAdmin):
+    pass
