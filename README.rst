@@ -1,6 +1,7 @@
 django-tenants
 ==============
 
+
 .. image:: https://badge.fury.io/py/django-tenants.svg
     :target: http://badge.fury.io/py/django-tenants
 .. image:: https://travis-ci.org/tomturner/django-tenants.svg?branch=master
@@ -8,7 +9,7 @@ django-tenants
 
 This application enables `django`_ powered websites to have multiple
 tenants via `PostgreSQL schemas`_. A vital feature for every
-Software-as-a-Service website.
+Software-as-a-Service (SaaS) website.
 
 Django provides currently no simple way to support multiple tenants
 using the same project instance, even when only the data is different.
@@ -231,7 +232,7 @@ I would like to thank two of the original authors of this project.
 Requirements
 ------------
 
- - Django 1.8 if you want to use 1.7 or lower please use `django-tenant-schemas`_.
+ - Django 1.8 if you want to use 1.7 or lower please use `django-tenant-schemas`_. (before version 1.6.0)
  - PostgreSQL
 
 Testing
