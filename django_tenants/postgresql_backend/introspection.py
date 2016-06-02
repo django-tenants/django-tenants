@@ -118,6 +118,8 @@ class DatabaseSchemaIntrospection(DatabaseIntrospection):
         for constraint, column, kind, used_cols in cursor.fetchall():
             # If we're the first column, make the record
             if constraint not in constraints:
+                if len(used_cols) == 0:
+                    continue  # added as if the public schema hasn't got the field any more it errors
                 constraints[constraint] = {
                     "columns": [],
                     "primary_key": kind.lower() == "primary key",
