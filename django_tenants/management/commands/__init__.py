@@ -113,7 +113,6 @@ class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):
     def __new__(cls, *args, **kwargs):
         obj = super(TenantWrappedCommand, cls).__new__(cls, *args, **kwargs)
         obj.command_instance = obj.COMMAND()
-        # obj.option_list = obj.command_instance.option_list
         return obj
 
     def handle(self, *args, **options):
