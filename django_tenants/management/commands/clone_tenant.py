@@ -18,22 +18,14 @@ class Command(BaseCommand):
     domain_fields = [field for field in get_tenant_domain_model()._meta.fields
                       if field.editable and not field.primary_key]
 
-    def __init__(self, *args, **kwargs):
-        super(Command, self).__init__(*args, **kwargs)
-
-        self.option_list = BaseCommand.option_list
-
-        self.option_list += (make_option('--clone_from',
-                                         help='Specifies which schema to clone.'), )
+    def add_arguments(self, parser):
+        parser.add_argument('--clone_from', help='Specifies which schema to clone.')
 
         for field in self.tenant_fields:
-            self.option_list += (make_option('--%s' % field.name,
-                                             help='Specifies the %s for tenant.' % field.name), )
+            parser.add_argument('--%s' % field.name, help='Specifies the %s for tenant.' % field.name)
 
         for field in self.domain_fields:
-            self.option_list += (make_option('--%s' % field.name,
-                                             help="Specifies the %s for the tenant's domain." % field.name), )
-
+            parser.add_argument('--%s' % field.name, help="Specifies the %s for the tenant's domain." % field.name)
 
     def handle(self, *args, **options):
 
