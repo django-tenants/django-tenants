@@ -2,10 +2,16 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 from django.shortcuts import get_object_or_404
-from .utils import get_tenant_model, remove_www, get_public_schema_name, get_tenant_domain_model
+from .utils import remove_www, get_public_schema_name, get_tenant_domain_model
 
 
-class TenantMiddleware(object):
+if django.VERSION >= (1, 10, 0):
+    MIDDLEWARE_MIXIN = django.utils.deprecation.MiddlewareMixin
+else:
+    MIDDLEWARE_MIXIN = object
+
+
+class TenantMiddleware(MIDDLEWARE_MIXIN):
     """
     This middleware should be placed at the very top of the middleware stack.
     Selects the proper database schema using the request host. Can fail in
