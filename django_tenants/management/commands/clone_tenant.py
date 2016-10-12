@@ -16,7 +16,7 @@ class Command(BaseCommand):
     tenant_fields = [field for field in get_tenant_model()._meta.fields
                      if field.editable and not field.primary_key]
     domain_fields = [field for field in get_tenant_domain_model()._meta.fields
-                      if field.editable and not field.primary_key]
+                     if field.editable and not field.primary_key]
 
     def __init__(self, *args, **kwargs):
         super(Command, self).__init__(*args, **kwargs)

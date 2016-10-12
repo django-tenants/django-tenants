@@ -53,7 +53,7 @@ def update_requirements():
                                    'pkg-config',
                                    'postgresql-server-dev-9.3'])
 
-    sudo("pip install psycopg2==2.6.1 django==1.9")
+    sudo("pip install psycopg2==2.6.1 django==1.10.2")
 
 
 @task
