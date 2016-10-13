@@ -26,12 +26,12 @@ class TenantTestCase(TransactionTestCase):
 
     def setUp(self):
         self.sync_shared()
-        self.tenant = get_tenant_model()(schema_name=self.get_schema_name())
+        self.tenant = get_tenant_model()(schema_name=self.get_test_schema_name())
         self.setup_tenant(self.tenant)
         self.tenant.save(verbosity=0)  # todo: is there any way to get the verbosity from the test command here?
 
         # Set up domain
-        tenant_domain = self.get_tenant_domain()
+        tenant_domain = self.get_test_tenant_domain()
         self.domain = get_tenant_domain_model()(tenant=self.tenant, domain=tenant_domain)
         self.setup_domain(self.domain)
         self.domain.save()
