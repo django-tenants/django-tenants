@@ -151,10 +151,12 @@ class TenantMixin(models.Model):
         """
         Returns the URL of this tenant.
         """
-        url = 'https://' if request.is_secure() else 'http://'
-        url += str(self.schema_name) + '.'
-        url += get_current_site(request).domain
-        url += reverse(view_name)
+        http_type = 'https://' if request.is_secure() else 'http://'
+
+        domain = get_current_site(request).domain
+
+        url = ''.join((http_type, self.schema_name, '.', domain, reverse(view_name)))
+
         return url
 
 

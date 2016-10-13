@@ -81,6 +81,12 @@ Example
 
         # send email to client to as tenant is ready to use
 
+Reverse
+~~~~~~~
+
+You can get the tenant domain name by calling a method on the tenant model called ``reverse``.
+
+
 Management commands
 -------------------
 Every command except tenant_command runs by default on all tenants. You can also create your own commands that run on every tenant by inheriting ``BaseTenantCommand``. To run only a particular schema, there is an optional argument called ``--schema``.
