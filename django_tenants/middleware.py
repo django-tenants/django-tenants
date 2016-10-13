@@ -31,7 +31,10 @@ class TenantMiddleware(MIDDLEWARE_MIXIN):
 
         domain = get_object_or_404(get_tenant_domain_model().objects.select_related('tenant'),
                                    domain=hostname)
+
+        domain.tenant.domain_url = hostname
         request.tenant = domain.tenant
+
         connection.set_tenant(request.tenant)
 
         # Content type can no longer be cached as public and tenant schemas

@@ -196,6 +196,40 @@ The hook for ensuring the ``search_path`` is set properly happens inside the ``D
 When set, ``django-tenants`` will set the search path only once per request. The default is ``False``.
 
 
+Logging
+-------
+
+The optional ``TenantContextFilter`` can be included in ``settings.LOGGING`` to add the current ``schema_name`` and ``domain_url`` to the logging context.
+
+.. code-block:: python
+
+    # settings.py
+    LOGGING = {
+        'filters': {
+            'tenant_context': {
+                '()': 'django_tenants.log.TenantContextFilter'
+            },
+        },
+        'formatters': {
+            'tenant_context': {
+                'format': '[%(schema_name)s:%(domain_url)s] '
+                '%(levelname)-7s %(asctime)s %(message)s',
+            },
+        },
+        'handlers': {
+            'console': {
+                'filters': ['tenant_context'],
+            },
+        },
+    }
+
+This will result in logging output that looks similar to:
+
+.. code-block:: text
+
+    [example:example.com] DEBUG 13:29 django.db.backends: (0.001) SELECT ...
+
+
 Running in Development
 ----------------------
 
