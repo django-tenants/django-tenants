@@ -31,6 +31,11 @@ class TenantMixin(models.Model):
     schema_name = models.CharField(max_length=63, unique=True,
                                    validators=[_check_schema_name])
 
+    domain_url = None
+    """
+    Leave this as None. Stores the current domain url so it can be used in the logs
+    """
+
     class Meta:
         abstract = True
 
