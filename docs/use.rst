@@ -162,7 +162,7 @@ The command ``create_tenant_superuser`` is already automatically wrapped to have
 
 .. code-block:: bash
 
-    ./manage.py create_tenant_superuser --username='admin' --schema=customer1
+    ./manage.py create_tenant_superuser --username=admin --schema=customer1
 
 
 create_tenant
