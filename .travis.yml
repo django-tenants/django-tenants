@@ -1,7 +1,7 @@
 language: python
 python:
   - "2.7"
-  #- "3.5"
+  - "3.5"
 addons:
   postgresql: "9.4"
 
@@ -9,5 +9,10 @@ install: "python setup.py develop"
 
 before_script:
   - psql -c 'create database dts_test_project;' -U postgres
+
+env:
+  - DJANGO=1.8
+  - DJANGO=1.9
+  - DJANGO=1.10
 
 script: ./run_tests.sh
