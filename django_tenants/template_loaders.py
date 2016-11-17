@@ -5,7 +5,7 @@ multi-tenant setting
 
 import hashlib
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, SuspiciousFileOperation
 from django.template.base import Template
 from django.utils.encoding import force_bytes
 from django.utils._os import safe_join
@@ -19,7 +19,6 @@ if django.VERSION < (1, 9, 0):
     from django.template.base import TemplateDoesNotExist
 else:
     from django.template.exceptions import TemplateDoesNotExist
-
 
 
 class CachedLoader(BaseLoader):
@@ -112,6 +111,7 @@ class FilesystemLoader(BaseLoader):
             except AttributeError:
                 raise ImproperlyConfigured('To use %s.%s you must define the MULTITENANT_TEMPLATE_DIRS' %
                                            (__name__, FilesystemLoader.__name__))
+
         for template_dir in template_dirs:
             try:
                 if '%s' in template_dir:
@@ -121,7 +121,7 @@ class FilesystemLoader(BaseLoader):
             except UnicodeDecodeError:
                 # The template dir name was a bytestring that wasn't valid UTF-8.
                 raise
-            except ValueError:
+            except (SuspiciousFileOperation, ValueError):
                 # The joined path was located outside of this particular
                 # template_dir (it might be inside another one, so this isn't
                 # fatal).
