@@ -5,7 +5,6 @@ from django.conf import settings
 
 
 class Command(TenantWrappedCommand):
-    print "===== TenantWrappedCommand ====="
     COMMAND = compress.Command
 
     def get_tenant_from_options_or_interactive(self, **options):
