@@ -67,10 +67,10 @@ class TenantFileSystemFinder(FileSystemFinder):
         multitenant_static_root = os.path.join(settings.STATIC_ROOT,
                                                multitenant_relative_static_root)
 
-        print "multitenant_relative_static_root"
-        print multitenant_relative_static_root
-        print "multitenant_static_root"
-        print multitenant_static_root
+        # print "multitenant_relative_static_root"
+        # print multitenant_relative_static_root
+        # print "multitenant_static_root"
+        # print multitenant_static_root
 
         try:
             multitenant_staticfiles_dirs = settings.MULTITENANT_STATICFILES_DIRS
