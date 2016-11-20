@@ -1,3 +1,4 @@
+import argparse
 
 from django.core.management.base import BaseCommand, CommandError
 from django.core.management import call_command, get_commands, load_command_class
@@ -10,6 +11,7 @@ class Command(InteractiveTenantOption, BaseCommand):
 
     def add_arguments(self, parser):
         super(Command, self).add_arguments(parser)
+
         parser.add_argument('command_name', nargs='+', help='The command name you want to run')
 
     def run_from_argv(self, argv):
@@ -27,18 +29,26 @@ class Command(InteractiveTenantOption, BaseCommand):
         except KeyError:
             raise CommandError("Unknown command: %r" % argv[2])
 
+
         if isinstance(app_name, BaseCommand):
             # if the command is already loaded, use it directly.
             klass = app_name
         else:
             klass = load_command_class(app_name, argv[2])
 
-        super(Command, self).run_from_argv(argv)
+        # Ugly, but works. Delete tenant_command from the argv, parse the schema manually
+        # and forward the rest of the arguments to the actual command being wrapped.
+        del argv[1]
+        schema_parser = argparse.ArgumentParser()
+        schema_parser.add_argument("-s", "--schema", dest="schema_name", help="specify tenant schema")
+        schema_namespace, args = schema_parser.parse_known_args(argv)
+
+        tenant = self.get_tenant_from_options_or_interactive(schema_name=schema_namespace.schema_name)
+        connection.set_tenant(tenant)
+        klass.run_from_argv(args)
+
 
     def handle(self, *args, **options):
         tenant = self.get_tenant_from_options_or_interactive(**options)
         connection.set_tenant(tenant)
-
-        command_name = options['command_name'][0]
-
-        call_command(command_name, *args, **options)
+        call_command(*args, **options)
