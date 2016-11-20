@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models, connection, transaction
 from django.core.management import call_command
+from django.contrib.sites.shortcuts import get_current_site
+from django.core.urlresolvers import resolve, reverse
 
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
@@ -28,6 +30,11 @@ class TenantMixin(models.Model):
 
     schema_name = models.CharField(max_length=63, unique=True,
                                    validators=[_check_schema_name])
+
+    domain_url = None
+    """
+    Leave this as None. Stores the current domain url so it can be used in the logs
+    """
 
     class Meta:
         abstract = True
@@ -144,6 +151,18 @@ class TenantMixin(models.Model):
             return domain
         except get_tenant_domain_model().DoesNotExist:
             return None
+
+    def reverse(self, request, view_name):
+        """
+        Returns the URL of this tenant.
+        """
+        http_type = 'https://' if request.is_secure() else 'http://'
+
+        domain = get_current_site(request).domain
+
+        url = ''.join((http_type, self.schema_name, '.', domain, reverse(view_name)))
+
+        return url
 
 
 class DomainMixin(models.Model):

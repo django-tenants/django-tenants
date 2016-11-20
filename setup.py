@@ -7,7 +7,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-__version__ = "1.1.5"
+__version__ = "1.1.9"
 
 setup(
     name='django-tenants',
@@ -46,7 +46,7 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     install_requires=[
-        'Django >= 1.8.0',
+        'Django >= 1.8.0,<1.11',
         'psycopg2',
     ],
     zip_safe=False,

@@ -103,7 +103,7 @@ DATABASE_ROUTERS = (
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'tenant_tutorial.middleware.TenantTutorialMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -136,6 +136,7 @@ SHARED_APPS = (
     'django_tenants',  # mandatory
     'customers',  # you must list the app where your tenant model resides in
 
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -144,9 +145,11 @@ SHARED_APPS = (
 )
 
 TENANT_APPS = (
-    # The following Django contrib apps must be in TENANT_APPS
     'django.contrib.contenttypes',
     'django.contrib.auth',
+    'django.contrib.admin',
+    'django.contrib.sessions',
+    'django.contrib.messages',
     'tenant_only',
 )
 

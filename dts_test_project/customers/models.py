@@ -7,6 +7,15 @@ class Client(TenantMixin):
     description = models.TextField(max_length=200, blank=True, null=True)
     created_on = models.DateField(auto_now_add=True)
 
+    def reverse(self, request, view_name):
+        """
+        If you have different implementation of reserve from what the
+        Django-Tenants library uses (A.k.a. Sites Framework) then you can write
+        your own override here.
+        """
+        # Write your own custom code else use existing code.
+        return super( Client, self ).reverse(request, view_name)
+
 
 class Domain(DomainMixin):
     pass

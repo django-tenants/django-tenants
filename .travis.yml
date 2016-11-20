@@ -10,4 +10,9 @@ install: "python setup.py develop"
 before_script:
   - psql -c 'create database dts_test_project;' -U postgres
 
+env:
+  - DJANGO=1.8
+  - DJANGO=1.9
+  - DJANGO=1.10
+
 script: ./run_tests.sh

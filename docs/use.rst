@@ -81,6 +81,12 @@ Example
 
         # send email to client to as tenant is ready to use
 
+Reverse
+~~~~~~~
+
+You can get the tenant domain name by calling a method on the tenant model called ``reverse``.
+
+
 Management commands
 -------------------
 Every command except tenant_command runs by default on all tenants. You can also create your own commands that run on every tenant by inheriting ``BaseTenantCommand``. To run only a particular schema, there is an optional argument called ``--schema``.
@@ -156,7 +162,7 @@ The command ``create_tenant_superuser`` is already automatically wrapped to have
 
 .. code-block:: bash
 
-    ./manage.py create_tenant_superuser --username='admin' --schema=customer1
+    ./manage.py create_tenant_superuser --username=admin --schema=customer1
 
 
 create_tenant
@@ -194,6 +200,40 @@ The hook for ensuring the ``search_path`` is set properly happens inside the ``D
     TENANT_LIMIT_SET_CALLS = True
 
 When set, ``django-tenants`` will set the search path only once per request. The default is ``False``.
+
+
+Logging
+-------
+
+The optional ``TenantContextFilter`` can be included in ``settings.LOGGING`` to add the current ``schema_name`` and ``domain_url`` to the logging context.
+
+.. code-block:: python
+
+    # settings.py
+    LOGGING = {
+        'filters': {
+            'tenant_context': {
+                '()': 'django_tenants.log.TenantContextFilter'
+            },
+        },
+        'formatters': {
+            'tenant_context': {
+                'format': '[%(schema_name)s:%(domain_url)s] '
+                '%(levelname)-7s %(asctime)s %(message)s',
+            },
+        },
+        'handlers': {
+            'console': {
+                'filters': ['tenant_context'],
+            },
+        },
+    }
+
+This will result in logging output that looks similar to:
+
+.. code-block:: text
+
+    [example:example.com] DEBUG 13:29 django.db.backends: (0.001) SELECT ...
 
 
 Running in Development

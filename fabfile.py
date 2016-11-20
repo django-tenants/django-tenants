@@ -10,15 +10,15 @@ from fabric.context_managers import cd
 @task
 def vagrant():
     env.user = 'vagrant'
-    env.hosts = ['127.0.0.1:2222']
-    env.passwords = {'vagrant@127.0.0.1:2222': 'vagrant'}
+    env.hosts = ['127.0.0.1:2020']
+    env.passwords = {'vagrant@127.0.0.1:2020': 'vagrant'}
     env.psql_db = 'tenant_tutorial'
     env.psql_user = 'tenant_tutorial'
     env.psql_password = 'qwerty'
     env.backup_path = '/vagrant/database_backup/'
     env.user = 'vagrant'
     env.deploy_user = 'vagrant'
-    env.passwords = {'vagrant@127.0.0.1:2222': 'vagrant'}
+    env.passwords = {'vagrant@127.0.0.1:2020': 'vagrant'}
     env.vagrant = True
     return env.hosts
 
@@ -35,17 +35,14 @@ def provision_vagrant():
 
 
 @task
-@hosts(['vagrant@127.0.0.1:2222'])
 def create_superuser():
-    vagrant()
-    django_manage("createsuperuser --email=vagrant@twt.me.uk", True)
+    django_manage("createsuperuser")
 
 
 @task
 def django_manage(command):
     with cd("/vagrant/examples/tenant_tutorial/"):
         run("python manage.py %s" % command)
-
 
 
 def update_requirements():
@@ -56,9 +53,7 @@ def update_requirements():
                                    'pkg-config',
                                    'postgresql-server-dev-9.3'])
 
-
-    sudo("pip install psycopg2==2.6.1 django==1.9")
-    
+    sudo("pip install psycopg2==2.6.1 django==1.10.2")
 
 
 @task
@@ -91,6 +86,7 @@ def django_migrate():
 def create_tenant():
     django_manage("create_tenant")
 
+
 @task
 def runserver():
-    django_manage("runserver 0.0.0.0:8080")
+    django_manage("runserver 0.0.0.0:8088")
