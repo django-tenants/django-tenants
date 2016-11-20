@@ -43,13 +43,12 @@ class TenantFileSystemStorage(TenantStorageMixin, FileSystemStorage):
 
     def __init__(self, location=None, base_url=None, *args, **kwargs):
         super(TenantFileSystemStorage, self).__init__(location, base_url, *args, **kwargs)
-        if hasattr(settings, "MULTITENANT_RELATIVE_MEDIA_ROOT"):
+        if hasattr(settings, "MULTITENANT_RELATIVE_MEDIA_ROOT") and \
+                settings.MULTITENANT_RELATIVE_MEDIA_ROOT:
             self.location = os.path.join(self.location,
                                          settings.MULTITENANT_RELATIVE_MEDIA_ROOT)
 
-        if hasattr(settings, "MULTITENANT_RELATIVE_MEDIA_URL") and \
-                settings.MULTITENANT_RELATIVE_MEDIA_URL:
-            relative_base_url = settings.MULTITENANT_RELATIVE_MEDIA_URL
+            relative_base_url = settings.MULTITENANT_RELATIVE_MEDIA_ROOT
             if not relative_base_url.endswith('/'):
                 relative_base_url += '/'
             self.base_url += relative_base_url
@@ -61,12 +60,6 @@ class TenantFileSystemStorage(TenantStorageMixin, FileSystemStorage):
             raise ImproperlyConfigured("You're using the TenantFileSystemStorage "
                                        "without having set the MULTITENANT_RELATIVE_MEDIA_ROOT "
                                        "setting to a relative filesystem path as from MEDIA_ROOT.")
-
-        # if not hasattr(settings, "MULTITENANT_MEDIA_URL") or \
-        #         not settings.MULTITENANT_MEDIA_URL:
-        #     raise ImproperlyConfigured("You're using the TenantFileSystemStorage "
-        #                                "without having set the MULTITENANT_MEDIA_URL "
-        #                                "setting to a filesystem path.")
 
         return super(TenantFileSystemStorage, self).path(name)
     """

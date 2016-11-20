@@ -25,6 +25,7 @@ class TenantMiddleware(object):
 
         domain = get_object_or_404(get_tenant_domain_model().objects.select_related('tenant'),
                                    domain=hostname)
+
         request.tenant = domain.tenant
         connection.set_tenant(request.tenant)
 
