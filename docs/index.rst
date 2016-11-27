@@ -56,6 +56,7 @@ Contents
    use
    examples
    templates
+   static
    test
    involved
    credits
