@@ -5,7 +5,6 @@ python:
   - "3.6"
 addons:
   postgresql: "9.4"
-  postgresql: "9.5"
 
 install: "python setup.py develop"
 
