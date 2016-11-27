@@ -2,8 +2,9 @@ from django.conf import settings
 from django.db import models, connection, transaction
 from django.core.management import call_command
 from django.contrib.sites.shortcuts import get_current_site
-from django.core.urlresolvers import resolve, reverse
+from django.core.urlresolvers import reverse
 
+# noinspection PyProtectedMember
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
 from .utils import schema_exists, get_tenant_domain_model
