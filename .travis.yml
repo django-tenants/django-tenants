@@ -4,6 +4,8 @@ python:
   - "3.5"
 addons:
   postgresql: "9.4"
+services:
+  - postgresql
 
 install: "python setup.py develop"
 
