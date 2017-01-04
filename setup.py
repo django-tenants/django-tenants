@@ -7,7 +7,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 setup(
     name='django-tenants',
@@ -23,6 +23,7 @@ setup(
         'django_tenants.templatetags',
         'django_tenants.test',
         'django_tenants.tests',
+        'django_tenants.staticfiles',
     ],
     scripts=[],
     url='https://github.com/tomturner/django-tenants',
