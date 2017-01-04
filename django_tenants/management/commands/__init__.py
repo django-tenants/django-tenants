@@ -1,3 +1,4 @@
+import django
 from django.conf import settings
 from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import BaseCommand, CommandError
@@ -113,7 +114,8 @@ class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):
     def __new__(cls, *args, **kwargs):
         obj = super(TenantWrappedCommand, cls).__new__(cls, *args, **kwargs)
         obj.command_instance = obj.COMMAND()
-        obj.option_list = obj.command_instance.option_list
+        if django.VERSION <= (1, 10, 0):
+            obj.option_list = obj.command_instance.option_list
         return obj
 
     def handle(self, *args, **options):
