@@ -111,6 +111,8 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         # optionally limit the number of executions - under load, the execution
         # of `set search_path` can be quite time consuming
         if (not get_limit_set_calls()) or not self.search_path_set or self._previous_cursor != cursor:
+            # Store the cursor pointer to check if it has changed since we 
+            # last validated.
             self._previous_cursor = cursor
             # Actual search_path modification for the cursor. Database will
             # search schemata from left to right when looking for the object
