@@ -19,6 +19,7 @@ class TenantStorageMixin(object):
 
     def path(self, name):
         """
+        IMPORTANT
         To static_files is the destination path to collectstatic
         To media_files is the destination path to upload files
         """
@@ -34,6 +35,20 @@ class TenantStorageMixin(object):
 
         path = safe_join(location, name)
         return path
+
+    # @property
+    # def base_url(self):
+    #     b_url = super(TenantStorageMixin, self).base_url
+
+    #     try:
+    #         if '%s' in self.relative_base_url:
+    #             b_url += self.relative_base_url % connection.schema_name
+    #         else:
+    #             b_url += u"{0}{1}/".format(self.relative_base_url, connection.schema_name)
+    #     except AttributeError:
+    #         pass
+
+    #     return b_url
 
 
 class TenantFileSystemStorage(TenantStorageMixin, FileSystemStorage):

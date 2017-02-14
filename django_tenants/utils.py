@@ -114,3 +114,23 @@ def app_labels(apps_list):
     Returns a list of app labels of the given apps_list
     """
     return [app.split('.')[-1] for app in apps_list]
+
+
+class AllowedHostsTenant():
+
+    domains = []
+
+    def get_allowed_hosts(self):
+        if not self.domains:
+            self.domains = map(
+                lambda x: ".{}".format(x),
+                list(get_tenant_domain_model().objects.values_list('domain', flat=True))
+            )
+
+        return self.domains
+
+    def get_allowed_hosts_again(self):
+        self.domains = []
+
+    def __iter__(self):
+        return iter(self.get_allowed_hosts())
