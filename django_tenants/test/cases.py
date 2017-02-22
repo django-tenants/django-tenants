@@ -82,3 +82,24 @@ class FastTenantTestCase(TenantTestCase):
     @classmethod
     def tearDownClass(cls):
         connection.set_schema_to_public()
+
+
+    def tearDown(self):
+        """
+        We need to prevent these from being called in TenantTestCase, or it will
+        double the schema logic calls, and cause integrity errors, because they
+        work on instances, and with FastTenantTestCase our logic happens in the
+        class level functions above.
+        :return:
+        """
+        pass
+
+    def setUp(self):
+        """
+        We need to prevent these from being called in TenantTestCase, or it will
+        double the schema logic calls, and cause integrity errors, because they
+        work on instances, and with FastTenantTestCase our logic happens in the
+        class level functions above.
+        :return:
+        """
+        pass
