@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import io
 from os.path import exists
 
 try:
@@ -7,7 +8,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 
 setup(
     name='django-tenants',
@@ -29,7 +30,7 @@ setup(
     url='https://github.com/tomturner/django-tenants',
     license='MIT',
     description='Tenant support for Django using PostgreSQL schemas.',
-    long_description=open('README.rst').read() if exists("README.rst") else "",
+    long_description=io.open('README.rst', encoding='utf-8').read() if exists("README.rst") else "",
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
