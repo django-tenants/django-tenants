@@ -6,16 +6,32 @@ addons:
   postgresql: "9.4"
 services:
   - postgresql
-
-install: "python setup.py develop"
-
-before_script:
-  - psql -c 'create database dts_test_project;' -U postgres
-
 env:
   - DJANGO=1.8
   - DJANGO=1.9
   - DJANGO=1.10
   - DJANGO=1.11
+
+matrix:
+  exclude:
+  - env: DJANGO="Django<1.10"
+    python: "3.3"
+  - env: DJANGO="Django<1.10"
+    python: "pypy3"
+  - env: DJANGO="Django<1.11"
+    python: "3.3"
+  - env: DJANGO="Django<1.11"
+    python: "pypy3"
+
+install:
+  - pip install -U pip
+  - if [[ $TRAVIS_PYTHON_VERSION == pypy* ]]; then pip install psycopg2cffi; fi
+  - if [[ $TRAVIS_PYTHON_VERSION != pypy* ]]; then pip install psycopg2; fi
+  - pip install $DJANGO
+  - python setup.py develop
+
+before_script:
+  - psql -c 'create database dts_test_project;' -U postgres
+
 
 script: ./run_tests.sh
