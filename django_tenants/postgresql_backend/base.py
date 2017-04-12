@@ -50,9 +50,9 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
     _previous_cursor = None
 
     def __init__(self, *args, **kwargs):
-        self.search_path_set = None
-        self.tenant = None
-        self.schema_name = None
+        # self.search_path_set = None
+        # self.tenant = None
+        # self.schema_name = None
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
 
         # Use a patched version of the DatabaseIntrospection that only returns the table list for the
