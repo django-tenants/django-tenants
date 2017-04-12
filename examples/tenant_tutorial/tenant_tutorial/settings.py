@@ -2,7 +2,7 @@
 import sys
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
+
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
@@ -11,6 +11,7 @@ ADMINS = (
 MANAGERS = ADMINS
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+
 PROJECT_DIR = os.path.join(BASE_DIR, os.pardir)
 
 TENANT_APPS_DIR = os.path.join(PROJECT_DIR, os.pardir)
@@ -91,10 +92,6 @@ STATICFILES_FINDERS = (
 SECRET_KEY = 'as-%*_93v=r5*p_7cu8-%o6b&x^g+q$#*e*fl)k)x0-t=%q0qa'
 
 # List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
-)
 
 DATABASE_ROUTERS = (
     'django_tenants.routers.TenantSyncRouter',
@@ -114,23 +111,35 @@ MIDDLEWARE = (
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.core.context_processors.request',
-    'django.contrib.auth.context_processors.auth',
-    'django.core.context_processors.debug',
-    'django.core.context_processors.media',
-    'django.core.context_processors.static',
-    'django.contrib.messages.context_processors.messages',
-)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            os.path.join(BASE_DIR, 'templates')
 
+        ],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                # Insert your TEMPLATE_CONTEXT_PROCESSORS here or use this
+                # list if you haven't customized them:
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
+                'django.template.context_processors.tz',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
 ROOT_URLCONF = 'tenant_tutorial.urls_tenants'
 PUBLIC_SCHEMA_URLCONF = 'tenant_tutorial.urls_public'
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'tenant_tutorial.wsgi.application'
 
-import os
-TEMPLATE_DIRS = (os.path.join(os.path.dirname(__file__), '..', 'templates').replace('\\', '/'),)
 
 SHARED_APPS = (
     'django_tenants',  # mandatory
