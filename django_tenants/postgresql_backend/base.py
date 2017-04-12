@@ -10,8 +10,8 @@ import django.db.utils
 import psycopg2
 
 
-# DatabaseError = django.db.utils.DatabaseError
-# IntegrityError = psycopg2.IntegrityError
+DatabaseError = django.db.utils.DatabaseError
+IntegrityError = psycopg2.IntegrityError
 
 ORIGINAL_BACKEND = getattr(settings, 'ORIGINAL_BACKEND', 'django.db.backends.postgresql_psycopg2')
 
@@ -50,9 +50,9 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
     _previous_cursor = None
 
     def __init__(self, *args, **kwargs):
-        # self.search_path_set = None
-        # self.tenant = None
-        # self.schema_name = None
+        self.search_path_set = None
+        self.tenant = None
+        self.schema_name = None
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
 
         # Use a patched version of the DatabaseIntrospection that only returns the table list for the
@@ -159,10 +159,3 @@ class FakeTenant:
     """
     def __init__(self, schema_name):
         self.schema_name = schema_name
-
-if ORIGINAL_BACKEND == "django.contrib.gis.db.backends.postgis":
-    DatabaseError = django.db.utils.DatabaseError
-    IntegrityError = psycopg2.IntegrityError
-else:
-    DatabaseError = original_backend.DatabaseError
-    IntegrityError = original_backend.IntegrityError
