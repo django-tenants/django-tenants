@@ -9,7 +9,8 @@ ALLOWED_TEST_DOMAIN = '.test.com'
 
 
 class TenantTestCase(TestCase):
-
+    
+    @classmethod
     def add_allowed_test_domain(cls):
         # ALLOWED_HOSTS is a special setting of Django setup_test_environment so we can't modify it with helpers
         if ALLOWED_TEST_DOMAIN not in settings.ALLOWED_HOSTS:
