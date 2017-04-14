@@ -351,15 +351,6 @@ class SharedAuthTest(BaseTestCase):
             self.d2 = ModelWithFkToPublicUser(user=self.user2)
             self.d2.save()
 
-    def tearDown(self):
-        connection.set_schema_to_public()
-        self.public_domain.delete()
-        self.public_tenant.delete()
-        self.domain.delete()
-        self.tenant.delete(force_drop=True)
-
-        super(SharedAuthTest, self).tearDown()
-
     def test_cross_schema_constraint_gets_created(self):
         """
         Tests that a foreign key constraint gets created even for cross schema references.
