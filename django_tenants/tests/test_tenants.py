@@ -33,6 +33,24 @@ class TenantDataAndSettingsTest(BaseTestCase):
         cls.public_domain = get_tenant_domain_model()(tenant=cls.public_tenant, domain='test.com')
         cls.public_domain.save()
 
+    def setUp(self):
+        self.created = []
+
+        super(TenantDataAndSettingsTest, self).setUp()
+
+    def tearDown(self):
+        from django_tenants.models import TenantMixin
+
+        connection.set_schema_to_public()
+
+        for c in self.created:
+            if isinstance(c, TenantMixin):
+                c.delete(force_drop=True)
+            else:
+                c.delete()
+
+        super(TenantDataAndSettingsTest, self).tearDown()
+
     def test_tenant_schema_is_created(self):
         """
         When saving a tenant, it's schema should be created.
@@ -333,6 +351,14 @@ class SharedAuthTest(BaseTestCase):
             self.d2 = ModelWithFkToPublicUser(user=self.user2)
             self.d2.save()
 
+    def tearDown(self):
+        connection.set_schema_to_public()
+        self.public_domain.delete()
+        self.public_tenant.delete()
+        self.domain.delete()
+        self.tenant.delete(force_drop=True)
+
+        super(SharedAuthTest, self).tearDown()
 
     def test_cross_schema_constraint_gets_created(self):
         """
