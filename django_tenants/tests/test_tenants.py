@@ -33,13 +33,6 @@ class TenantDataAndSettingsTest(BaseTestCase):
         cls.public_domain = get_tenant_domain_model()(tenant=cls.public_tenant, domain='test.com')
         cls.public_domain.save()
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.public_domain.delete()
-        cls.public_tenant.delete()
-
-        super(TenantDataAndSettingsTest, cls).tearDownClass()
-
     def setUp(self):
         self.created = []
 
