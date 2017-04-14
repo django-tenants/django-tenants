@@ -21,8 +21,8 @@ class TenantTestCase(TestCase):
         if ALLOWED_TEST_DOMAIN in settings.ALLOWED_HOSTS:
             settings.ALLOWED_HOSTS.remove(ALLOWED_TEST_DOMAIN)
 
-    # noinspection PyMethodMayBeStatic
-    def setup_tenant(self, tenant):
+    @classmethod
+    def setup_tenant(cls, tenant):
         """
         Add any additional setting to the tenant before it get saved. This is required if you have
         required fields.
@@ -31,8 +31,8 @@ class TenantTestCase(TestCase):
         """
         pass
 
-    # noinspection PyMethodMayBeStatic
-    def setup_domain(self, domain):
+    @classmethod
+    def setup_domain(cls, domain):
         """
         Add any additional setting to the domain before it get saved. This is required if you have
         required fields.
@@ -46,13 +46,13 @@ class TenantTestCase(TestCase):
         cls.sync_shared()
         cls.add_allowed_test_domain()
         cls.tenant = get_tenant_model()(schema_name=cls.get_test_schema_name())
-        connection.setup_tenant(cls.tenant)
+        cls.setup_tenant(cls.tenant)
         cls.tenant.save(verbosity=0)  # todo: is there any way to get the verbosity from the test command here?
 
         # Set up domain
         tenant_domain = cls.get_test_tenant_domain()
         cls.domain = get_tenant_domain_model()(tenant=cls.tenant, domain=tenant_domain)
-        connection.setup_domain(cls.domain)
+        cls.setup_domain(cls.domain)
         cls.domain.save()
 
         connection.set_tenant(cls.tenant)
@@ -97,10 +97,10 @@ class FastTenantTestCase(TenantTestCase):
             cls.tenant.save(verbosity=0)
 
             cls.domain = get_tenant_domain_model()(tenant=cls.tenant, domain=test_tenant_domain_name)
-            connection.setup_domain(cls.domain)
+            cls.setup_domain(cls.domain)
             cls.domain.save()
 
-        connection.set_tenant(cls.tenant)
+        cls.set_tenant(cls.tenant)
 
     @classmethod
     def tearDownClass(cls):
