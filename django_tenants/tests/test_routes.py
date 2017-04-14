@@ -19,7 +19,7 @@ class RoutesTestCase(BaseTestCase):
         cls.available_apps = settings.INSTALLED_APPS
         cls.sync_shared()
         cls.public_tenant = get_tenant_model()(schema_name=get_public_schema_name())
-        cls.public_tenant.save()
+        cls.public_tenant.save(verbosity=BaseTestCase.get_verbosity())
         cls.public_domain = get_tenant_domain_model()(domain='test.com', tenant=cls.public_tenant)
         cls.public_domain.save()
 
@@ -33,16 +33,6 @@ class RoutesTestCase(BaseTestCase):
         self.tenant.save(verbosity=BaseTestCase.get_verbosity())
         self.domain = get_tenant_domain_model()(tenant=self.tenant, domain=self.tenant_domain)
         self.domain.save()
-
-    def tearDown(self):
-        from django.db import connection
-
-        connection.set_schema_to_public()
-
-        self.domain.delete()
-        self.tenant.delete(force_drop=True)
-
-        super(RoutesTestCase, self).tearDown()
 
     def test_tenant_routing(self):
         """
