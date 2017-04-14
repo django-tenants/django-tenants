@@ -32,7 +32,7 @@ class RoutesTestCase(BaseTestCase):
         self.tenant = get_tenant_model()(schema_name='test')
         self.tenant.save(verbosity=BaseTestCase.get_verbosity())
         self.domain = get_tenant_domain_model()(tenant=self.tenant, domain=self.tenant_domain)
-        self.domain.save(verbosity=BaseTestCase.get_verbosity())
+        self.domain.save()
 
     def tearDown(self):
         from django.db import connection
