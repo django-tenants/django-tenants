@@ -29,9 +29,16 @@ class TenantDataAndSettingsTest(BaseTestCase):
         cls.sync_shared()
 
         cls.public_tenant = get_tenant_model()(schema_name=get_public_schema_name())
-        cls.public_tenant.save(verbosity=cls.get_verbosity())
+        cls.public_tenant.save()
         cls.public_domain = get_tenant_domain_model()(tenant=cls.public_tenant, domain='test.com')
         cls.public_domain.save()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.public_domain.delete()
+        cls.public_tenant.delete()
+
+        super(TenantDataAndSettingsTest, cls).tearDownClass()
 
     def setUp(self):
         self.created = []
@@ -350,6 +357,15 @@ class SharedAuthTest(BaseTestCase):
             self.d1.save()
             self.d2 = ModelWithFkToPublicUser(user=self.user2)
             self.d2.save()
+
+    def tearDown(self):
+        connection.set_schema_to_public()
+        self.public_domain.delete()
+        self.public_tenant.delete()
+        self.domain.delete()
+        self.tenant.delete(force_drop=True)
+
+        super(SharedAuthTest, self).tearDown()
 
     def test_cross_schema_constraint_gets_created(self):
         """
