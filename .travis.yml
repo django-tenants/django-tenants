@@ -8,16 +8,16 @@ services:
   - postgresql
 env:
   matrix:
-   - $DJANGO_VERSION="<1.9"
-   - $DJANGO_VERSION="<1.10"
-   - $DJANGO_VERSION="<1.11"
-   - $DJANGO_VERSION="<2"
+   - $DJANGO="Django<1.9"
+   - $DJANGO="Django<1.10"
+   - $DJANGO="Django<1.11"
+   - $DJANGO="Django<2"
 
 install:
   - pip install -U pip
   - if [[ $TRAVIS_PYTHON_VERSION == pypy* ]]; then pip install psycopg2cffi; fi
   - if [[ $TRAVIS_PYTHON_VERSION != pypy* ]]; then pip install psycopg2; fi
-  - pip install -q Django==$DJANGO_VERSION
+  - pip install -q $Django
   - python setup.py develop
 
 before_script:
