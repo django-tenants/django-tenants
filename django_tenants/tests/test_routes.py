@@ -23,16 +23,16 @@ class RoutesTestCase(BaseTestCase):
         cls.public_domain = get_tenant_domain_model()(domain='test.com', tenant=cls.public_tenant)
         cls.public_domain.save()
 
-    @classmethod
-    def tearDownClass(cls):
-        from django.db import connection
-
-        connection.set_schema_to_public()
-
-        cls.public_domain.delete()
-        cls.public_tenant.delete()
-
-        super(RoutesTestCase, cls).tearDownClass()
+    # @classmethod
+    # def tearDownClass(cls):
+    #     from django.db import connection
+    #
+    #     connection.set_schema_to_public()
+    #
+    #     cls.public_domain.delete()
+    #     cls.public_tenant.delete()
+    #
+    #     super(RoutesTestCase, cls).tearDownClass()
 
     def setUp(self):
         super(RoutesTestCase, self).setUp()

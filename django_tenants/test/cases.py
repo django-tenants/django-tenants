@@ -90,6 +90,7 @@ class FastTenantTestCase(TenantTestCase):
 
         test_schema_name = cls.get_test_schema_name()
         test_tenant_domain_name = cls.get_test_tenant_domain()
+        cls.setup_tenant(cls.domain)
 
         if tenant_model.objects.filter(schema_name=test_schema_name).exists():
             cls.tenant = tenant_model.objects.filter(schema_name=test_schema_name).first()
@@ -101,7 +102,7 @@ class FastTenantTestCase(TenantTestCase):
             cls.setup_domain(cls.domain)
             cls.domain.save()
 
-        cls.set_tenant(cls.tenant)
+        connection.set_tenant(cls.tenant)
 
     @classmethod
     def tearDownClass(cls):
