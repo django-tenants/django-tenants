@@ -29,9 +29,9 @@ class TenantDataAndSettingsTest(BaseTestCase):
         cls.sync_shared()
 
         cls.public_tenant = get_tenant_model()(schema_name=get_public_schema_name())
-        cls.public_tenant.save()
+        cls.public_tenant.save(verbosity=cls.get_verbosity())
         cls.public_domain = get_tenant_domain_model()(tenant=cls.public_tenant, domain='test.com')
-        cls.public_domain.save()
+        cls.public_domain.save(verbosity=cls.get_verbosity())
 
     def setUp(self):
         self.created = []

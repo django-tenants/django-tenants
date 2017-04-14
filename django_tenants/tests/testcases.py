@@ -1,12 +1,13 @@
+import inspect
 from django.db import connection
 from django.conf import settings
 from django.core.management import call_command
-from django.test import TransactionTestCase
+from django.test import TestCase
 
 from django_tenants.utils import get_public_schema_name
 
 
-class BaseTestCase(TransactionTestCase):
+class BaseTestCase(TestCase):
     """
     Base test case that comes packed with overloaded INSTALLED_APPS,
     custom public tenant, and schemas cleanup on tearDown.
@@ -24,11 +25,25 @@ class BaseTestCase(TransactionTestCase):
 
         cls.available_apps = settings.INSTALLED_APPS
 
+        # Django calls syncdb by default for the test database, but we want
+        # a blank public schema for this set of tests.
+        connection.set_schema_to_public()
+        cursor = connection.cursor()
+        cursor.execute('DROP SCHEMA IF EXISTS %s CASCADE; CREATE SCHEMA %s;'
+                       % (get_public_schema_name(), get_public_schema_name()))
         super(BaseTestCase, cls).setUpClass()
 
     def setUp(self):
         connection.set_schema_to_public()
         super(BaseTestCase, self).setUp()
+
+    @classmethod
+    def get_verbosity(cls):
+        for s in reversed(inspect.stack()):
+            options = s[0].f_locals.get('options')
+            if isinstance(options, dict):
+                return int(options['verbosity']) - 2
+        return 1
 
     @classmethod
     def get_tables_list_in_schema(cls, schema_name):
