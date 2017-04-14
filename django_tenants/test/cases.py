@@ -57,11 +57,12 @@ class TenantTestCase(TestCase):
 
         connection.set_tenant(cls.tenant)
 
-    def tearDownClass(self):
+    @classmethod
+    def tearDownClass(cls):
         connection.set_schema_to_public()
-        self.remove_allowed_test_domain()
+        cls.remove_allowed_test_domain()
         cursor = connection.cursor()
-        cursor.execute('DROP SCHEMA IF EXISTS %s CASCADE' % self.get_test_schema_name())
+        cursor.execute('DROP SCHEMA IF EXISTS %s CASCADE' % cls.get_test_schema_name())
 
     @classmethod
     def sync_shared(cls):
