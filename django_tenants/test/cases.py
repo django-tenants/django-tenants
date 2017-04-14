@@ -10,19 +10,19 @@ ALLOWED_TEST_DOMAIN = '.test.com'
 
 class TenantTestCase(TestCase):
 
-    @classmethod
-    def add_allowed_test_domain(cls):
+    @staticmethod
+    def add_allowed_test_domain():
         # ALLOWED_HOSTS is a special setting of Django setup_test_environment so we can't modify it with helpers
         if ALLOWED_TEST_DOMAIN not in settings.ALLOWED_HOSTS:
             settings.ALLOWED_HOSTS += [ALLOWED_TEST_DOMAIN]
 
-    @classmethod
-    def remove_allowed_test_domain(cls):
+    @staticmethod
+    def remove_allowed_test_domain():
         if ALLOWED_TEST_DOMAIN in settings.ALLOWED_HOSTS:
             settings.ALLOWED_HOSTS.remove(ALLOWED_TEST_DOMAIN)
 
-    @classmethod
-    def setup_tenant(cls, tenant):
+    # noinspection PyMethodMayBeStatic
+    def setup_tenant(self, tenant):
         """
         Add any additional setting to the tenant before it get saved. This is required if you have
         required fields.
@@ -31,8 +31,8 @@ class TenantTestCase(TestCase):
         """
         pass
 
-    @classmethod
-    def setup_domain(cls, domain):
+    # noinspection PyMethodMayBeStatic
+    def setup_domain(self, domain):
         """
         Add any additional setting to the domain before it get saved. This is required if you have
         required fields.
@@ -41,31 +41,29 @@ class TenantTestCase(TestCase):
         """
         pass
 
-    @classmethod
-    def setUpClass(cls):
-        cls.sync_shared()
-        cls.add_allowed_test_domain()
-        cls.tenant = get_tenant_model()(schema_name=cls.get_test_schema_name())
-        cls.setup_tenant(cls.tenant)
-        cls.tenant.save(verbosity=0)  # todo: is there any way to get the verbosity from the test command here?
+    def setUpClass(self):
+        self.sync_shared()
+        self.add_allowed_test_domain()
+        self.tenant = get_tenant_model()(schema_name=self.get_test_schema_name())
+        self.setup_tenant(self.tenant)
+        self.tenant.save(verbosity=0)  # todo: is there any way to get the verbosity from the test command here?
 
         # Set up domain
-        tenant_domain = cls.get_test_tenant_domain()
-        cls.domain = get_tenant_domain_model()(tenant=cls.tenant, domain=tenant_domain)
-        cls.setup_domain(cls.domain)
-        cls.domain.save()
+        tenant_domain = self.get_test_tenant_domain()
+        self.domain = get_tenant_domain_model()(tenant=self.tenant, domain=tenant_domain)
+        self.setup_domain(self.domain)
+        self.domain.save()
 
-        connection.set_tenant(cls.tenant)
+        connection.set_tenant(self.tenant)
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(self):
         connection.set_schema_to_public()
-        cls.remove_allowed_test_domain()
+        self.remove_allowed_test_domain()
         cursor = connection.cursor()
-        cursor.execute('DROP SCHEMA IF EXISTS test CASCADE')
+        cursor.execute('DROP SCHEMA IF EXISTS %s CASCADE' % self.get_test_schema_name())
 
-    @classmethod
-    def sync_shared(cls):
+    @staticmethod
+    def sync_shared():
         call_command('migrate_schemas',
                      schema_name=get_public_schema_name(),
                      interactive=False,
@@ -82,29 +80,27 @@ class TenantTestCase(TestCase):
 
 class FastTenantTestCase(TenantTestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.sync_shared()
-        cls.add_allowed_test_domain()
+    def setUpClass(self):
+        self.sync_shared()
+        self.add_allowed_test_domain()
         tenant_model = get_tenant_model()
 
-        test_schema_name = cls.get_test_schema_name()
-        test_tenant_domain_name = cls.get_test_tenant_domain()
+        test_schema_name = self.get_test_schema_name()
+        test_tenant_domain_name = self.get_test_tenant_domain()
 
         if tenant_model.objects.filter(schema_name=test_schema_name).exists():
-            cls.tenant = tenant_model.objects.filter(schema_name=test_schema_name).first()
+            self.tenant = tenant_model.objects.filter(schema_name=test_schema_name).first()
         else:
-            cls.tenant = tenant_model(schema_name=test_schema_name)
-            cls.tenant.save(verbosity=0)
-            cls.domain = get_tenant_domain_model()(tenant=cls.tenant, domain=test_tenant_domain_name)
-            cls.domain.save()
+            self.tenant = tenant_model(schema_name=test_schema_name)
+            self.tenant.save(verbosity=0)
+            self.domain = get_tenant_domain_model()(tenant=self.tenant, domain=test_tenant_domain_name)
+            self.domain.save()
 
-        connection.set_tenant(cls.tenant)
+        connection.set_tenant(self.tenant)
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(self):
         connection.set_schema_to_public()
-        cls.remove_allowed_test_domain()
+        self.remove_allowed_test_domain()
 
     def tearDown(self):
         """
