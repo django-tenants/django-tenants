@@ -167,6 +167,8 @@ TENANT_MODEL = "customers.Client"  # app.Model
 
 TENANT_DOMAIN_MODEL = "customers.Domain"  # app.Model
 
+TEST_RUNNER = 'django.test.runner.DiscoverRunner'
+
 INSTALLED_APPS = list(set(TENANT_APPS + SHARED_APPS))
 
 
