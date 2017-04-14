@@ -63,8 +63,8 @@ class TenantTestCase(TestCase):
         cursor = connection.cursor()
         cursor.execute('DROP SCHEMA IF EXISTS %s CASCADE' % self.get_test_schema_name())
 
-    @staticmethod
-    def sync_shared():
+    @classmethod
+    def sync_shared(cls):
         call_command('migrate_schemas',
                      schema_name=get_public_schema_name(),
                      interactive=False,
