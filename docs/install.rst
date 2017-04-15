@@ -30,12 +30,12 @@ Add `django_tenants.routers.TenantSyncRouter` to your `DATABASE_ROUTERS` setting
         'django_tenants.routers.TenantSyncRouter',
     )
     
-Add the middleware ``django_tenants.middleware.TenantMiddleware`` to the top of ``MIDDLEWARE``, so that each request can be set to use the correct schema.
+Add the middleware ``django_tenants.middleware.main.TenantMainMiddleware`` to the top of ``MIDDLEWARE``, so that each request can be set to use the correct schema.
 
 .. code-block:: python
     
     MIDDLEWARE = (
-        'django_tenants.middleware.TenantMiddleware',
+        'django_tenants.middleware.main.TenantMainMiddleware',
         #...
     )
     
