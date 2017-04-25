@@ -78,18 +78,18 @@ class TenantMixin(models.Model):
 
     def save(self, verbosity=1, *args, **kwargs):
         is_new = self.pk is None
-
-        if is_new and connection.schema_name != get_public_schema_name():
+        has_schema = hasattr(connection, 'schema_name')
+        if has_schema and is_new and connection.schema_name != get_public_schema_name():
             raise Exception("Can't create tenant outside the public schema. "
                             "Current schema is %s." % connection.schema_name)
-        elif not is_new and connection.schema_name not in (self.schema_name, get_public_schema_name()):
+        elif has_schema and not is_new and connection.schema_name not in (self.schema_name, get_public_schema_name()):
             raise Exception("Can't update tenant outside it's own schema or "
                             "the public schema. Current schema is %s."
                             % connection.schema_name)
 
         super(TenantMixin, self).save(*args, **kwargs)
 
-        if is_new and self.auto_create_schema:
+        if has_schema and is_new and self.auto_create_schema:
             try:
                 self.create_schema(check_if_exists=True, verbosity=verbosity)
                 post_schema_sync.send(sender=TenantMixin, tenant=self)
@@ -99,6 +99,7 @@ class TenantMixin(models.Model):
                 self.delete(force_drop=True)
                 raise
         elif is_new:
+            # although we are not using the schema functions directly, the signal might be registered by a listener
             schema_needs_to_be_sync.send(sender=TenantMixin, tenant=self)
 
     def delete(self, force_drop=False, *args, **kwargs):
@@ -106,12 +107,13 @@ class TenantMixin(models.Model):
         Deletes this row. Drops the tenant's schema if the attribute
         auto_drop_schema set to True.
         """
-        if connection.schema_name not in (self.schema_name, get_public_schema_name()):
+        has_schema = hasattr(connection, 'schema_name')
+        if has_schema and connection.schema_name not in (self.schema_name, get_public_schema_name()):
             raise Exception("Can't delete tenant outside it's own schema or "
                             "the public schema. Current schema is %s."
                             % connection.schema_name)
 
-        if schema_exists(self.schema_name) and (self.auto_drop_schema or force_drop):
+        if has_schema and schema_exists(self.schema_name) and (self.auto_drop_schema or force_drop):
             cursor = connection.cursor()
             cursor.execute('DROP SCHEMA %s CASCADE' % self.schema_name)
 
