@@ -70,7 +70,7 @@ DATABASES = {
         'ENGINE': 'django_tenants.postgresql_backend',
         'NAME': 'dts_test_project',
         'USER': 'postgres',
-        'PASSWORD': 'root',
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'root'),
         'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
         'PORT': '',
     }
