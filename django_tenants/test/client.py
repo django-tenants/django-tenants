@@ -1,9 +1,10 @@
 from django.test import RequestFactory, Client
 from django_tenants.middleware import TenantMiddleware
+from django_tenants.middleware.main import TenantMainMiddleware
 
 
 class TenantRequestFactory(RequestFactory):
-    tm = TenantMiddleware()
+    tm = TenantMainMiddleware()
 
     def __init__(self, tenant, **defaults):
         super(TenantRequestFactory, self).__init__(**defaults)
