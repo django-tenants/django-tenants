@@ -123,14 +123,14 @@ Your ``DATABASE_ENGINE`` setting needs to be changed to
         }
     }    
 
-Add the middleware ``django_tenants.middleware.TenantMiddleware`` to the
+Add the middleware ``django_tenants.middleware.main.TenantMainMiddleware`` to the
 top of ``MIDDLEWARE``, so that each request can be set to use
 the correct schema.
 
 .. code-block:: python
 
     MIDDLEWARE = (
-        'django_tenants.middleware.TenantMiddleware',
+        'django_tenants.middleware.main.TenantMainMiddleware',
         #...
     )
     
