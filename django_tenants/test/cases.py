@@ -9,40 +9,11 @@ ALLOWED_TEST_DOMAIN = '.test.com'
 
 
 class TenantTestCase(TransactionTestCase):
+    tenant = None
+    domain = None
 
-    def setUp(self):
-        self.sync_shared()
-        test_schema_name = self.get_test_schema_name()
-        test_tenant_domain_name = self.get_test_tenant_domain()
-        self.tenant = get_tenant_model()(schema_name=test_schema_name)
-        self.setup_tenant(self.tenant)
-        self.tenant.save(verbosity=0)  # todo: is there any way to get the verbosity from the test command here?
-
-        # Set up domain
-        self.domain = get_tenant_domain_model()(tenant=self.tenant, domain=test_tenant_domain_name)
-        self.setup_domain(self.domain)
-        self.domain.save()
-
-        connection.set_tenant(self.tenant)
-
-    def tearDown(self):
-        connection.set_schema_to_public()
-        self.domain.delete()
-        self.tenant.delete(force_drop=True)
-
-    @staticmethod
-    def add_allowed_test_domain():
-        # ALLOWED_HOSTS is a special setting of Django setup_test_environment so we can't modify it with helpers
-        if ALLOWED_TEST_DOMAIN not in settings.ALLOWED_HOSTS:
-            settings.ALLOWED_HOSTS += [ALLOWED_TEST_DOMAIN]
-
-    @staticmethod
-    def remove_allowed_test_domain():
-        if ALLOWED_TEST_DOMAIN in settings.ALLOWED_HOSTS:
-            settings.ALLOWED_HOSTS.remove(ALLOWED_TEST_DOMAIN)
-
-    # noinspection PyMethodMayBeStatic
-    def setup_tenant(self, tenant):
+    @classmethod
+    def setup_tenant(cls, tenant):
         """
         Add any additional setting to the tenant before it get saved. This is required if you have
         required fields.
@@ -51,8 +22,8 @@ class TenantTestCase(TransactionTestCase):
         """
         pass
 
-    # noinspection PyMethodMayBeStatic
-    def setup_domain(self, domain):
+    @classmethod
+    def setup_domain(cls, domain):
         """
         Add any additional setting to the domain before it get saved. This is required if you have
         required fields.
@@ -62,41 +33,110 @@ class TenantTestCase(TransactionTestCase):
         pass
 
     @classmethod
+    def setUpClass(cls):
+        cls.sync_shared()
+        cls.add_allowed_test_domain()
+        cls.tenant = get_tenant_model()(schema_name=cls.get_test_schema_name())
+        cls.setup_tenant(cls.tenant)
+        cls.tenant.save(verbosity=cls.get_verbosity())
+
+        # Set up domain
+        tenant_domain = cls.get_test_tenant_domain()
+        cls.domain = get_tenant_domain_model()(tenant=cls.tenant, domain=tenant_domain)
+        cls.setup_domain(cls.domain)
+        cls.domain.save()
+
+        connection.set_tenant(cls.tenant)
+
+    @classmethod
+    def tearDownClass(cls):
+        connection.set_schema_to_public()
+        cls.domain.delete()
+        cls.tenant.delete(force_drop=True)
+        cls.remove_allowed_test_domain()
+
+    @classmethod
+    def get_verbosity(cls):
+        return 0
+
+    @classmethod
+    def add_allowed_test_domain(cls):
+        # ALLOWED_HOSTS is a special setting of Django setup_test_environment so we can't modify it with helpers
+        if ALLOWED_TEST_DOMAIN not in settings.ALLOWED_HOSTS:
+            settings.ALLOWED_HOSTS += [ALLOWED_TEST_DOMAIN]
+
+    @classmethod
+    def remove_allowed_test_domain(cls):
+        if ALLOWED_TEST_DOMAIN in settings.ALLOWED_HOSTS:
+            settings.ALLOWED_HOSTS.remove(ALLOWED_TEST_DOMAIN)
+
+    @classmethod
     def sync_shared(cls):
         call_command('migrate_schemas',
                      schema_name=get_public_schema_name(),
                      interactive=False,
                      verbosity=0)
 
-    @staticmethod
-    def get_test_tenant_domain():
+    @classmethod
+    def get_test_tenant_domain(cls):
         return 'tenant.test.com'
 
-    @staticmethod
-    def get_test_schema_name():
+    @classmethod
+    def get_test_schema_name(cls):
         return 'test'
 
 
 class FastTenantTestCase(TenantTestCase):
 
-    def setUp(self):
-        self.sync_shared()
+    @classmethod
+    def flush_data(cls):
+        return True
+
+    @classmethod
+    def use_existing_tenant(cls):
+        pass
+
+    @classmethod
+    def use_new_tenant(cls):
+        pass
+
+    @classmethod
+    def setup_test_tenant_and_domain(cls):
+        cls.tenant = get_tenant_model()(schema_name=cls.get_test_schema_name())
+        cls.setup_tenant(cls.tenant)
+        cls.tenant.save(verbosity=cls.get_verbosity())
+
+        # Set up domain
+        tenant_domain = cls.get_test_tenant_domain()
+        cls.domain = get_tenant_domain_model()(tenant=cls.tenant, domain=tenant_domain)
+        cls.setup_domain(cls.domain)
+        cls.domain.save()
+        cls.use_new_tenant()
+
+    @classmethod
+    def setUpClass(cls):
+        print('setup')
         tenant_model = get_tenant_model()
-        test_schema_name = self.get_test_schema_name()
-        test_tenant_domain_name = self.get_test_tenant_domain()
 
+        test_schema_name = cls.get_test_schema_name()
         if tenant_model.objects.filter(schema_name=test_schema_name).exists():
-            self.tenant = tenant_model.objects.filter(schema_name=test_schema_name).first()
+
+            print('exists')
+            cls.tenant = tenant_model.objects.filter(schema_name=test_schema_name).first()
+            cls.use_existing_tenant()
+
         else:
-            self.tenant = tenant_model(schema_name=test_schema_name)
-            self.tenant.save(verbosity=0)
+            print('new')
+            cls.setup_test_tenant_and_domain()
 
-            self.domain = get_tenant_domain_model()(tenant=self.tenant, domain=test_tenant_domain_name)
-            self.setup_domain(self.domain)
-            self.domain.save()
+        connection.set_tenant(cls.tenant)
 
-        connection.set_tenant(self.tenant)
-
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         connection.set_schema_to_public()
-        self.remove_allowed_test_domain()
+        print('teardown')
+        pass
+
+    def _fixture_teardown(self):
+        if self.flush_data():
+            super(FastTenantTestCase, self)._fixture_teardown()
