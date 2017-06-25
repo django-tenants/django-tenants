@@ -115,18 +115,14 @@ class FastTenantTestCase(TenantTestCase):
 
     @classmethod
     def setUpClass(cls):
-        print('setup')
         tenant_model = get_tenant_model()
 
         test_schema_name = cls.get_test_schema_name()
         if tenant_model.objects.filter(schema_name=test_schema_name).exists():
-
-            print('exists')
             cls.tenant = tenant_model.objects.filter(schema_name=test_schema_name).first()
             cls.use_existing_tenant()
 
         else:
-            print('new')
             cls.setup_test_tenant_and_domain()
 
         connection.set_tenant(cls.tenant)
@@ -134,8 +130,6 @@ class FastTenantTestCase(TenantTestCase):
     @classmethod
     def tearDownClass(cls):
         connection.set_schema_to_public()
-        print('teardown')
-        pass
 
     def _fixture_teardown(self):
         if self.flush_data():
