@@ -1,14 +1,14 @@
 from django.core.management import call_command
 from django.conf import settings
 from django.db import connection
-from django.test import TransactionTestCase
+from django.test import TestCase
 
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name
 
 ALLOWED_TEST_DOMAIN = '.test.com'
 
 
-class TenantTestCase(TransactionTestCase):
+class TenantTestCase(TestCase):
     tenant = None
     domain = None
 
