@@ -176,8 +176,8 @@ class FastTenantTestCase(TenantTestCase):
                      WHERE pg_stat_activity.datname = %s AND pid <> pg_backend_pid();"""
             cursor.execute(sql, [from_name])
         with connection.cursor() as cursor:
-            sql = "CREATE DATABASE %s WITH TEMPLATE %s OWNER %s;"
-            cursor.execute(sql, [to_name, from_name, cls.get_database_user()])
+            sql = "CREATE DATABASE " + to_name + " WITH TEMPLATE %s OWNER %s;"
+            cursor.execute(sql, [from_name, cls.get_database_user()])
 
     @classmethod
     def tearDownClass(cls):
