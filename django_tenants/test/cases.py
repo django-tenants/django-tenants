@@ -110,19 +110,6 @@ class FastTenantTestCase(TenantTestCase):
         pass
 
     @classmethod
-    def get_copy_database_name(cls):
-        """
-        This is to speed up the creation of databases. I Tom Turner developed this feature as it was taking to
-        long to create a blank tenant and populate.
-        
-        If the name is blank it will not use this feature and will migrate the database every time you init the class
-        
-        Beware of using this feature as you could be ruining the tests against old data
-        :return: str
-        """
-        return ''
-
-    @classmethod
     def setup_test_tenant_and_domain(cls):
         cls.tenant = get_tenant_model()(schema_name=cls.get_test_schema_name())
         cls.setup_tenant(cls.tenant)
@@ -138,46 +125,15 @@ class FastTenantTestCase(TenantTestCase):
     @classmethod
     def setUpClass(cls):
         tenant_model = get_tenant_model()
-        copy_database_name = cls.get_copy_database_name()
 
         test_schema_name = cls.get_test_schema_name()
         if tenant_model.objects.filter(schema_name=test_schema_name).exists():
             cls.tenant = tenant_model.objects.filter(schema_name=test_schema_name).first()
             cls.use_existing_tenant()
-        elif cls.use_copied_database(copy_database_name):
-            main_test_database_name = cls._databases_names()[0]
-            cls.copy_database(copy_database_name, main_test_database_name)
         else:
             cls.setup_test_tenant_and_domain()
-            if copy_database_name != '':
-                main_test_database_name = cls._databases_names()[0]
-                cls.copy_database(main_test_database_name, copy_database_name)
 
         connection.set_tenant(cls.tenant)
-
-    @classmethod
-    def get_database_user(cls):
-        return settings.DATABASES['default']['USER']
-
-    @classmethod
-    def use_copied_database(cls, copy_database_name):
-        if copy_database_name == '':
-            return False
-        with connection.cursor() as cursor:
-            sql = "select exists(SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower(%s));"
-            cursor.execute(sql, [copy_database_name])
-            result = cursor.fetchone()[0]
-            return result
-
-    @classmethod
-    def copy_database(cls, from_name, to_name):
-        with connection.cursor() as cursor:
-            sql = """SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
-                     WHERE pg_stat_activity.datname = %s AND pid <> pg_backend_pid();"""
-            cursor.execute(sql, [from_name])
-        with connection.cursor() as cursor:
-            sql = "CREATE DATABASE " + to_name + " WITH TEMPLATE %s OWNER %s;"
-            cursor.execute(sql, [from_name, cls.get_database_user()])
 
     @classmethod
     def tearDownClass(cls):
