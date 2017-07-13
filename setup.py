@@ -17,6 +17,7 @@ setup(
     author_email='tom@twt.me.uk',
     packages=[
         'django_tenants',
+        'django_tenants.files',
         'django_tenants.postgresql_backend',
         'django_tenants.management',
         'django_tenants.management.commands',
