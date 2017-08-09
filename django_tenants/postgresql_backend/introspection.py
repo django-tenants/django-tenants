@@ -1,5 +1,6 @@
 from django.db.backends.postgresql_psycopg2.introspection import DatabaseIntrospection
 from django.db.backends.base.introspection import TableInfo, FieldInfo
+from django.db.models.indexes import Index
 from django.utils.encoding import force_text
 
 
