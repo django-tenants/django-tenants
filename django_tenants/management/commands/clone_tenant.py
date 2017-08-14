@@ -1,3 +1,4 @@
+import django
 from optparse import make_option
 from django.core import exceptions
 from django.core.management.base import BaseCommand
@@ -21,7 +22,10 @@ class Command(BaseCommand):
     def __init__(self, *args, **kwargs):
         super(Command, self).__init__(*args, **kwargs)
 
-        self.option_list = BaseCommand.option_list
+        self.option_list = ()
+
+        if django.VERSION <= (1, 10, 0):
+            self.option_list = BaseCommand.option_list
 
         self.option_list += (make_option('--clone_from',
                                          help='Specifies which schema to clone.'), )
