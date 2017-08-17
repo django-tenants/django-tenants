@@ -16,7 +16,7 @@ def run_migrations(args, options, executor_codename, schema_name, allow_atomic=T
     def style_func(msg):
         percent_str = ''
         if idx is not None and count is not None and count > 0:
-            percent_str = '%s%% ' % int(100*idx/count)
+            percent_str = '%d/%d (%s%%) ' % (idx, count, int(100*idx/count))
         return '[%s%s:%s] %s' % (
             percent_str,
             style.NOTICE(executor_codename),
