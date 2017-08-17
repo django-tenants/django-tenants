@@ -6,7 +6,7 @@ from django.core.management.commands.migrate import Command as MigrateCommand
 from django_tenants.utils import get_public_schema_name
 
 
-def run_migrations(args, options, executor_codename, schema_name, allow_atomic=True, percent=None):
+def run_migrations(args, options, executor_codename, schema_name, allow_atomic=True, idx=None, count=None):
     from django.core.management import color
     from django.core.management.base import OutputWrapper
     from django.db import connection
@@ -15,8 +15,8 @@ def run_migrations(args, options, executor_codename, schema_name, allow_atomic=T
 
     def style_func(msg):
         percent_str = ''
-        if percent is not None:
-            percent_str = '%s%% ' % int(100*percent)
+        if idx is not None and count is not None and count > 0:
+            percent_str = '%s%% ' % int(100*idx/count)
         return '[%s%s:%s] %s' % (
             percent_str,
             style.NOTICE(executor_codename),

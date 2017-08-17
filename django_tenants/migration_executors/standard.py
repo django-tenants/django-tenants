@@ -12,4 +12,4 @@ class StandardExecutor(MigrationExecutor):
             tenants.pop(tenants.index(self.PUBLIC_SCHEMA_NAME))
 
         for idx, schema_name in enumerate(tenants):
-            run_migrations(self.args, self.options, self.codename, schema_name, percent=float(idx)/len(tenants))
+            run_migrations(self.args, self.options, self.codename, schema_name, idx=idx, count=len(tenants))
