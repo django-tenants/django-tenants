@@ -40,7 +40,9 @@ class MultiprocessingExecutor(MigrationExecutor):
                 self.codename,
                 allow_atomic=False
             )
-            def run_migrations_p((idx, schema_name)):
+            def run_migrations_p(params):
+                idx, schema_name = params
+
                 return run_migrations(
                     self.args,
                     self.options,
