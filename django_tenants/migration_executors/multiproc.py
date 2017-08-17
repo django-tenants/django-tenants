@@ -40,9 +40,17 @@ class MultiprocessingExecutor(MigrationExecutor):
                 self.codename,
                 allow_atomic=False
             )
+            def run_migrations_p((idx, schema_name)):
+                return run_migrations(
+                    self.args,
+                    self.options,
+                    self.codename,
+                    allow_atomic=False,
+                    percent=float(idx)/len(tenants)
+                )
             p = multiprocessing.Pool(processes=processes)
             p.map(
                 run_migrations_p,
-                tenants,
+                enumerate(tenants),
                 chunks
             )
