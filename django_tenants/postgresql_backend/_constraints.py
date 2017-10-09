@@ -134,7 +134,7 @@ elif django.VERSION < (2, 0):
             JOIN pg_class AS cl ON c.conrelid = cl.oid
             JOIN pg_namespace AS ns ON cl.relnamespace = ns.oid
             WHERE ns.nspname = %s AND cl.relname = %s
-        """, ["public", table_name])
+        """, [self.connection.schema_name, table_name])
         for constraint, columns, kind, used_cols, options in cursor.fetchall():
             constraints[constraint] = {
                 "columns": columns,
@@ -175,13 +175,14 @@ elif django.VERSION < (2, 0):
                     FROM pg_index i
                 ) idx
                 LEFT JOIN pg_class c ON idx.indrelid = c.oid
+                LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
                 LEFT JOIN pg_class c2 ON idx.indexrelid = c2.oid
                 LEFT JOIN pg_am am ON c2.relam = am.oid
                 LEFT JOIN pg_attribute attr ON attr.attrelid = c.oid AND attr.attnum = idx.key
-                WHERE c.relname = %s
+                WHERE c.relname = %s and n.nspname = %s
             ) s2
             GROUP BY indexname, indisunique, indisprimary, amname, exprdef, attoptions;
-        """, [table_name])
+        """, [table_name, self.connection.schema_name])
         for index, columns, unique, primary, orders, type_, definition, options in cursor.fetchall():
             if index not in constraints:
                 constraints[index] = {
