@@ -11,37 +11,41 @@ from django_tenants.utils import get_tenant_model
 
 class TenantFileSystemFinder(FileSystemFinder):
     def __init__(self, app_names=None, *args, **kwargs):
-
-        self.locations = []
-        self.storages = OrderedDict()
+        self.schema_name = None
 
         TenantModel = get_tenant_model()
         all_tenants = TenantModel.objects.values_list('schema_name', flat=True)
         # print "=========== all_tenants ============"
         # print all_tenants
 
-        try:
-            CURRENT_SCHEMA_TO_SERVER_STATICFILES = \
-                settings.CURRENT_SCHEMA_TO_SERVER_STATICFILES
-        except AttributeError:
-            raise ImproperlyConfigured('To use %s.%s you must '
-                                       'define the CURRENT_SCHEMA_TO_SERVER_STATICFILES '
-                                       'in your settings' %
-                                       (__name__, TenantFileSystemFinder.__name__))
-
-        if not CURRENT_SCHEMA_TO_SERVER_STATICFILES:
-            raise ImproperlyConfigured(
-                "Your CURRENT_SCHEMA_TO_SERVER_STATICFILES setting can't be empty; "
-                "it must have the value of the schema_name in which you are "
-                "currently working on")
+        if connection.schema_name != "public":
+            self.schema_name = connection.schema_name
         else:
-            if CURRENT_SCHEMA_TO_SERVER_STATICFILES not in all_tenants:
-                raise ImproperlyConfigured(
-                    "The value of CURRENT_SCHEMA_TO_SERVER_STATICFILES setting "
-                    "doesnt correspond to a valid schema_name tentant")
+            try:
+                CURRENT_SCHEMA_TO_SERVER_STATICFILES = \
+                    settings.CURRENT_SCHEMA_TO_SERVER_STATICFILES
+            except AttributeError:
+                raise ImproperlyConfigured('To use %s.%s you must '
+                                           'define the CURRENT_SCHEMA_TO_SERVER_STATICFILES '
+                                           'in your settings' %
+                                           (__name__, TenantFileSystemFinder.__name__))
 
-        schema_name = connection.schema_name if connection.schema_name != "public" \
-            else CURRENT_SCHEMA_TO_SERVER_STATICFILES
+            if not CURRENT_SCHEMA_TO_SERVER_STATICFILES:
+                raise ImproperlyConfigured(
+                    "Your CURRENT_SCHEMA_TO_SERVER_STATICFILES setting can't be empty; "
+                    "it must have the value of the schema_name in which you are "
+                    "currently working on")
+            else:
+                if CURRENT_SCHEMA_TO_SERVER_STATICFILES not in all_tenants:
+                    raise ImproperlyConfigured(
+                        "The value of CURRENT_SCHEMA_TO_SERVER_STATICFILES setting "
+                        "doesnt correspond to a valid schema_name tentant")
+
+            self.schema_name = CURRENT_SCHEMA_TO_SERVER_STATICFILES
+
+        # print "--------- schema_name -----------"
+        # print settings.CURRENT_SCHEMA_TO_SERVER_STATICFILES
+        # print self.schema_name
 
         """
         if not hasattr(settings, "MULTITENANT_RELATIVE_STATIC_ROOT") or \
@@ -51,18 +55,24 @@ class TenantFileSystemFinder(FileSystemFinder):
                                        "setting to a filesystem path.")
         """
 
+        self.config_by_schema()
+
+    def config_by_schema(self):
+        self.locations = []
+        self.storages = OrderedDict()
+
         multitenant_relative_static_root = ""
         if hasattr(settings, "MULTITENANT_RELATIVE_STATIC_ROOT"):
             if '%s' in settings.MULTITENANT_RELATIVE_STATIC_ROOT:
                 multitenant_relative_static_root = \
                     settings.MULTITENANT_RELATIVE_STATIC_ROOT % \
-                    schema_name
+                    self.schema_name
             else:
                 multitenant_relative_static_root = \
                     os.path.join(settings.MULTITENANT_RELATIVE_STATIC_ROOT,
-                                 schema_name)
+                                 self.schema_name)
         else:
-            multitenant_relative_static_root = schema_name
+            multitenant_relative_static_root = self.schema_name
 
         multitenant_static_root = os.path.join(settings.STATIC_ROOT,
                                                multitenant_relative_static_root)
@@ -88,11 +98,14 @@ class TenantFileSystemFinder(FileSystemFinder):
         tenant_paths = []
         for template_dir in multitenant_staticfiles_dirs:
             if '%s' in template_dir:
-                tenant_paths.append(template_dir % schema_name)
+                tenant_paths.append(template_dir % self.schema_name)
             else:
-                tenant_paths.append(os.path.join(template_dir, schema_name))
+                tenant_paths.append(os.path.join(template_dir, self.schema_name))
 
         dirs = tenant_paths
+
+        # print "----------- dirs -------------"
+        # print dirs
 
         for root in dirs:
             if isinstance(root, (list, tuple)):
@@ -115,3 +128,27 @@ class TenantFileSystemFinder(FileSystemFinder):
             filesystem_storage = FileSystemStorage(location=root)
             filesystem_storage.prefix = prefix
             self.storages[root] = filesystem_storage
+
+    def verify_need_change_schema(self):
+        if self.schema_name != connection.schema_name and connection.schema_name != "public":
+            print "TenantFileSystemFinder change config $$$$$$$$$$$$$$$$$$$$ ==============="
+            print "self.schema_name: {0}".format(self.schema_name)
+            print "connection.schema_name: {0}".format(connection.schema_name)
+            self.schema_name = connection.schema_name
+            self.config_by_schema()
+
+    def find(self, path, all=False):
+        """
+        List all files in all locations and update initial configs if the schema is changed
+        For now we need this override to work with command compress_schemas when it runs over all schemas
+        """
+        self.verify_need_change_schema()
+        return super(TenantFileSystemFinder, self).find(path, all=all)
+
+    def list(self, ignore_patterns):
+        """
+        List all files in all locations and update initial configs if the schema is changed
+        For now we need this override to work with command collectstatic_schemas when it runs over all schemas
+        """
+        self.verify_need_change_schema()
+        return super(TenantFileSystemFinder, self).list(ignore_patterns)

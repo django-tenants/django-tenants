@@ -1,9 +1,10 @@
+import sys
+
 import django
 from django.conf import settings
 from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
-
 
 try:
     from django.utils.six.moves import input
@@ -127,6 +128,23 @@ class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):
     def add_arguments(self, parser):
         super(TenantWrappedCommand, self).add_arguments(parser)
         self.command_instance.add_arguments(parser)
+
+
+class SingleOrAllTenantWrappedCommand(TenantWrappedCommand):
+
+    def on_execute_command(self, tenant, args, options):
+        connection.set_tenant(tenant)
+        self.command_instance = self.COMMAND()  # initial other command instance
+        self.command_instance.execute(*args, **options)
+
+    def handle(self, *args, **options):
+        if not options.get('schema_name'):
+            TenantModel = get_tenant_model()
+            all_tenants = TenantModel.objects.all().order_by("schema_name")
+            for tenant in all_tenants:
+                self.on_execute_command(tenant, args, options)
+        else:
+            super(SingleOrAllTenantWrappedCommand, self).handle(*args, **options)
 
 
 class SyncCommon(BaseCommand):
