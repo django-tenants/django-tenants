@@ -46,6 +46,7 @@ class TenantTestCase(TestCase):
         cls.domain.save()
 
         connection.set_tenant(cls.tenant)
+        super(TenantTestCase, cls).setUpClass()
 
     @classmethod
     def tearDownClass(cls):
@@ -53,6 +54,7 @@ class TenantTestCase(TestCase):
         cls.domain.delete()
         cls.tenant.delete(force_drop=True)
         cls.remove_allowed_test_domain()
+        super(TenantTestCase, cls).tearDownClass()
 
     @classmethod
     def get_verbosity(cls):
@@ -134,10 +136,12 @@ class FastTenantTestCase(TenantTestCase):
             cls.setup_test_tenant_and_domain()
 
         connection.set_tenant(cls.tenant)
+        super(FastTenantTestCase, cls).setUpClass()
 
     @classmethod
     def tearDownClass(cls):
         connection.set_schema_to_public()
+        super(FastTenantTestCase, cls).tearDownClass()
 
     def _fixture_teardown(self):
         if self.flush_data():
