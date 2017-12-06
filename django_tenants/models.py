@@ -177,7 +177,9 @@ class DomainMixin(models.Model):
     All models that store the domains must inherit this class
     """
     domain = models.CharField(max_length=253, unique=True, db_index=True)
-    tenant = models.ForeignKey(settings.TENANT_MODEL, db_index=True, related_name='domains')
+    tenant = models.ForeignKey(settings.TENANT_MODEL, db_index=True,
+                               related_name='domains',
+                               on_delete=models.DO_NOTHING)
 
     # Set this to true if this is the primary domain
     is_primary = models.BooleanField(default=True)
