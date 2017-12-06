@@ -96,7 +96,7 @@ if django.VERSION < (1, 11):
                 }
         return constraints
 
-elif django.VERSION < (2, 0):
+elif django.VERSION >= (1, 11):
     from django.db.models.indexes import Index
 
     def get_constraints(self, cursor, table_name):
