@@ -2,17 +2,13 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 from django.http import Http404
+from django.utils.deprecation import MiddlewareMixin  # todo change
+
 from django_tenants.utils import remove_www_and_dev, get_public_schema_name, get_tenant_domain_model
 from django.db import utils
-import django
-
-if django.VERSION >= (1, 10, 0):
-    MIDDLEWARE_MIXIN = django.utils.deprecation.MiddlewareMixin
-else:
-    MIDDLEWARE_MIXIN = object
 
 
-class TenantTutorialMiddleware(MIDDLEWARE_MIXIN):
+class TenantTutorialMiddleware(MiddlewareMixin):
     def process_request(self, request):
         connection.set_schema_to_public()
         hostname_without_port = remove_www_and_dev(request.get_host().split(':')[0])

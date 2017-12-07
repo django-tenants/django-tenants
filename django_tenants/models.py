@@ -2,8 +2,7 @@ from django.conf import settings
 from django.db import models, connection, transaction
 from django.core.management import call_command
 from django.contrib.sites.shortcuts import get_current_site
-from django.core.urlresolvers import reverse
-
+from django.urls import reverse
 # noinspection PyProtectedMember
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
@@ -93,7 +92,7 @@ class TenantMixin(models.Model):
             try:
                 self.create_schema(check_if_exists=True, verbosity=verbosity)
                 post_schema_sync.send(sender=TenantMixin, tenant=self)
-            except Exception as e:
+            except Exception:
                 # We failed creating the tenant, delete what we created and
                 # re-raise the exception
                 self.delete(force_drop=True)
@@ -173,7 +172,8 @@ class DomainMixin(models.Model):
     All models that store the domains must inherit this class
     """
     domain = models.CharField(max_length=253, unique=True, db_index=True)
-    tenant = models.ForeignKey(settings.TENANT_MODEL, db_index=True, related_name='domains')
+    tenant = models.ForeignKey(settings.TENANT_MODEL, db_index=True, related_name='domains',
+                               on_delete=models.CASCADE)
 
     # Set this to true if this is the primary domain
     is_primary = models.BooleanField(default=True)

@@ -234,7 +234,7 @@ I would like to thank two of the original authors of this project.
 Requirements
 ------------
 
- - Django 1.8 if you want to use 1.7 or lower please use `django-tenant-schemas`_. (before version 1.6.0)
+ - Django 2 if you want to use Django 1.11 or lower please use version 1 of django-tenants
  - PostgreSQL
 
 Testing

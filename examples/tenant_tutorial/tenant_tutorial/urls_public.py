@@ -1,10 +1,9 @@
 from django.conf.urls import include, url
+from django.urls import path
 from tenant_tutorial.views import HomeView
 from django.contrib import admin
-urlpatterns = [
-    url(r'^$', HomeView.as_view()),
-    url(
-        r'^admin/',
-        include(admin.site.urls)),
 
+urlpatterns = [
+    path('', HomeView.as_view()),
+    path('admin/', admin.site.urls),
     ]

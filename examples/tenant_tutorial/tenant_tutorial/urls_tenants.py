@@ -1,13 +1,8 @@
 from customers.views import TenantView
-from django.conf.urls import include, url
 from django.contrib import admin
+from django.urls import path
 
 urlpatterns = [
-        url(r'^$', TenantView.as_view()),
-
-    url(
-        r'^admin/',
-        include(admin.site.urls)),
-
-
+    path('', TenantView.as_view()),
+    path('admin/', admin.site.urls),
     ]

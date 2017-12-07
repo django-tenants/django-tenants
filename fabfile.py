@@ -27,7 +27,7 @@ def vagrant():
 def provision_vagrant():
     vagrant()
     update_index()
-    fabtools.require.postfix.server('example.com')
+    # fabtools.require.postfix.server('example.com')
     create_pg_database()
     update_requirements()
     django_manage("migrate")
@@ -46,24 +46,31 @@ def django_manage(command):
 
 
 def update_requirements():
-    fabtools.require.deb.packages(['python2.7',
+    fabtools.require.deb.packages(['python3',
                                    'python-virtualenv',
-                                   'python-dev',
-                                   'python-pip',
+                                   'python3-dev',
+                                   'python3-setuptools',
+                                   'libffi-dev',
+                                   'libxslt1-dev',
+                                   'python3-pip',
+                                   'git',
+                                   'libboost-python1.58.0',
                                    'pkg-config',
-                                   'postgresql-server-dev-9.3'])
+                                   'postgresql-server-dev-9.5',
+                                   'postgresql-contrib',
+                                   ])
 
-    sudo("pip install psycopg2==2.6.1 django==1.11.0")
+    sudo("pip3 install django==2.0")
 
 
 @task
 def create_pg_database():
-    fabtools.require.postgres.server()
+    # fabtools.require.postgres.server()
     fabtools.require.postgres.user(env.psql_user, env.psql_password, createdb=True)
-    fabtools.require.postgres.database(env.psql_db, env.psql_user)
+    # fabtools.require.postgres.database(env.psql_db, env.psql_user)
 
-    sudo("sed -i 's/all                                     peer/"
-         "all                                     md5/g' /etc/postgresql/9.3/main/pg_hba.conf")
+    sudo("sed -i 's/all                                     peer/all"
+         "                                     md5/g' /etc/postgresql/9.5/main/pg_hba.conf")
     sudo('service postgresql restart')
 
 

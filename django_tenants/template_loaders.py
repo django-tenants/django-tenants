@@ -12,13 +12,7 @@ from django.utils._os import safe_join
 from django.db import connection
 from django.template.loaders.base import Loader as BaseLoader
 from django_tenants.postgresql_backend.base import FakeTenant
-
-
-import django
-if django.VERSION < (1, 9, 0):
-    from django.template.base import TemplateDoesNotExist
-else:
-    from django.template.exceptions import TemplateDoesNotExist
+from django.template.exceptions import TemplateDoesNotExist
 
 
 class CachedLoader(BaseLoader):

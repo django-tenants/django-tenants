@@ -1,14 +1,9 @@
-import django
 from django.conf import settings
 from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
 
-try:
-    from django.utils.six.moves import input
-except ImportError:
-    input = raw_input
 from django_tenants.utils import get_tenant_model, get_public_schema_name
 
 
@@ -114,8 +109,6 @@ class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):
     def __new__(cls, *args, **kwargs):
         obj = super(TenantWrappedCommand, cls).__new__(cls, *args, **kwargs)
         obj.command_instance = obj.COMMAND()
-        if django.VERSION <= (1, 10, 0):
-            obj.option_list = obj.command_instance.option_list
         return obj
 
     def handle(self, *args, **options):
