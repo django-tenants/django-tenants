@@ -2,7 +2,11 @@ from django.conf import settings
 from django.db import models, connection, transaction
 from django.core.management import call_command
 from django.contrib.sites.shortcuts import get_current_site
-from django.core.urlresolvers import reverse
+
+try:  # Django >= 2.0
+    from django.urls import reverse
+except ImportError:
+    from django.core.urlresolvers import reverse
 
 # noinspection PyProtectedMember
 from .postgresql_backend.base import _check_schema_name
@@ -173,7 +177,9 @@ class DomainMixin(models.Model):
     All models that store the domains must inherit this class
     """
     domain = models.CharField(max_length=253, unique=True, db_index=True)
-    tenant = models.ForeignKey(settings.TENANT_MODEL, db_index=True, related_name='domains')
+    tenant = models.ForeignKey(settings.TENANT_MODEL, db_index=True,
+                               related_name='domains',
+                               on_delete=models.DO_NOTHING)
 
     # Set this to true if this is the primary domain
     is_primary = models.BooleanField(default=True)
