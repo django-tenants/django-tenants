@@ -1,16 +1,13 @@
 language: python
 python:
-  - "2.7"
-  - "3.5"
+  - "3.5" `
+  - "3.6"
 addons:
-  postgresql: "9.4"
+  postgresql: "9.5"
 services:
   - postgresql
 env:
   matrix:
-   - $DJANGO="Django<1.9"
-   - $DJANGO="Django<1.10"
-   - $DJANGO="Django<1.11"
    - $DJANGO="Django<2"
 
 install:
