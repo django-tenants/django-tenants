@@ -33,7 +33,9 @@ class TenantMiddleware(MIDDLEWARE_MIXIN):
                                    domain=hostname)
 
         domain.tenant.domain_url = hostname
+        domain.tenant.current_domain = domain
         request.tenant = domain.tenant
+        request.tenant_current_domain = domain
 
         connection.set_tenant(request.tenant)
 

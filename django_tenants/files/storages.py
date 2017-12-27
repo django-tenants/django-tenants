@@ -17,23 +17,29 @@ __all__ = (
 
 class TenantStorageMixin(object):
 
+    def get_tenant_dir_name(self):
+        return connection.schema_name
+
     def path(self, name):
         """
         IMPORTANT
         To static_files is the destination path to collectstatic
         To media_files is the destination path to upload files
         """
+        # print "TenantStorageMixin -> name: {}".format(name)
+
         if name is None:
             name = ''
         try:
             if '%s' in self.location:
-                location = safe_join(self.location % connection.schema_name)
+                location = safe_join(self.location % self.get_tenant_dir_name())
             else:
-                location = safe_join(self.location, connection.schema_name)
+                location = safe_join(self.location, self.get_tenant_dir_name())
         except AttributeError:
             location = self.location
 
         path = safe_join(location, name)
+        # print "path: {}".format(path)
         return path
 
     # @property

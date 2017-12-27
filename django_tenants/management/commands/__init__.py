@@ -132,6 +132,10 @@ class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):
 
 class SingleOrAllTenantWrappedCommand(TenantWrappedCommand):
 
+    def add_arguments(self, parser):
+        parser.add_argument("--schema_start", dest="schema_name_start", help="specify tenant schema to start, follow schema_name alphabetical order.")
+        super(SingleOrAllTenantWrappedCommand, self).add_arguments(parser)
+
     def on_execute_command(self, tenant, args, options):
         connection.set_tenant(tenant)
         self.command_instance = self.COMMAND()  # initial other command instance
@@ -141,8 +145,17 @@ class SingleOrAllTenantWrappedCommand(TenantWrappedCommand):
         if not options.get('schema_name'):
             TenantModel = get_tenant_model()
             all_tenants = TenantModel.objects.all().order_by("schema_name")
+            schema_name_start = options.get('schema_name_start')
+            execute = False
             for tenant in all_tenants:
-                self.on_execute_command(tenant, args, options)
+                if schema_name_start and schema_name_start != tenant.schema_name and execute is False:
+                    # print "skipe: {}".format(tenant.schema_name)
+                    continue
+                else:
+                    execute = True
+
+                if execute:
+                    self.on_execute_command(tenant, args, options)
         else:
             super(SingleOrAllTenantWrappedCommand, self).handle(*args, **options)
 

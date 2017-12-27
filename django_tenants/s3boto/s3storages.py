@@ -5,30 +5,36 @@ from storages.backends.s3boto import S3BotoStorage, safe_join
 from django.utils import timezone
 from django.db import connection
 from django.conf import settings
+from django.utils.timezone import localtime
 
 
 class TenantS3BotoStorageAbstract(S3BotoStorage):
+
+    current_tenant_dir_name = None
 
     def __init__(self, acl=None, bucket=None, **kwargs):
 
         super(TenantS3BotoStorageAbstract, self).__init__(acl=acl, bucket=bucket, **kwargs)
 
-        self.current_schema_name = connection.schema_name
-        self.set_location_by_schema()
+        self.set_tenant_dir_name()
+        self.set_location_by_tenant_dir()
 
-    def get_path_location_by_schema(self):
+    def get_tenant_dir_name(self):
         return connection.schema_name
 
-    def set_location_by_schema(self):
+    def set_tenant_dir_name(self):
+        self.current_tenant_dir_name = self.get_tenant_dir_name()
+
+    def set_location_by_tenant_dir(self):
         self.location = (self.location or '').lstrip('/')
         if not self.location.endswith('/'):
             self.location += '/'
 
         try:
             if '%s' in self.location:
-                self.location = self.location % self.get_path_location_by_schema()
+                self.location = self.location % self.current_tenant_dir_name
             else:
-                self.location = u"{0}/".format(os.path.join(self.location, self.get_path_location_by_schema()))
+                self.location = u"{0}/".format(os.path.join(self.location, self.current_tenant_dir_name))
         except AttributeError:
             pass
 
@@ -65,10 +71,10 @@ class TenantMediaS3BotoStorage(TenantS3BotoStorageAbstract):
         """
 
         # Verify if configs the schema is changed.
-        if self.current_schema_name != connection.schema_name:
-            self.current_schema_name = connection.schema_name
+        if self.current_tenant_dir_name != self.get_tenant_dir_name():
+            self.set_tenant_dir_name()
             self.location = self.location_original
-            self.set_location_by_schema()
+            self.set_location_by_tenant_dir()
 
         return super(TenantMediaS3BotoStorage, self)._normalize_name(name)
 
@@ -85,15 +91,15 @@ class TenantStaticS3BotoStorage(TenantS3BotoStorageAbstract):
                                        'in your settings' %
                                        (__name__, TenantStaticS3BotoStorage.__name__))
 
-    def set_location_by_schema(self):
+    def set_location_by_tenant_dir(self):
 
-        super(TenantStaticS3BotoStorage, self).set_location_by_schema()
+        super(TenantStaticS3BotoStorage, self).set_location_by_tenant_dir()
 
         # hack to work django compressor
         if hasattr(settings, "COMPRESS_ENABLED") and settings.COMPRESS_ENABLED:
             settings.COMPRESS_URL = 'https://{0}/{1}'.format(settings.AWS_S3_CUSTOM_DOMAIN, self.location)
-            print "settings.COMPRESS_URL"
-            print settings.COMPRESS_URL
+            # print "settings.COMPRESS_URL"
+            # print settings.COMPRESS_URL
             # settings.COMPRESS_URL_PLACEHOLDER = settings.COMPRESS_URL
 
     # def path(self, name):
@@ -110,11 +116,11 @@ class TenantStaticS3BotoStorage(TenantS3BotoStorageAbstract):
         # Verify if configs the schema is changed.
         # For now we need this override to work with command compress_schemas
         # and collectstatic_schemas when it runs over all schemas
-        if self.current_schema_name != connection.schema_name:
-            self.current_schema_name = connection.schema_name
+        if self.current_tenant_dir_name != self.get_tenant_dir_name():
+            self.set_tenant_dir_name()
             self._entries = {}  # force load again
             self.location = self.location_original
-            self.set_location_by_schema()
+            self.set_location_by_tenant_dir()
 
         return super(TenantStaticS3BotoStorage, self)._normalize_name(name)
 
@@ -158,10 +164,28 @@ class TenantStaticS3BotoStorage(TenantS3BotoStorageAbstract):
     def get_modified_time(self, name):
         self.fix_use_def_path_only_pass_in_collectstatic = True
         d = super(TenantStaticS3BotoStorage, self).modified_time(name)
-        if settings.USE_TZ:
-            # Need this condition to return aware date. Required in Django collectstatic
-            # when settings.USE_TZ is True.
-            d = d.replace(tzinfo=timezone.utc)
+        d = d.replace(tzinfo=timezone.utc)
+        # name = self._normalize_name(self._clean_name(name))
+        # if name == "acquaflora/static/assets/js/home.js":
+        #     print name
+
+        if not settings.USE_TZ:
+            """
+            Need this condition to return unaware date. Required in Django collectstatic
+            when settings.USE_TZ is False.
+
+            This is necessary too because this def in django/core/files/storage.py
+            return always unaware date when USE_TZ is False.
+            def _datetime_from_timestamp(self, ts):
+                if settings.USE_TZ:
+                    # Safe to use .replace() because UTC doesn't have DST
+                    return datetime.utcfromtimestamp(ts).replace(tzinfo=timezone.utc)
+                else:
+                    return datetime.fromtimestamp(ts) <- here
+            """
+
+            d = localtime(d)
+            d = d.replace(tzinfo=None)  # turn in unaware date
         return d
 
     # def save(self, name, content):

@@ -6,6 +6,7 @@ from importlib import import_module
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django_tenants.utils import get_public_schema_name, get_limit_set_calls
 from django_tenants.postgresql_backend.introspection import DatabaseSchemaIntrospection
+from django_tenants.signals import tenant_assigned
 import django.db.utils
 import psycopg2
 
@@ -148,6 +149,7 @@ class FakeTenant:
     """
     def __init__(self, schema_name):
         self.schema_name = schema_name
+        self.current_domain = None
 
 if ORIGINAL_BACKEND == "django.contrib.gis.db.backends.postgis":
     DatabaseError = django.db.utils.DatabaseError

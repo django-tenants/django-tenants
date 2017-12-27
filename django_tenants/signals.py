@@ -9,3 +9,8 @@ schema_needs_to_be_sync = Signal(providing_args=['tenant'])
 schema_needs_to_be_sync.__doc__ = """
 Schema needs to be synced
 """
+
+tenant_assigned = Signal(providing_args=['tenant', 'domain'])
+tenant_assigned.__doc__ = """
+Sent after the tenant assigned.
+"""

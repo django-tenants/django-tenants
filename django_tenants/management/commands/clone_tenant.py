@@ -1,4 +1,3 @@
-from optparse import make_option
 from django.core import exceptions
 from django.core.management.base import BaseCommand
 from django.utils.encoding import force_str
@@ -6,7 +5,8 @@ from django.utils.six.moves import input
 from django.db.utils import IntegrityError
 from django.db import connection
 from django_tenants.clone import CloneSchema
-from django_tenants.utils import get_tenant_model, get_tenant_domain_model
+from django_tenants.utils import schema_exists, get_tenant_model, get_tenant_domain_model
+from django_tenants.postgresql_backend.base import _check_schema_name
 
 
 class Command(BaseCommand):
@@ -18,22 +18,18 @@ class Command(BaseCommand):
     domain_fields = [field for field in get_tenant_domain_model()._meta.fields
                      if field.editable and not field.primary_key]
 
-    def __init__(self, *args, **kwargs):
-        super(Command, self).__init__(*args, **kwargs)
+    def add_arguments(self, parser):
 
-        self.option_list = BaseCommand.option_list
-
-        self.option_list += (make_option('--clone_from',
-                                         help='Specifies which schema to clone.'), )
+        parser.add_argument('--clone_from',
+                            help='Specifies which schema to clone.')
 
         for field in self.tenant_fields:
-            self.option_list += (make_option('--%s' % field.name,
-                                             help='Specifies the %s for tenant.' % field.name), )
+            parser.add_argument('--%s' % field.name,
+                                help='Specifies the %s for tenant.' % field.name)
 
         for field in self.domain_fields:
-            self.option_list += (make_option('--%s' % field.name,
-                                             help="Specifies the %s for the tenant's domain." % field.name), )
-
+            parser.add_argument('--%s' % field.name,
+                                help="Specifies the %s for the tenant's domain." % field.name)
 
     def handle(self, *args, **options):
 
@@ -54,7 +50,7 @@ class Command(BaseCommand):
         tenant = None
         while True:
             for field in self.tenant_fields:
-                if tenant_data.get(field.name, '') == '':
+                if field.name not in tenant_data or tenant_data[field.name] is None:
                     input_msg = field.verbose_name
                     default = field.get_default()
                     if default:
@@ -70,7 +66,7 @@ class Command(BaseCommand):
         while True:
             domain_data['tenant'] = tenant
             for field in self.domain_fields:
-                if domain_data.get(field.name, '') == '':
+                if field.name not in domain_data or domain_data[field.name] is None:
                     input_msg = field.verbose_name
                     default = field.get_default()
                     if default:
@@ -83,16 +79,28 @@ class Command(BaseCommand):
                 break
             domain_data = {}
 
-
-
     def store_tenant(self, clone_schema_from, **fields):
         connection.set_schema_to_public()
         cursor = connection.cursor()
 
+        tm = get_tenant_model()
+
         try:
-            tenant = get_tenant_model()(**fields)
-            tenant.auto_create_schema = False
-            tenant.save()
+            _check_schema_name(fields["schema_name"])
+            if schema_exists(fields["schema_name"]):
+                raise exceptions.ValidationError("Error: Schema %s already exists." %
+                                                 fields["schema_name"])
+            try:
+                tenant = tm.objects.get(schema_name=fields["schema_name"])
+                # IMPORTANT: Enter here, only if the row in table 'Tenant Model' exists
+                # and the Schema Postgre not.
+                # If the schema exists one exception will be thrown above
+                print "AQUII UPDATE"
+                tm.objects.filter(id=tenant.id).update(**fields)
+            except tm.DoesNotExist:
+                tenant = tm(**fields)
+                tenant.auto_create_schema = False
+                tenant.save()
 
             clone_schema = CloneSchema(cursor)
             clone_schema.clone(clone_schema_from, tenant.schema_name)
@@ -100,9 +108,9 @@ class Command(BaseCommand):
         except exceptions.ValidationError as e:
             self.stderr.write("Error: %s" % '; '.join(e.messages))
             return None
-        except IntegrityError:
+        except IntegrityError as e:
+            self.stderr.write("Error: %s" % e.message)
             return None
-
 
     def store_tenant_domain(self, **fields):
         try:
@@ -112,5 +120,6 @@ class Command(BaseCommand):
         except exceptions.ValidationError as e:
             self.stderr.write("Error: %s" % '; '.join(e.messages))
             return None
-        except IntegrityError:
+        except IntegrityError as e:
+            self.stderr.write("Error: %s" % e.message)
             return None
