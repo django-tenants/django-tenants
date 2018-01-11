@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('domain', models.CharField(unique=True, max_length=253, db_index=True)),
                 ('is_primary', models.BooleanField(default=True)),
-                ('tenant', models.ForeignKey(related_name='domains', to='customers.Client')),
+                ('tenant', models.ForeignKey(related_name='domains', to='customers.Client', on_delete=models.deletion.CASCADE)),
             ],
             options={
                 'abstract': False,
