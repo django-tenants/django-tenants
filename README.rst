@@ -265,9 +265,9 @@ env variable) or use `docker-compose`_ like this:
 .. _PostgreSQL’s official documentation on schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
 .. _Multi-Tenant Data Architecture: http://msdn.microsoft.com/en-us/library/aa479086.aspx
 
-.. |PyPi version| image:: https://pypip.in/v/django-tenant-schemas/badge.png
+.. |PyPi version| image:: https://img.shields.io/pypi/v/django-tenant-schemas.svg
    :target: https://crate.io/packages/django-tenant-schemas/
-.. |PyPi downloads| image:: https://pypip.in/d/django-tenant-schemas/badge.png
+.. |PyPi downloads| image:: https://img.shields.io/pypi/dm/django-tenant-schemas.svg
    :target: https://crate.io/packages/django-tenant-schemas/
 .. _setup: https://django-tenants.readthedocs.org/en/latest/install.html
 .. _examples: https://django-tenants.readthedocs.org/en/latest/examples.html
