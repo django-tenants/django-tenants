@@ -47,7 +47,6 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
     Adds the capability to manipulate the search_path using set_tenant and set_schema_name
     """
     include_public_schema = True
-    _previous_cursor = None
 
     def __init__(self, *args, **kwargs):
         self.search_path_set = None
@@ -121,10 +120,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
         # optionally limit the number of executions - under load, the execution
         # of `set search_path` can be quite time consuming
-        if (not get_limit_set_calls()) or not self.search_path_set or self._previous_cursor != cursor:
-            # Store the cursor pointer to check if it has changed since we 
-            # last validated.
-            self._previous_cursor = cursor
+        if (not get_limit_set_calls()) or not self.search_path_set:
             # Actual search_path modification for the cursor. Database will
             # search schemata from left to right when looking for the object
             # (table, index, sequence, etc.).

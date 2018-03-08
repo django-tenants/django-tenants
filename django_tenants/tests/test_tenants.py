@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connection, transaction
+from django.test.utils import override_settings
 
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 from django_tenants.test.cases import TenantTestCase
@@ -168,17 +169,66 @@ class TenantDataAndSettingsTest(BaseTestCase):
         DummyModel(name="awesome!").save()
 
         # switch temporarily to tenant2's path
-        with tenant_context(tenant2):
-            # add some data, 3 DummyModels for tenant2
-            DummyModel(name="Man,").save()
-            DummyModel(name="testing").save()
-            DummyModel(name="is great!").save()
+        with self.assertNumQueries(6):
+            with tenant_context(tenant2):
+                # add some data, 3 DummyModels for tenant2
+                DummyModel(name="Man,").save()
+                DummyModel(name="testing").save()
+                DummyModel(name="is great!").save()
 
         # we should be back to tenant1's path, test what we have
-        self.assertEqual(2, DummyModel.objects.count())
+        with self.assertNumQueries(2):
+            self.assertEqual(2, DummyModel.objects.count())
 
         # switch back to tenant2's path
-        with tenant_context(tenant2):
+        with self.assertNumQueries(2):
+            with tenant_context(tenant2):
+                self.assertEqual(3, DummyModel.objects.count())
+
+        self.created = [domain2, domain1, tenant2, tenant1]
+
+    @override_settings(TENANT_LIMIT_SET_CALLS=True)
+    def test_switching_search_path_limited_calls(self):
+        tenant1 = get_tenant_model()(schema_name='tenant1')
+        tenant1.save()
+
+        domain1 = get_tenant_domain_model()(tenant=tenant1, domain='something.test.com')
+        domain1.save()
+
+        connection.set_schema_to_public()
+
+        tenant2 = get_tenant_model()(schema_name='tenant2')
+        tenant2.save()
+
+        domain2 = get_tenant_domain_model()(tenant=tenant2, domain='example.com')
+        domain2.save()
+
+        # set path is not executed when setting tenant so 0 queries expected
+        with self.assertNumQueries(0):
+            connection.set_tenant(tenant1)
+
+        # switch temporarily to tenant2's path
+        # 1 query to set search path + 3 to save data
+        with self.assertNumQueries(4):
+            with tenant_context(tenant2):
+                DummyModel(name="Man,").save()
+                DummyModel(name="testing").save()
+                DummyModel(name="is great!").save()
+
+        # 0 queries as search path not set here
+        with self.assertNumQueries(0):
+            connection.set_tenant(tenant1)
+
+        # 1 set search path + 1 count
+        with self.assertNumQueries(2):
+            self.assertEqual(0, DummyModel.objects.count())
+
+        # 0 queries as search path not set here
+        with self.assertNumQueries(0):
+            connection.set_tenant(tenant2)
+
+        # 1 set search path + 1 count
+        with self.assertNumQueries(2):
             self.assertEqual(3, DummyModel.objects.count())
 
         self.created = [domain2, domain1, tenant2, tenant1]
