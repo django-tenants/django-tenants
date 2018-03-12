@@ -1,6 +1,8 @@
 django-tenants
 ==============
-
+.. image:: https://badges.gitter.im/Join%20Chat.svg
+   :alt: Join the chat at https://gitter.im/django-tenants
+   :target: https://gitter.im/django-tenants/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link
 
 .. image:: https://badge.fury.io/py/django-tenants.svg
     :target: http://badge.fury.io/py/django-tenants
