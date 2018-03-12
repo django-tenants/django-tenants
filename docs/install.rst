@@ -128,6 +128,10 @@ Now run ``migrate_schemas --shared``, this will create the shared apps on the ``
 
    Never use ``migrate`` or ``syncdb`` as it would sync *all* your apps to ``public``!
     
+.. warning::
+
+   You might need to run ``makemigrations`` and then ``migrate_schemas --shared`` again for your ``app.Models`` to be created in the database.
+    
 Lastly, you need to create a tenant whose schema is ``public`` and it's address is your domain URL. Please see the section on :doc:`use <use>`.
 
 You can also specify extra schemas that should be visible to all queries using
