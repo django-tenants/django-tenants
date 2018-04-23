@@ -91,7 +91,7 @@ class TenantMixin(models.Model):
         if has_schema and is_new and self.auto_create_schema:
             try:
                 self.create_schema(check_if_exists=True, verbosity=verbosity)
-                post_schema_sync.send(sender=TenantMixin, tenant=self)
+                post_schema_sync.send(sender=TenantMixin, tenant=self.serializable_fields())
             except Exception:
                 # We failed creating the tenant, delete what we created and
                 # re-raise the exception
@@ -99,7 +99,11 @@ class TenantMixin(models.Model):
                 raise
         elif is_new:
             # although we are not using the schema functions directly, the signal might be registered by a listener
-            schema_needs_to_be_sync.send(sender=TenantMixin, tenant=self)
+            schema_needs_to_be_sync.send(sender=TenantMixin, tenant=self.serializable_fields())
+
+    def serializable_fields(self):
+        """ in certain cases the user model isn't serializable so you may want to only send the id """
+        return self
 
     def delete(self, force_drop=False, *args, **kwargs):
         """
