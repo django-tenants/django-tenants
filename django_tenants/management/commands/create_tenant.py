@@ -28,7 +28,7 @@ class Command(BaseCommand):
                                              help='Specifies the %s for tenant.' % field.name)
 
         for field in self.domain_fields:
-            parser.add_argument('--%s' % field.name, help="Specifies the %s for the tenant's domain." % field.name)
+            parser.add_argument('--domain-%s' % field.name, help="Specifies the %s for the tenant's domain." % field.name)
 
         parser.add_argument('-s', action="store_true",
                                          help='Create a superuser afterwards.')
