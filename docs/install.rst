@@ -158,12 +158,6 @@ Optional Settings
     :Default: ``'public'``
     
     The schema name that will be treated as ``public``, that is, where the ``SHARED_APPS`` will be created.
-    
-.. attribute:: TENANT_CREATION_FAKES_MIGRATIONS
-
-    :Default: ``'True'``
-    
-    Sets if the models will be synced directly to the last version and all migration subsequently faked. Useful in the cases where migrations can not be faked and need to be ran individually. Be aware that setting this to `False` may significantly slow down the process of creating tenants.
 
 
 Tenant View-Routing
