@@ -6,6 +6,7 @@ from django.urls import reverse
 # noinspection PyProtectedMember
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
+from .utils import get_public_schema_name, get_creation_fakes_migrations, get_tenant_database_alias, schema_exists, clone_schema, get_tenant_base_schema
 from .utils import schema_exists, get_tenant_domain_model
 from .utils import get_public_schema_name
 
@@ -137,14 +138,32 @@ class TenantMixin(models.Model):
         if check_if_exists and schema_exists(self.schema_name):
             return False
 
-        # create the schema
-        cursor.execute('CREATE SCHEMA %s' % self.schema_name)
+        fake_migrations = get_creation_fakes_migrations()
 
         if sync_schema:
-            call_command('migrate_schemas',
-                         schema_name=self.schema_name,
-                         interactive=False,
-                         verbosity=verbosity)
+            try:
+                if fake_migrations:
+                    # copy tables and data from provided model schema
+                    base_schema = get_tenant_base_schema()
+                    clone_schema(base_schema, self.schema_name)
+
+                    call_command('migrate_schemas',
+                                 tenant=True,
+                                 fake=True,
+                                 schema_name=self.schema_name,
+                                 interactive=False,
+                                 verbosity=verbosity)
+                else:
+                    # create the schema
+                    cursor.execute('CREATE SCHEMA %s', (AsIs(connection.ops.quote_name(self.schema_name)),))
+                    call_command('migrate_schemas',
+                                 tenant=True,
+                                 schema_name=self.schema_name,
+                                 interactive=False,
+                                 verbosity=verbosity)
+            except Exception:
+                self.delete_schema()
+                raise
 
         connection.set_schema_to_public()
 
