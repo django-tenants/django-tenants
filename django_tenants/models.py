@@ -141,29 +141,25 @@ class TenantMixin(models.Model):
         fake_migrations = get_creation_fakes_migrations()
 
         if sync_schema:
-            try:
-                if fake_migrations:
-                    # copy tables and data from provided model schema
-                    base_schema = get_tenant_base_schema()
-                    clone_schema(base_schema, self.schema_name)
+            if fake_migrations:
+                # copy tables and data from provided model schema
+                base_schema = get_tenant_base_schema()
+                clone_schema(base_schema, self.schema_name)
 
-                    call_command('migrate_schemas',
-                                 tenant=True,
-                                 fake=True,
-                                 schema_name=self.schema_name,
-                                 interactive=False,
-                                 verbosity=verbosity)
-                else:
-                    # create the schema
-                    cursor.execute('CREATE SCHEMA %s', (AsIs(connection.ops.quote_name(self.schema_name)),))
-                    call_command('migrate_schemas',
-                                 tenant=True,
-                                 schema_name=self.schema_name,
-                                 interactive=False,
-                                 verbosity=verbosity)
-            except Exception:
-                self.delete_schema()
-                raise
+                call_command('migrate_schemas',
+                             tenant=True,
+                             fake=True,
+                             schema_name=self.schema_name,
+                             interactive=False,
+                             verbosity=verbosity)
+            else:
+                # create the schema
+                cursor.execute('CREATE SCHEMA %s', (self.schema_name,))
+                call_command('migrate_schemas',
+                             tenant=True,
+                             schema_name=self.schema_name,
+                             interactive=False,
+                             verbosity=verbosity)
 
         connection.set_schema_to_public()
 
