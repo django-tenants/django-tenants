@@ -3,13 +3,13 @@ import sys
 from django.db import transaction
 
 from django.core.management.commands.migrate import Command as MigrateCommand
-from django_tenants.utils import get_public_schema_name
+from django_tenants.utils import get_public_schema_name, get_tenant_database_alias
 
 
 def run_migrations(args, options, executor_codename, schema_name, allow_atomic=True, idx=None, count=None):
     from django.core.management import color
     from django.core.management.base import OutputWrapper
-    from django.db import connection
+    from django.db import connections
 
     style = color.color_style()
 
@@ -24,7 +24,9 @@ def run_migrations(args, options, executor_codename, schema_name, allow_atomic=T
             msg
         )
 
+    connection = connections[get_tenant_database_alias()]
     connection.set_schema(schema_name)
+
     stdout = OutputWrapper(sys.stdout)
     stdout.style_func = style_func
     stderr = OutputWrapper(sys.stderr)
@@ -55,6 +57,7 @@ class MigrationExecutor(object):
         self.options = options
 
         self.PUBLIC_SCHEMA_NAME = get_public_schema_name()
+        self.TENANT_DB_ALIAS = get_tenant_database_alias()
 
     def run_migrations(self, tenants=None):
         raise NotImplementedError

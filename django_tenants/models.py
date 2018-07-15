@@ -1,13 +1,12 @@
 from django.conf import settings
-from django.db import models, connection, transaction
+from django.db import models, connections, transaction
 from django.core.management import call_command
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
 # noinspection PyProtectedMember
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
-from .utils import schema_exists, get_tenant_domain_model
-from .utils import get_public_schema_name
+from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias
 
 
 class TenantMixin(models.Model):
@@ -48,10 +47,13 @@ class TenantMixin(models.Model):
                 # run some code in tenant test
             # run some code in previous tenant (public probably)
         """
+        connection = connections[get_tenant_database_alias()]
         self._previous_tenant = connection.tenant
         self.activate()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        connection = connections[get_tenant_database_alias()]
+
         connection.set_tenant(self._previous_tenant)
 
     def activate(self):
@@ -61,6 +63,7 @@ class TenantMixin(models.Model):
         Usage:
             Tenant.objects.get(schema_name='test').activate()
         """
+        connection = connections[get_tenant_database_alias()]
         connection.set_tenant(self)
 
     @classmethod
@@ -73,9 +76,11 @@ class TenantMixin(models.Model):
             # or simpler
             Tenant.deactivate()
         """
+        connection = connections[get_tenant_database_alias()]
         connection.set_schema_to_public()
 
     def save(self, verbosity=1, *args, **kwargs):
+        connection = connections[get_tenant_database_alias()]
         is_new = self.pk is None
         has_schema = hasattr(connection, 'schema_name')
         if has_schema and is_new and connection.schema_name != get_public_schema_name():
@@ -100,6 +105,16 @@ class TenantMixin(models.Model):
         elif is_new:
             # although we are not using the schema functions directly, the signal might be registered by a listener
             schema_needs_to_be_sync.send(sender=TenantMixin, tenant=self.serializable_fields())
+        elif not is_new and self.auto_create_schema and not schema_exists(self.schema_name):
+            # Create schemas for existing models, deleting only the schema on failure
+            try:
+                self.create_schema(check_if_exists=True, verbosity=verbosity)
+                post_schema_sync.send(sender=TenantMixin, tenant=self.serializable_fields())
+            except Exception:
+                # We failed creating the schema, delete what we created and
+                # re-raise the exception
+                self.delete_schema()
+                raise
 
     def serializable_fields(self):
         """ in certain cases the user model isn't serializable so you may want to only send the id """
@@ -110,6 +125,7 @@ class TenantMixin(models.Model):
         Deletes this row. Drops the tenant's schema if the attribute
         auto_drop_schema set to True.
         """
+        connection = connections[get_tenant_database_alias()]
         has_schema = hasattr(connection, 'schema_name')
         if has_schema and connection.schema_name not in (self.schema_name, get_public_schema_name()):
             raise Exception("Can't delete tenant outside it's own schema or "
@@ -122,6 +138,22 @@ class TenantMixin(models.Model):
 
         super(TenantMixin, self).delete(*args, **kwargs)
 
+    def delete_schema(self):
+        """
+        Drop the tenant's associated schema.
+        """
+
+        connection = connections[get_tenant_database_alias()]
+        has_schema = hasattr(connection, 'schema_name')
+        if has_schema and connection.schema_name not in (self.schema_name, get_public_schema_name()):
+            raise Exception("Can't delete tenant outside it's own schema or "
+                            "the public schema. Current schema is %s."
+                            % connection.schema_name)
+
+        if has_schema and schema_exists(self.schema_name):
+            cursor = connection.cursor()
+            cursor.execute('DROP SCHEMA %s CASCADE' % self.schema_name)
+
     def create_schema(self, check_if_exists=False, sync_schema=True,
                       verbosity=1):
         """
@@ -131,6 +163,7 @@ class TenantMixin(models.Model):
         """
 
         # safety check
+        connection = connections[get_tenant_database_alias()]
         _check_schema_name(self.schema_name)
         cursor = connection.cursor()
 
