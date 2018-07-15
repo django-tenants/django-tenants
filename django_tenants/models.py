@@ -154,7 +154,7 @@ class TenantMixin(models.Model):
                              verbosity=verbosity)
             else:
                 # create the schema
-                cursor.execute('CREATE SCHEMA %s', (self.schema_name,))
+                cursor.execute('CREATE SCHEMA %s' % self.schema_name)
                 call_command('migrate_schemas',
                              tenant=True,
                              schema_name=self.schema_name,
