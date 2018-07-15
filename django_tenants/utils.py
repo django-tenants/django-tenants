@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 from django.conf import settings
-from django.db import connection
-from django.db import connections, DEFAULT_DB_ALIAS, transaction
+from django.db import connection, transaction
 from django.db.utils import ProgrammingError
 from django.core.exceptions import ImproperlyConfigured
 

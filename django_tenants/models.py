@@ -6,7 +6,7 @@ from django.urls import reverse
 # noinspection PyProtectedMember
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
-from .utils import get_public_schema_name, get_creation_fakes_migrations, get_tenant_database_alias, schema_exists, clone_schema, get_tenant_base_schema
+from .utils import get_creation_fakes_migrations, clone_schema, get_tenant_base_schema
 from .utils import schema_exists, get_tenant_domain_model
 from .utils import get_public_schema_name
 
