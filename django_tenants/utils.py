@@ -33,24 +33,30 @@ def get_limit_set_calls():
 
 def get_creation_fakes_migrations():
     """
-    If TENANT_CREATION_FAKES_MIGRATIONS, tenants will be created by cloning an existing schema
-    specified by TENANT_CLONE_BASE
+    If TENANT_CREATION_FAKES_MIGRATIONS, tenants will be created by cloning an
+    existing schema specified by TENANT_CLONE_BASE.
     """
     faked = getattr(settings, 'TENANT_CREATION_FAKES_MIGRATIONS', False)
     if faked:
         if not getattr(settings, 'TENANT_BASE_SCHEMA', False):
             raise ImproperlyConfigured(
-                'You must specify a schema name in TENANT_BASE_SCHEMA if TENANT_CREATION_FAKES_MIGRATIONS is enabled.'
+                'You must specify a schema name in TENANT_BASE_SCHEMA if '
+                'TENANT_CREATION_FAKES_MIGRATIONS is enabled.'
             )
     return faked
 
 
 def get_tenant_base_schema():
+    """
+    If TENANT_CREATION_FAKES_MIGRATIONS, tenants will be created by cloning an
+    existing schema specified by TENANT_CLONE_BASE.
+    """
     schema = getattr(settings, 'TENANT_BASE_SCHEMA', False)
     if schema:
         if not getattr(settings, 'TENANT_CREATION_FAKES_MIGRATIONS', False):
             raise ImproperlyConfigured(
-                'TENANT_CREATION_FAKES_MIGRATIONS must be True to use TENANT_BASE_SCHEMA for cloning.'
+                'TENANT_CREATION_FAKES_MIGRATIONS setting must be True to use '
+                'TENANT_BASE_SCHEMA for cloning.'
             )
     return schema
 
@@ -145,7 +151,8 @@ def app_labels(apps_list):
 
 
 
-# Postgres' `clone_schema` adapted to work with schema names containing capital letters or `-`
+# Postgres' `clone_schema` adapted to work with schema names containing
+# capital letters or `-`
 # Source: IdanDavidi, https://stackoverflow.com/a/48732283/6412017
 CLONE_SCHEMA_FUNCTION = """
 -- Function: clone_schema(text, text)
@@ -342,6 +349,11 @@ ALTER FUNCTION clone_schema(text, text, boolean)
 
 
 def _create_clone_schema_function():
+    """
+    Creates a postgres function `clone_schema` that copies a schema and its
+    contents. Will replace any existing `clone_schema` functions owned by the
+    `postgres` superuser.
+    """
     cursor = connection.cursor()
     cursor.execute(CLONE_SCHEMA_FUNCTION)
     cursor.close()
@@ -349,10 +361,8 @@ def _create_clone_schema_function():
 
 def clone_schema(base_schema_name, new_schema_name):
     """
-    Creates a new schema `new_schema_name` as a clone of an existing schema `old_schema_name`.
-    :param base_schema_name:
-    :param new_schema_name:
-    :return:
+    Creates a new schema `new_schema_name` as a clone of an existing schema
+    `old_schema_name`.
     """
     connection.set_schema_to_public()
     cursor = connection.cursor()
