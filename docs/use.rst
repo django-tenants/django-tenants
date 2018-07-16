@@ -53,6 +53,41 @@ Deleting a tenant
 You can delete tenants by just deleting the entry via the Django ORM. There is a flag that can set on the tenant model called ``auto_drop_schema``. The default for ``auto_drop_schema`` is False. WARNING SETTING ``AUTO_DROP_SCHEMA`` TO TRUE WITH DELETE WITH TENANT!
 
 
+Utils
+-----
+
+There are several utils available in `django_tenants.utils` that can help you in writing more complicated applications.
+
+.. function:: schema_context(schema_name)
+
+This is a context manager. Database queries performed inside it will be executed in against the passed ``schema_name``. (with statement)
+
+.. code-block:: python
+
+    from django_tenants.utils import schema_context
+
+    with schema_context(schema_name):
+        # All comands here are ran under the schema `schema_name`
+
+    # Restores the `SEARCH_PATH` to its original value
+
+
+.. function:: tenant_context(tenant_object)
+
+This context manager is very similiar to the ``schema_context`` function,
+but it takes a tenant model object as the argument instead.
+
+.. code-block:: python
+
+    from django_tenants.utils import tenant_context
+
+    with tenant_context(tenant):
+        # All commands here are ran under the schema from the `tenant` object
+
+    # Restores the `SEARCH_PATH` to its original value
+
+
+
 Signals
 -------
 
