@@ -12,7 +12,7 @@ The classical Django ``FileSystemStorage`` and ``StaticFilesStorage`` cannot mak
 Static files finders aware tenant
 ---------------------------------
 
-The classical Django ``FileSystemFinder`` cannot determine paths for files based on the current tenant and therefore a special finder is needed, which can do so.
+The classical Django ``FileSystemFinder`` cannot determine paths for files based on the current tenant and therefore a special finder which can do so is needed.
 
 To do this, first we need to structure our project so that each tenant stay separated into directories and thus we have a starting point to manipulate `templates files <templates.html>`_ and ``static files`` to each tenant:
 
