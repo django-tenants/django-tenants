@@ -41,8 +41,9 @@ class MultiprocessingExecutor(MigrationExecutor):
                 2
             )
 
-            from django.db import connection
+            from django.db import connections
 
+            connection = connections[self.TENANT_DB_ALIAS]
             connection.close()
             connection.connection = None
 

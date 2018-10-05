@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from django.conf import settings
-from django.db import connection
+from django.db import connections, DEFAULT_DB_ALIAS
 
 try:
     from django.apps import apps
@@ -11,8 +11,30 @@ except ImportError:
 from django.core import mail
 
 
+def get_tenant_model():
+    return get_model(settings.TENANT_MODEL)
+
+
+def get_tenant_domain_model():
+    return get_model(settings.TENANT_DOMAIN_MODEL)
+
+
+def get_tenant_database_alias():
+    return getattr(settings, 'TENANT_DB_ALIAS', DEFAULT_DB_ALIAS)
+
+
+def get_public_schema_name():
+    return getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
+
+
+def get_limit_set_calls():
+    return getattr(settings, 'TENANT_LIMIT_SET_CALLS', False)
+
+
+
 @contextmanager
 def schema_context(schema_name):
+    connection = connections[get_tenant_database_alias()]
     previous_tenant = connection.tenant
     try:
         connection.set_schema(schema_name)
@@ -26,6 +48,7 @@ def schema_context(schema_name):
 
 @contextmanager
 def tenant_context(tenant):
+    connection = connections[get_tenant_database_alias()]
     previous_tenant = connection.tenant
     try:
         connection.set_tenant(tenant)
@@ -35,22 +58,6 @@ def tenant_context(tenant):
             connection.set_schema_to_public()
         else:
             connection.set_tenant(previous_tenant)
-
-
-def get_tenant_model():
-    return get_model(settings.TENANT_MODEL)
-
-
-def get_tenant_domain_model():
-    return get_model(settings.TENANT_DOMAIN_MODEL)
-
-
-def get_public_schema_name():
-    return getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
-
-
-def get_limit_set_calls():
-    return getattr(settings, 'TENANT_LIMIT_SET_CALLS', False)
 
 
 def clean_tenant_url(url_string):
@@ -92,6 +99,7 @@ def django_is_in_test_mode():
 
 
 def schema_exists(schema_name):
+    connection = connections[get_tenant_database_alias()]
     cursor = connection.cursor()
 
     # check if this schema already exists in the db

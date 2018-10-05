@@ -15,7 +15,7 @@ class TenantSyncRouter(object):
         apps_list is either settings.SHARED_APPS or settings.TENANT_APPS, a
         list of app names.
 
-        We check the presense of the app's name or the full path to the apps's
+        We check the presence of the app's name or the full path to the apps's
         AppConfig class.
         https://docs.djangoproject.com/en/1.8/ref/applications/#configuring-applications
         """
@@ -27,9 +27,13 @@ class TenantSyncRouter(object):
     def allow_migrate(self, db, app_label, model_name=None, **hints):
         # the imports below need to be done here else django <1.5 goes crazy
         # https://code.djangoproject.com/ticket/20704
-        from django.db import connection
-        from django_tenants.utils import get_public_schema_name
+        from django.db import connections
+        from django_tenants.utils import get_public_schema_name, get_tenant_database_alias
 
+        if db != get_tenant_database_alias():
+            return False
+
+        connection = connections[db]
         if connection.schema_name == get_public_schema_name():
             if not self.app_in_list(app_label, settings.SHARED_APPS):
                 return False
