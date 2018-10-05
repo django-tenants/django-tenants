@@ -3,6 +3,8 @@ from django.db import models, connections, transaction
 from django.core.management import call_command
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 # noinspection PyProtectedMember
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
@@ -189,6 +191,12 @@ class TenantMixin(models.Model):
         url = ''.join((http_type, self.schema_name, '.', domain, reverse(view_name)))
 
         return url
+
+
+@receiver(post_delete, sender=TenantMixin)
+def tenant_delete_callback(sender, **kwargs):
+    if sender.auto_drop_schema:
+        sender._drop_schema()
 
 
 class DomainMixin(models.Model):
