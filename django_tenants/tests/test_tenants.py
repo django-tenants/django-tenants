@@ -479,3 +479,21 @@ class TenantTestCaseTest(BaseTestCase, TenantTestCase):
     def test_tenant_survives_after_method2(self):
         # The same tenant still exists even after the previous method call
         self.assertEqual(1, get_tenant_model().objects.all().count())
+
+
+class TenantManagerMethodsTestCaseTest(BaseTestCase):
+    """
+    Tests manager's delete method.
+    """
+    def test_manager_method_deletes_schema(self):
+        Client = get_tenant_model()
+        Client.auto_drop_schema = True
+        tenant = Client(schema_name='test')
+        tenant.save()
+        self.assertTrue(schema_exists(tenant.schema_name))
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+
+        Client.objects.filter(pk=tenant.pk).delete()
+        self.assertFalse(schema_exists(tenant.schema_name))        
