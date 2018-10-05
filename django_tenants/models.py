@@ -130,8 +130,15 @@ class TenantMixin(models.Model):
                             % connection.schema_name)
 
         if has_schema and schema_exists(self.schema_name) and (self.auto_drop_schema or force_drop):
+            self.pre_drop()
             cursor = connection.cursor()
             cursor.execute('DROP SCHEMA %s CASCADE' % self.schema_name)
+
+    def pre_drop(self):
+        """
+        This is a routine which you could override to backup the tenant schema before dropping.
+        :return:
+        """
 
     def delete(self, force_drop=False, *args, **kwargs):
         """
