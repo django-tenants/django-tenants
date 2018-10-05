@@ -113,18 +113,15 @@ class TenantMixin(models.Model):
             except Exception:
                 # We failed creating the schema, delete what we created and
                 # re-raise the exception
-                self.delete_schema()
+                self._drop_schema()
                 raise
 
     def serializable_fields(self):
         """ in certain cases the user model isn't serializable so you may want to only send the id """
         return self
 
-    def delete(self, force_drop=False, *args, **kwargs):
-        """
-        Deletes this row. Drops the tenant's schema if the attribute
-        auto_drop_schema set to True.
-        """
+    def _drop_schema(self, force_drop=False):
+        """ Drops the schema"""
         connection = connections[get_tenant_database_alias()]
         has_schema = hasattr(connection, 'schema_name')
         if has_schema and connection.schema_name not in (self.schema_name, get_public_schema_name()):
@@ -136,23 +133,13 @@ class TenantMixin(models.Model):
             cursor = connection.cursor()
             cursor.execute('DROP SCHEMA %s CASCADE' % self.schema_name)
 
+    def delete(self, force_drop=False, *args, **kwargs):
+        """
+        Deletes this row. Drops the tenant's schema if the attribute
+        auto_drop_schema set to True.
+        """
+        self._drop_schema(force_drop)
         super(TenantMixin, self).delete(*args, **kwargs)
-
-    def delete_schema(self):
-        """
-        Drop the tenant's associated schema.
-        """
-
-        connection = connections[get_tenant_database_alias()]
-        has_schema = hasattr(connection, 'schema_name')
-        if has_schema and connection.schema_name not in (self.schema_name, get_public_schema_name()):
-            raise Exception("Can't delete tenant outside it's own schema or "
-                            "the public schema. Current schema is %s."
-                            % connection.schema_name)
-
-        if has_schema and schema_exists(self.schema_name):
-            cursor = connection.cursor()
-            cursor.execute('DROP SCHEMA %s CASCADE' % self.schema_name)
 
     def create_schema(self, check_if_exists=False, sync_schema=True,
                       verbosity=1):
