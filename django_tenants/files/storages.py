@@ -22,8 +22,6 @@ class TenantStorageMixin(object):
         To static_files is the destination path to collectstatic
         To media_files is the destination path to upload files
         """
-        if name is None:
-            name = ''
         try:
             if '%s' in self.location:
                 location = safe_join(self.location % connection.schema_name)
@@ -32,9 +30,10 @@ class TenantStorageMixin(object):
         except AttributeError:
             location = self.location
 
-        # path = safe_join(location, name)
-        # return path
-        return location
+        if name is None or name in location:
+            name = ''
+        path = safe_join(location, name)
+        return path
 
 
 class TenantFileSystemStorage(TenantStorageMixin, FileSystemStorage):
@@ -53,17 +52,6 @@ class TenantFileSystemStorage(TenantStorageMixin, FileSystemStorage):
             if not relative_base_url.endswith('/'):
                 relative_base_url += '/'
             self.base_url += relative_base_url
-
-    """
-    def path(self, name):
-        if not hasattr(settings, "MULTITENANT_RELATIVE_MEDIA_ROOT") or \
-                not settings.MULTITENANT_RELATIVE_MEDIA_ROOT:
-            raise ImproperlyConfigured("You're using the TenantFileSystemStorage "
-                                       "without having set the MULTITENANT_RELATIVE_MEDIA_ROOT "
-                                       "setting to a relative filesystem path as from MEDIA_ROOT.")
-
-        return super(TenantFileSystemStorage, self).path(name)
-    """
 
     def url(self, name):
         if self.base_url is None:
