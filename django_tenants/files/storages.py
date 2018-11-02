@@ -1,12 +1,12 @@
 import os
+from urllib.parse import urljoin
+
 from django.utils._os import safe_join
 from django.db import connection
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
 
 from django.utils.encoding import filepath_to_uri
-from django.utils.six.moves.urllib.parse import urljoin
 
 
 __all__ = (
