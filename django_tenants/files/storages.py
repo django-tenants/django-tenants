@@ -32,7 +32,7 @@ class TenantStorageMixin(object):
         except AttributeError:
             location = self.location
 
-        path = safe_join(location, name)
+        # path = safe_join(location, name)
         return path
 
 
