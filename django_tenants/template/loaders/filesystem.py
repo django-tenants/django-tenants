@@ -13,11 +13,9 @@ from django.template.loaders.filesystem import Loader as BaseLoader
 
 class Loader(BaseLoader):
     def get_dirs(self):
-        if self.dirs is not None:
-            return self.dirs
-
         try:
             self.dirs = settings.MULTITENANT_TEMPLATE_DIRS
+            return self.dirs if self.dirs is not None else self.engine.dirs
         except AttributeError:
             raise ImproperlyConfigured(
                 "To use %s.%s you must define the MULTITENANT_TEMPLATE_DIRS"
