@@ -15,12 +15,12 @@ class TenantStaticFilesStorage(TenantStorageMixin, StaticFilesStorage):
         if hasattr(settings, "MULTITENANT_RELATIVE_STATIC_ROOT"):
             self.location = os.path.join(self.location, settings.MULTITENANT_RELATIVE_STATIC_ROOT)
 
+    """
     def path(self, name):
-        """
         if not hasattr(settings, "MULTITENANT_RELATIVE_STATIC_ROOT") or \
                 not settings.MULTITENANT_RELATIVE_STATIC_ROOT:
             raise ImproperlyConfigured("You're using the TenantStaticFilesStorage "
                                        "without having set the MULTITENANT_RELATIVE_STATIC_ROOT "
                                        "setting to a filesystem path.")
-        """
         return super(TenantStaticFilesStorage, self).path(name)
+    """
