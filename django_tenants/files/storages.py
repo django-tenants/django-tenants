@@ -33,7 +33,8 @@ class TenantStorageMixin(object):
             location = self.location
 
         # path = safe_join(location, name)
-        return path
+        # return path
+        return location
 
 
 class TenantFileSystemStorage(TenantStorageMixin, FileSystemStorage):
