@@ -1,4 +1,5 @@
-from contextlib import contextmanager
+import functools
+from contextlib import contextmanager, ContextDecorator
 from django.conf import settings
 from django.db import connections, DEFAULT_DB_ALIAS
 
@@ -32,18 +33,37 @@ def get_limit_set_calls():
 
 
 
-@contextmanager
-def schema_context(schema_name):
-    connection = connections[get_tenant_database_alias()]
-    previous_tenant = connection.tenant
-    try:
-        connection.set_schema(schema_name)
-        yield
-    finally:
-        if previous_tenant is None:
-            connection.set_schema_to_public()
-        else:
-            connection.set_tenant(previous_tenant)
+class schema_context(object):
+    def __call__(self, f):
+        @functools.wrap(f)
+        def decorated(*args, **kwargs):
+            schema_name = kwargs.get(schema_name, None)
+            with self:
+                connection = connections[get_tenant_database_alias()]
+                previous_tenant = connection.tenant
+                try:
+                    connect.set_schema(schema_name)
+                    return f(*args, **kwargs)
+                finally:
+                    if previous_tenant is None:
+                        connection.set_schema_to_public()
+                    else:
+                        connect.set_tenant(previous_tenant)
+        return decorated
+
+# @contextmanager
+# def schema_context(schema_name):
+#
+#     connection = connections[get_tenant_database_alias()]
+#     previous_tenant = connection.tenant
+#     try:
+#         connection.set_schema(schema_name)
+#         yield
+#     finally:
+#         if previous_tenant is None:
+#             connection.set_schema_to_public()
+#         else:
+#             connection.set_tenant(previous_tenant)
 
 
 @contextmanager

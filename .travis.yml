@@ -8,7 +8,7 @@ services:
   - postgresql
 env:
   matrix:
-   - $DJANGO="Django<2"
+   - $DJANGO="Django>=2.0,<2.2"
 
 install:
   - pip install -U pip
