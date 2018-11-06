@@ -1,6 +1,7 @@
+import os
 from contextlib import contextmanager
 from django.conf import settings
-from django.db import connections, DEFAULT_DB_ALIAS
+from django.db import connections, DEFAULT_DB_ALIAS, connection
 
 try:
     from django.apps import apps
@@ -122,3 +123,23 @@ def app_labels(apps_list):
     Returns a list of app labels of the given apps_list
     """
     return [app.split('.')[-1] for app in apps_list]
+
+
+def parse_tenant_config_path(config_path):
+    """
+    Convenience function for parsing django-tenants' path configuration strings.
+
+    If the string contains '%s', then the current tenant's schema name will be inserted at that location. Otherwise
+    the schema name will be appended to the end of the string.
+
+    :param config_path: A configuration path string that optionally contains '%s' to indicate where the tenant
+    schema name should be inserted.
+
+    :return: The formatted string containing the schema name
+    """
+    try:
+        # Insert schema name
+        return config_path % connection.schema_name
+    except (TypeError, ValueError):
+        # No %s in string; append schema name at the end
+        return os.path.join(config_path, connection.schema_name)
