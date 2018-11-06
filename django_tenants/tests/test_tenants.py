@@ -250,6 +250,32 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
         self.created = [domain, tenant]
 
+    def test_tenant_schema_behaves_as_decorator(self):
+        tenant = get_tenant_model()(schema_name='test')
+        tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+
+        connection.tenant = None
+
+        @tenant_context(tenant)
+        def test_tenant_func():
+            DummyModel(name='No exception please').save()
+
+        test_tenant_func()
+
+        connection.tenant = None
+
+        @schema_context(tenant.schema_name)
+        def test_schema_func():
+            DummyModel(name='Survived it!').save()
+
+        test_schema_func()
+
+        self.created = [domain, tenant]
+
+
 
 class BaseSyncTest(BaseTestCase):
     """
@@ -496,4 +522,4 @@ class TenantManagerMethodsTestCaseTest(BaseTestCase):
         domain.save()
 
         Client.objects.filter(pk=tenant.pk).delete()
-        self.assertFalse(schema_exists(tenant.schema_name))        
+        self.assertFalse(schema_exists(tenant.schema_name))
