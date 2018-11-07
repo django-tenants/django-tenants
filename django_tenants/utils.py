@@ -61,7 +61,7 @@ class tenant_context(ContextDecorator):
         if self.connection.tenant is None:
             self.connection.set_schema_to_public()
         else:
-            self.connect.set_tenant(self.connection.tenant)
+            self.connection.set_tenant(self.connection.tenant)
 
 
 def clean_tenant_url(url_string):
