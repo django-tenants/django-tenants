@@ -55,8 +55,7 @@ Contents
    install
    use
    examples
-   templates
-   static
+   files
    test
    involved
    credits
