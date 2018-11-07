@@ -81,7 +81,6 @@ You can also use `schema_context` as a decorator.
     def my_func():
       # All commands in this function are ran under the schema `schema_name`
 
-
 .. function:: tenant_context(tenant_object)
 
 This context manager is very similiar to the ``schema_context`` function,
