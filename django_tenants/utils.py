@@ -39,13 +39,14 @@ class schema_context(ContextDecorator):
 
     def __enter__(self):
         self.connection = connections[get_tenant_database_alias()]
+        self.previous_tenant = connection.tenant
         self.connection.set_schema(self.schema_name)
 
     def __exit__(self, *exc):
-        if self.connection.tenant is None:
+        if self.previous_tenant is None:
             self.connection.set_schema_to_public()
         else:
-            self.connection.set_tenant(self.connection.tenant)
+            self.connection.set_tenant(self.previous_tenant)
 
 
 class tenant_context(ContextDecorator):
@@ -55,13 +56,14 @@ class tenant_context(ContextDecorator):
 
     def __enter__(self):
         self.connection = connections[get_tenant_database_alias()]
+        self.previous_tenant = connection.tenant
         self.connection.set_tenant(self.tenant)
 
     def __exit__(self, *exc):
-        if self.connection.tenant is None:
+        if self.previous_tenant is None:
             self.connection.set_schema_to_public()
         else:
-            self.connection.set_tenant(self.connection.tenant)
+            self.connection.set_tenant(self.previous_tenant)
 
 
 def clean_tenant_url(url_string):
