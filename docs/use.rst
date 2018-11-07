@@ -67,9 +67,19 @@ This is a context manager. Database queries performed inside it will be executed
     from django_tenants.utils import schema_context
 
     with schema_context(schema_name):
-        # All comands here are ran under the schema `schema_name`
+        # All commands here are ran under the schema `schema_name`
 
     # Restores the `SEARCH_PATH` to its original value
+
+You can also use `schema_context` as a decorator.
+
+.. code-block:: python
+
+    from django_tenants.utils import schema_context
+
+    @schema_context(schema_name)
+    def my_func():
+      # All commands in this function are ran under the schema `schema_name`
 
 
 .. function:: tenant_context(tenant_object)
@@ -85,6 +95,16 @@ but it takes a tenant model object as the argument instead.
         # All commands here are ran under the schema from the `tenant` object
 
     # Restores the `SEARCH_PATH` to its original value
+
+You can also use `tenant_context` as a decorator.
+
+.. code-block:: python
+
+    from django_tenants.utils import tenant_context
+
+    @tenant_context(tenant)
+    def my_func():
+      # All commands in this function are ran under the schema from the `tenant` object
 
 
 
