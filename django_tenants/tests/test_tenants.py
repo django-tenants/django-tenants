@@ -250,6 +250,32 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
         self.created = [domain, tenant]
 
+    def test_tenant_schema_behaves_as_decorator(self):
+        tenant = get_tenant_model()(schema_name='test')
+        tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+
+        connection.tenant = None
+
+        @tenant_context(tenant)
+        def test_tenant_func():
+            DummyModel(name='No exception please').save()
+
+        test_tenant_func()
+
+        connection.tenant = None
+
+        @schema_context(tenant.schema_name)
+        def test_schema_func():
+            DummyModel(name='Survived it!').save()
+
+        test_schema_func()
+
+        self.created = [domain, tenant]
+
+
 
 class BaseSyncTest(BaseTestCase):
     """
@@ -479,3 +505,21 @@ class TenantTestCaseTest(BaseTestCase, TenantTestCase):
     def test_tenant_survives_after_method2(self):
         # The same tenant still exists even after the previous method call
         self.assertEqual(1, get_tenant_model().objects.all().count())
+
+
+class TenantManagerMethodsTestCaseTest(BaseTestCase):
+    """
+    Tests manager's delete method.
+    """
+    def test_manager_method_deletes_schema(self):
+        Client = get_tenant_model()
+        Client.auto_drop_schema = True
+        tenant = Client(schema_name='test')
+        tenant.save()
+        self.assertTrue(schema_exists(tenant.schema_name))
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+
+        Client.objects.filter(pk=tenant.pk).delete()
+        self.assertFalse(schema_exists(tenant.schema_name))

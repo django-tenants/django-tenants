@@ -1,9 +1,10 @@
-from contextlib import contextmanager
+import os
+from contextlib import ContextDecorator
 from django.conf import settings
 from django.db import connection, transaction
 from django.db.utils import ProgrammingError
 from django.core.exceptions import ImproperlyConfigured
-
+from django.db import connections, DEFAULT_DB_ALIAS, connection
 
 try:
     from django.apps import apps
@@ -20,6 +21,10 @@ def get_tenant_model():
 
 def get_tenant_domain_model():
     return get_model(settings.TENANT_DOMAIN_MODEL)
+
+
+def get_tenant_database_alias():
+    return getattr(settings, 'TENANT_DB_ALIAS', DEFAULT_DB_ALIAS)
 
 
 def get_public_schema_name():
@@ -84,6 +89,39 @@ def tenant_context(tenant):
             connection.set_schema_to_public()
         else:
             connection.set_tenant(previous_tenant)
+            
+class schema_context(ContextDecorator):
+    def __init__(self, *args, **kwargs):
+        self.schema_name = args[0]
+        super(schema_context, self).__init__()
+
+    def __enter__(self):
+        self.connection = connections[get_tenant_database_alias()]
+        self.previous_tenant = connection.tenant
+        self.connection.set_schema(self.schema_name)
+
+    def __exit__(self, *exc):
+        if self.previous_tenant is None:
+            self.connection.set_schema_to_public()
+        else:
+            self.connection.set_tenant(self.previous_tenant)
+
+
+class tenant_context(ContextDecorator):
+    def __init__(self, *args, **kwargs):
+        self.tenant = args[0]
+        super(tenant_context, self).__init__()
+
+    def __enter__(self):
+        self.connection = connections[get_tenant_database_alias()]
+        self.previous_tenant = connection.tenant
+        self.connection.set_tenant(self.tenant)
+
+    def __exit__(self, *exc):
+        if self.previous_tenant is None:
+            self.connection.set_schema_to_public()
+        else:
+            self.connection.set_tenant(self.previous_tenant)
 
 
 def clean_tenant_url(url_string):
@@ -125,6 +163,7 @@ def django_is_in_test_mode():
 
 
 def schema_exists(schema_name):
+    connection = connections[get_tenant_database_alias()]
     cursor = connection.cursor()
 
     # check if this schema already exists in the db
@@ -147,7 +186,6 @@ def app_labels(apps_list):
     Returns a list of app labels of the given apps_list
     """
     return [app.split('.')[-1] for app in apps_list]
-
 
 
 # Postgres' `clone_schema` adapted to work with schema names containing
@@ -379,3 +417,23 @@ def clone_schema(base_schema_name, new_schema_name):
         {'base_schema': base_schema_name, 'new_schema': new_schema_name}
     )
     cursor.close()
+
+def parse_tenant_config_path(config_path):
+    """
+    Convenience function for parsing django-tenants' path configuration strings.
+
+    If the string contains '%s', then the current tenant's schema name will be inserted at that location. Otherwise
+    the schema name will be appended to the end of the string.
+
+    :param config_path: A configuration path string that optionally contains '%s' to indicate where the tenant
+    schema name should be inserted.
+
+    :return: The formatted string containing the schema name
+    """
+    try:
+        # Insert schema name
+        return config_path % connection.schema_name
+    except (TypeError, ValueError):
+        # No %s in string; append schema name at the end
+        return os.path.join(config_path, connection.schema_name)
+
