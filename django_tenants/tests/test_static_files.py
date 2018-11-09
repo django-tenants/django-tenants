@@ -9,6 +9,7 @@ from django_tenants import utils
 from django_tenants.files.storage import TenantFileSystemStorage
 from django_tenants.staticfiles.finders import TenantFileSystemFinder
 from django_tenants.staticfiles.storage import TenantStaticFilesStorage
+from django_tenants.template.loaders.filesystem import Loader
 from django_tenants.test.cases import TenantTestCase
 
 
@@ -30,6 +31,65 @@ class ConfigStringParsingTestCase(TenantTestCase):
             utils.parse_tenant_config_path("foo/%s/bar/"),
             "foo/{}/bar/".format(self.tenant.schema_name),
         )
+
+
+class TemplateLoaderTest(TenantTestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = Engine(
+            loaders=["django_tenants.template.loaders.filesystem.Loader"]
+        )
+
+        super().setUpClass()
+
+    def setUp(self):
+        super().setUp()
+
+        root = os.path.dirname(os.path.abspath(__file__))
+        settings.MULTITENANT_TEMPLATE_DIRS = [
+            os.path.join(root, "tenants/%s/templates")
+        ]
+
+    def tearDown(self):
+        # Reset directories
+        loader = self.engine.template_loaders[0]
+        loader._dirs = {}
+
+    def test_dirs_getter(self):
+        loader = self.engine.template_loaders[0]
+
+        self.assertEqual(len(loader.dirs), 1)
+        self.assertEqual(loader.dirs[0], settings.MULTITENANT_TEMPLATE_DIRS[0] % self.tenant.schema_name)
+
+    def test_dirs_getter_improperly_configured_exception(self):
+        with self.assertRaises(ImproperlyConfigured):
+            del settings.MULTITENANT_TEMPLATE_DIRS
+            loader = Loader(self.engine)
+
+            loader.dirs
+
+    def test_dirs_setter(self):
+        loader = self.engine.template_loaders[0]
+
+        loader.dirs = ["test/tenant/dir"]
+        self.assertEqual(len(loader.dirs), 1)
+        self.assertEqual(loader._dirs[connection.schema_name], ["test/tenant/dir"])
+
+    def test_get_template_based_on_tenant(self):
+        template = self.engine.get_template("index.html")
+        TEMPLATE_DIR = settings.MULTITENANT_TEMPLATE_DIRS[0] % self.tenant.schema_name
+
+        self.assertEqual(template.origin.name, os.path.join(TEMPLATE_DIR, "index.html"))
+        self.assertEqual(template.origin.template_name, "index.html")
+
+        # Simulate switching to antoher tenant
+        connection.schema_name = "another_test"
+
+        template = self.engine.get_template("index.html")
+        TEMPLATE_DIR = settings.MULTITENANT_TEMPLATE_DIRS[0] % connection.schema_name
+
+        self.assertEqual(template.origin.name, os.path.join(TEMPLATE_DIR, "index.html"))
+        self.assertEqual(template.origin.template_name, "index.html")
 
 
 class TenantFileSystemStorageTestCase(TenantTestCase):
@@ -153,7 +213,6 @@ class TenantStaticFilesStorageTestCase(TenantTestCase):
 
 
 class TenantFileSystemFinderTestCase(TenantTestCase):
-
     def setUp(self):
         super().setUp()
         settings.MULTITENANT_STATICFILES_DIRS = ["tenants/%s/static"]
@@ -203,7 +262,10 @@ class TenantFileSystemFinderTestCase(TenantTestCase):
     def test_location_setter(self):
         finder = TenantFileSystemFinder()
 
-        self.assertTrue(len(finder._locations) == 0, "Locations should not be initialized during construction")
+        self.assertTrue(
+            len(finder._locations) == 0,
+            "Locations should not be initialized during construction",
+        )
         finder.locations = "/test/path"
         self.assertEqual(finder._locations[self.tenant.schema_name], "/test/path")
 
@@ -238,7 +300,10 @@ class TenantFileSystemFinderTestCase(TenantTestCase):
     def test_storages_setter(self):
         finder = TenantFileSystemFinder()
 
-        self.assertTrue(len(finder._storages) == 0, "Locations should not be initialized during construction")
+        self.assertTrue(
+            len(finder._storages) == 0,
+            "Locations should not be initialized during construction",
+        )
         finder.storages = "/test/path"
         self.assertEqual(finder._storages[self.tenant.schema_name], "/test/path")
 

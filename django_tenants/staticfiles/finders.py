@@ -31,7 +31,7 @@ class TenantFileSystemFinder(FileSystemFinder):
     def locations(self):
         """
         Lazy retrieval of list of locations with static files based on current tenant schema.
-        :return: The list of static file dirs that has been configured for this tenant.
+        :return: The list of static file dirs that have been configured for this tenant.
         """
         if self._locations.get(connection.schema_name, None) is None:
             schema_locations = []
