@@ -1,5 +1,5 @@
 import os
-from contextlib import contextmanager
+from contextlib import ContextDecorator
 from django.conf import settings
 from django.db import connections, DEFAULT_DB_ALIAS, connection
 
@@ -32,33 +32,38 @@ def get_limit_set_calls():
     return getattr(settings, 'TENANT_LIMIT_SET_CALLS', False)
 
 
+class schema_context(ContextDecorator):
+    def __init__(self, *args, **kwargs):
+        self.schema_name = args[0]
+        super(schema_context, self).__init__()
 
-@contextmanager
-def schema_context(schema_name):
-    connection = connections[get_tenant_database_alias()]
-    previous_tenant = connection.tenant
-    try:
-        connection.set_schema(schema_name)
-        yield
-    finally:
-        if previous_tenant is None:
-            connection.set_schema_to_public()
+    def __enter__(self):
+        self.connection = connections[get_tenant_database_alias()]
+        self.previous_tenant = connection.tenant
+        self.connection.set_schema(self.schema_name)
+
+    def __exit__(self, *exc):
+        if self.previous_tenant is None:
+            self.connection.set_schema_to_public()
         else:
-            connection.set_tenant(previous_tenant)
+            self.connection.set_tenant(self.previous_tenant)
 
 
-@contextmanager
-def tenant_context(tenant):
-    connection = connections[get_tenant_database_alias()]
-    previous_tenant = connection.tenant
-    try:
-        connection.set_tenant(tenant)
-        yield
-    finally:
-        if previous_tenant is None:
-            connection.set_schema_to_public()
+class tenant_context(ContextDecorator):
+    def __init__(self, *args, **kwargs):
+        self.tenant = args[0]
+        super(tenant_context, self).__init__()
+
+    def __enter__(self):
+        self.connection = connections[get_tenant_database_alias()]
+        self.previous_tenant = connection.tenant
+        self.connection.set_tenant(self.tenant)
+
+    def __exit__(self, *exc):
+        if self.previous_tenant is None:
+            self.connection.set_schema_to_public()
         else:
-            connection.set_tenant(previous_tenant)
+            self.connection.set_tenant(self.previous_tenant)
 
 
 def clean_tenant_url(url_string):
