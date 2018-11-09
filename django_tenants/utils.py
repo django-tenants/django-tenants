@@ -1,7 +1,7 @@
 import os
-from contextlib import ContextDecorator
+from contextlib import ContextDecorator, contextmanager
 from django.conf import settings
-from django.db import connection, transaction
+from django.db import transaction
 from django.db.utils import ProgrammingError
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connections, DEFAULT_DB_ALIAS, connection
@@ -89,7 +89,8 @@ def tenant_context(tenant):
             connection.set_schema_to_public()
         else:
             connection.set_tenant(previous_tenant)
-            
+
+
 class schema_context(ContextDecorator):
     def __init__(self, *args, **kwargs):
         self.schema_name = args[0]
