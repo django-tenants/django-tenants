@@ -33,8 +33,7 @@ class TenantRequestFactory(RequestFactory):
 
         return super(TenantRequestFactory, self).put(path, data, **extra)
 
-    def delete(self, path, data='', content_type='application/octet-stream',
-               **extra):
+    def delete(self, path, data='', **extra):
         if 'HTTP_HOST' not in extra:
             extra['HTTP_HOST'] = self.tenant.get_primary_domain().domain
 
@@ -72,8 +71,7 @@ class TenantClient(Client):
 
         return super(TenantClient, self).put(path, data, **extra)
 
-    def delete(self, path, data='', content_type='application/octet-stream',
-               **extra):
+    def delete(self, path, data='', **extra):
         if 'HTTP_HOST' not in extra:
             extra['HTTP_HOST'] = self.tenant.get_primary_domain().domain
 
