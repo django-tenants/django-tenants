@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.test.client import RequestFactory
 
-from django_tenants.middleware import TenantMiddleware
+from django_tenants.middleware import TenantMainMiddleware
 from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name
 
@@ -37,7 +37,7 @@ class RoutesTestCase(BaseTestCase):
     def setUp(self):
         super(RoutesTestCase, self).setUp()
         self.factory = RequestFactory()
-        self.tm = TenantMiddleware()
+        self.tm = TenantMainMiddleware()
 
         self.tenant_domain = 'tenant.test.com'
         self.tenant = get_tenant_model()(schema_name='test')
