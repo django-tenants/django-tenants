@@ -13,7 +13,7 @@ import psycopg2
 DatabaseError = django.db.utils.DatabaseError
 IntegrityError = psycopg2.IntegrityError
 
-ORIGINAL_BACKEND = getattr(settings, 'ORIGINAL_BACKEND', 'django.db.backends.postgresql_psycopg2')
+ORIGINAL_BACKEND = getattr(settings, 'ORIGINAL_BACKEND', 'django.db.backends.postgresql')
 
 original_backend = import_module(ORIGINAL_BACKEND + '.base')
 
