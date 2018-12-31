@@ -1,2 +1,0 @@
-Pypi should now correctly contain all files
-----
