@@ -2,6 +2,12 @@
 
 This changelog is used to track all major changes to django-tenants.
 
+## v2.1.1 (UNRELEASED)
+
+**Fixes**
+
+- Fix changelog formatting.
+
 ## v2.1.0 (31 Dec 2018)
 
 **Enhancements**
