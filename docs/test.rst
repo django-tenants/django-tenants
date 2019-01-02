@@ -47,13 +47,15 @@ If you have there are two routines to look at ``setup_tenant`` and ``setup_domai
     from django_tenants.test.client import TenantClient
 
     class BaseSetup(TenantTestCase):
-
-        def setup_tenant(self, tenant):
+        
+        @classmethod
+        def setup_tenant(cls, tenant):
             """
             Add any additional setting to the tenant before it get saved. This is required if you have
             required fields.
             """
-            tenant.company_name = "Test Company"
+            tenant.required_value = "Value"
+            return tenant
 
         def setup_domain(self, tenant):
             """
