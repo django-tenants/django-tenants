@@ -1,6 +1,7 @@
 from django.template import Library
-from django.template.defaulttags import url as default_url, URLNode
-from django_tenants.utils import clean_tenant_url
+from django.template.defaulttags import URLNode
+from django.template.defaulttags import url as default_url
+from django_tenants.utils import clean_tenant_url, get_public_schema_name
 
 register = Library()
 
@@ -17,3 +18,8 @@ class SchemaURLNode(URLNode):
 @register.tag
 def url(parser, token):
     return SchemaURLNode(default_url(parser, token))
+
+
+@register.simple_tag
+def public_schema():
+    return get_public_schema_name()
