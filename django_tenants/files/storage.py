@@ -27,6 +27,6 @@ class TenantFileSystemStorage(FileSystemStorage):
             if not base_url.endswith("/"):
                 base_url += "/"
 
-        super(TenantFileSystemStorage, self).__init__(
+        super().__init__(
             location, base_url, *args, **kwargs
         )

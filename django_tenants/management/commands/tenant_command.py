@@ -10,7 +10,7 @@ class Command(InteractiveTenantOption, BaseCommand):
     help = "Wrapper around django commands for use with an individual tenant"
 
     def add_arguments(self, parser):
-        super(Command, self).add_arguments(parser)
+        super().add_arguments(parser)
 
         parser.add_argument('command_name', nargs='+', help='The command name you want to run')
 

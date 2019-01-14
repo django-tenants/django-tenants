@@ -141,4 +141,4 @@ class FastTenantTestCase(TenantTestCase):
 
     def _fixture_teardown(self):
         if self.flush_data():
-            super(FastTenantTestCase, self)._fixture_teardown()
+            super()._fixture_teardown()

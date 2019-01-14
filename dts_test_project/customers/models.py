@@ -14,7 +14,7 @@ class Client(TenantMixin):
         your own override here.
         """
         # Write your own custom code else use existing code.
-        return super( Client, self ).reverse(request, view_name)
+        return super().reverse(request, view_name)
 
 
 class Domain(DomainMixin):

@@ -31,7 +31,7 @@ class TenantStaticFilesStorage(FileSystemStorage):
 
         check_settings(base_url)
 
-        super(TenantStaticFilesStorage, self).__init__(
+        super().__init__(
             location, base_url, *args, **kwargs
         )
 
@@ -41,7 +41,7 @@ class TenantStaticFilesStorage(FileSystemStorage):
         each tenant having its own static files dir.
         """
         try:
-            return super(TenantStaticFilesStorage, self).listdir(path)
+            return super().listdir(path)
         except FileNotFoundError:
             # Having static files for each tenant is optional - ignore.
             return [], []

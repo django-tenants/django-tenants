@@ -7,7 +7,7 @@ class MigrateSchemasCommand(SyncCommon):
     help = "Updates database schema. Manages both apps with migrations and those without."
 
     def add_arguments(self, parser):
-        super(MigrateSchemasCommand, self).add_arguments(parser)
+        super().add_arguments(parser)
         parser.add_argument('app_label', nargs='?',
                             help='App label of an application to synchronize the state.')
         parser.add_argument('migration_name', nargs='?',
@@ -34,7 +34,7 @@ class MigrateSchemasCommand(SyncCommon):
                             help='Creates tables for apps without migrations.')
 
     def handle(self, *args, **options):
-        super(MigrateSchemasCommand, self).handle(*args, **options)
+        super().handle(*args, **options)
         self.PUBLIC_SCHEMA_NAME = get_public_schema_name()
 
         if self.sync_public and not self.schema_name:
