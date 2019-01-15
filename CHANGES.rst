@@ -6,7 +6,9 @@ This changelog is used to track all major changes to django-tenants.
 
 **Fixes**
 
-- Fix changelog formatting.
+**Enhancements**
+
+- TenantAdminMixin is available in order to register the tenant model. [#223]
 
 ## v2.1.0 (31 Dec 2018)
 

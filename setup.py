@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+ #!/usr/bin/env python
 
 import io
 from os.path import exists
@@ -8,7 +8,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 
 setup(
     name='django-tenants',
