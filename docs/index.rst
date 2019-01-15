@@ -27,7 +27,7 @@ This application implements the second approach, which in our opinion, represent
 * Simplicity: barely make any changes to your current code to support multitenancy. Plus, you only manage one database.
 * Performance: make use of shared connections, buffers and memory.
 
-Each solution has it's up and down sides, for a more in-depth discussion, see Microsoft's excellent article on `Multi-Tenant Data Architecture <http://msdn.microsoft.com/en-us/library/aa479086.aspx>`_.
+Each solution has it's up and down sides, for a more in-depth discussion, see Microsoft's excellent article on `Multi-Tenant Data Architecture <https://docs.microsoft.com/en-us/azure/sql-database/saas-tenancy-app-design-patterns>`_.
 
 How it works
 ------------
