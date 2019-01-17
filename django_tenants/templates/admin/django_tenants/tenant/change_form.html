@@ -1,0 +1,16 @@
+{% extends "admin/change_form.html" %}{% load i18n tenant %}
+
+{% block submit_buttons_bottom %}
+{% public_schema as public_schema_name %}
+{% if request.tenant.schema_name == public_schema_name or request.tenant.schema_name == original.schema_name %}
+{{ block.super }}
+{% else %}
+<div class="submit-row">
+
+<h3><u>{% trans "Can't update tenant outside it's own schema or the public schema. Current schema is " %}{{request.tenant.name}}.</u></h3>
+    <input disabled="disabled" type="submit" value="Save" class="default" name="_sav">
+    <input disabled="disabled" type="submit" value="Delete" class="default" name="_del">
+</div>
+
+{% endif %}
+{% endblock %}
