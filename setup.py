@@ -48,7 +48,7 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     install_requires=[
-        'Django >= 2.0,<2.2',
+        'Django >= 2.0,<3.0',
         'psycopg2-binary',
     ],
     zip_safe=False,
