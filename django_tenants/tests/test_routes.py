@@ -9,7 +9,7 @@ from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_
 class RoutesTestCase(BaseTestCase):
     @classmethod
     def setUpClass(cls):
-        super(RoutesTestCase, cls).setUpClass()
+        super().setUpClass()
         settings.SHARED_APPS = ('django_tenants',
                                 'customers')
         settings.TENANT_APPS = ('dts_test_app',
@@ -32,10 +32,10 @@ class RoutesTestCase(BaseTestCase):
         cls.public_domain.delete()
         cls.public_tenant.delete()
 
-        super(RoutesTestCase, cls).tearDownClass()
+        super().tearDownClass()
 
     def setUp(self):
-        super(RoutesTestCase, self).setUp()
+        super().setUp()
         self.factory = RequestFactory()
         self.tm = TenantMainMiddleware()
 
@@ -53,7 +53,7 @@ class RoutesTestCase(BaseTestCase):
         self.domain.delete()
         self.tenant.delete(force_drop=True)
 
-        super(RoutesTestCase, self).tearDown()
+        super().tearDown()
 
     def test_tenant_routing(self):
         """

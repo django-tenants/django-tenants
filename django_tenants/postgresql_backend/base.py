@@ -52,7 +52,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         self.search_path_set = None
         self.tenant = None
         self.schema_name = None
-        super(DatabaseWrapper, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Use a patched version of the DatabaseIntrospection that only returns the table list for the
         # currently selected schema.
@@ -61,7 +61,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
     def close(self):
         self.search_path_set = False
-        super(DatabaseWrapper, self).close()
+        super().close()
 
     def set_tenant(self, tenant, include_public=True):
         """
@@ -114,9 +114,9 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         """
         if name:
             # Only supported and required by Django 1.11 (server-side cursor)
-            cursor = super(DatabaseWrapper, self)._cursor(name=name)
+            cursor = super()._cursor(name=name)
         else:
-            cursor = super(DatabaseWrapper, self)._cursor()
+            cursor = super()._cursor()
 
         # optionally limit the number of executions - under load, the execution
         # of `set search_path` can be quite time consuming

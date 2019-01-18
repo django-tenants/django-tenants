@@ -67,7 +67,7 @@ def get_tenant_base_schema():
 class schema_context(ContextDecorator):
     def __init__(self, *args, **kwargs):
         self.schema_name = args[0]
-        super(schema_context, self).__init__()
+        super().__init__()
 
     def __enter__(self):
         self.connection = connections[get_tenant_database_alias()]
@@ -84,7 +84,7 @@ class schema_context(ContextDecorator):
 class tenant_context(ContextDecorator):
     def __init__(self, *args, **kwargs):
         self.tenant = args[0]
-        super(tenant_context, self).__init__()
+        super().__init__()
 
     def __enter__(self):
         self.connection = connections[get_tenant_database_alias()]

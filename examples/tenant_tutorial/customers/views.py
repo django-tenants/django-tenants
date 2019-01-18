@@ -12,7 +12,7 @@ class TenantView(FormView):
     success_url = "/"
 
     def get_context_data(self, **kwargs):
-        context = super(TenantView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         context['tenants_list'] = Client.objects.all()
         context['users'] = User.objects.all()
         return context
@@ -41,4 +41,4 @@ class TenantView(FormView):
             except DatabaseError:
                 pass
 
-        return super(TenantView, self).form_valid(form)
+        return super().form_valid(form)

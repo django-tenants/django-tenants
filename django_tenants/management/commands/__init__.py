@@ -18,7 +18,7 @@ class BaseTenantCommand(BaseCommand):
         """
         Sets option_list and help dynamically.
         """
-        obj = super(BaseTenantCommand, cls).__new__(cls, *args, **kwargs)
+        obj = super().__new__(cls, *args, **kwargs)
 
         app_name = get_commands()[obj.COMMAND_NAME]
         if isinstance(app_name, BaseCommand):
@@ -34,7 +34,7 @@ class BaseTenantCommand(BaseCommand):
         return obj
 
     def add_arguments(self, parser):
-        super(BaseTenantCommand, self).add_arguments(parser)
+        super().add_arguments(parser)
         parser.add_argument("-s", "--schema", dest="schema_name")
         parser.add_argument("-p", "--skip-public", dest="skip_public", action="store_true", default=False)
 
@@ -69,7 +69,7 @@ class BaseTenantCommand(BaseCommand):
 
 class InteractiveTenantOption(object):
     def __init__(self, *args, **kwargs):
-        super(InteractiveTenantOption, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def add_arguments(self, parser):
         parser.add_argument("-s", "--schema", dest="schema_name", help="specify tenant schema")
@@ -107,7 +107,7 @@ class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):
     """
 
     def __new__(cls, *args, **kwargs):
-        obj = super(TenantWrappedCommand, cls).__new__(cls, *args, **kwargs)
+        obj = super().__new__(cls, *args, **kwargs)
         obj.command_instance = obj.COMMAND()
         return obj
 
@@ -118,7 +118,7 @@ class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):
         self.command_instance.execute(*args, **options)
 
     def add_arguments(self, parser):
-        super(TenantWrappedCommand, self).add_arguments(parser)
+        super().add_arguments(parser)
         self.command_instance.add_arguments(parser)
 
 

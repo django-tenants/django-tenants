@@ -18,7 +18,7 @@ class Command(BaseCommand):
                      if field.editable and not field.primary_key]
 
     def __init__(self, *args, **kwargs):
-        super(Command, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def add_arguments(self, parser):
 
