@@ -1,9 +1,7 @@
-from optparse import make_option
 from django.core import exceptions
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils.encoding import force_str
-from django.utils.six.moves import input
 from django.db.utils import IntegrityError
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model
 
@@ -22,16 +20,16 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
 
-
         for field in self.tenant_fields:
             parser.add_argument('--%s' % field.name,
-                                             help='Specifies the %s for tenant.' % field.name)
+                                help='Specifies the %s for tenant.' % field.name)
 
         for field in self.domain_fields:
-            parser.add_argument('--domain-%s' % field.name, help="Specifies the %s for the tenant's domain." % field.name)
+            parser.add_argument('--domain-%s' % field.name,
+                                help="Specifies the %s for the tenant's domain." % field.name)
 
         parser.add_argument('-s', action="store_true",
-                                         help='Create a superuser afterwards.')
+                            help='Create a superuser afterwards.')
 
     def handle(self, *args, **options):
 
