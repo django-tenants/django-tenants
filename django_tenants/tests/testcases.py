@@ -45,7 +45,6 @@ class BaseTestCase(TransactionTestCase):
         cursor.execute(sql, (schema_name, ))
         return [row[0] for row in cursor.fetchall()]
 
-
     @classmethod
     def sync_shared(cls):
         call_command('migrate_schemas',

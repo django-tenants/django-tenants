@@ -180,4 +180,3 @@ def parse_tenant_config_path(config_path):
     except (TypeError, ValueError):
         # No %s in string; append schema name at the end
         return os.path.join(config_path, connection.schema_name)
-

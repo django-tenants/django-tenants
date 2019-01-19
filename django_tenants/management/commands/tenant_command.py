@@ -29,7 +29,6 @@ class Command(InteractiveTenantOption, BaseCommand):
         except KeyError:
             raise CommandError("Unknown command: %r" % argv[2])
 
-
         if isinstance(app_name, BaseCommand):
             # if the command is already loaded, use it directly.
             klass = app_name
@@ -46,7 +45,6 @@ class Command(InteractiveTenantOption, BaseCommand):
         tenant = self.get_tenant_from_options_or_interactive(schema_name=schema_namespace.schema_name)
         connection.set_tenant(tenant)
         klass.run_from_argv(args)
-
 
     def handle(self, *args, **options):
         tenant = self.get_tenant_from_options_or_interactive(**options)

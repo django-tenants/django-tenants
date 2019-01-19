@@ -105,13 +105,13 @@ class TenantFileSystemStorageTestCase(TenantTestCase):
 
         # location
         path_suffix = "{}/{}".format(settings.MEDIA_ROOT, self.tenant.schema_name)
-        self.assertEqual(storage.location[-len(path_suffix) :], path_suffix)
+        self.assertEqual(storage.location[-len(path_suffix):], path_suffix)
 
         # path
         path_suffix = "{}/{}/foo.txt".format(
             settings.MEDIA_ROOT, self.tenant.schema_name
         )
-        self.assertEqual(storage.path("foo.txt")[-len(path_suffix) :], path_suffix)
+        self.assertEqual(storage.path("foo.txt")[-len(path_suffix):], path_suffix)
 
         # base_url
         self.assertEqual(storage.base_url, "/media/{}/".format(self.tenant.schema_name))
@@ -129,13 +129,13 @@ class TenantFileSystemStorageTestCase(TenantTestCase):
         path_suffix = "{}/{}/other_dir".format(
             settings.MEDIA_ROOT, self.tenant.schema_name
         )
-        self.assertEqual(storage.location[-len(path_suffix) :], path_suffix)
+        self.assertEqual(storage.location[-len(path_suffix):], path_suffix)
 
         # path
         path_suffix = "{}/{}/other_dir/foo.txt".format(
             settings.MEDIA_ROOT, self.tenant.schema_name
         )
-        self.assertEqual(storage.path("foo.txt")[-len(path_suffix) :], path_suffix)
+        self.assertEqual(storage.path("foo.txt")[-len(path_suffix):], path_suffix)
 
         # base_url
         self.assertEqual(
@@ -170,11 +170,11 @@ class TenantStaticFilesStorageTestCase(TenantTestCase):
 
         # location
         path_suffix = "/staticfiles/{}".format(self.tenant.schema_name)
-        self.assertEqual(storage.location[-len(path_suffix) :], path_suffix)
+        self.assertEqual(storage.location[-len(path_suffix):], path_suffix)
 
         # path
         path_suffix = "/staticfiles/{}/foo.txt".format(self.tenant.schema_name)
-        self.assertEqual(storage.path("foo.txt")[-len(path_suffix) :], path_suffix)
+        self.assertEqual(storage.path("foo.txt")[-len(path_suffix):], path_suffix)
 
         # base_url
         self.assertEqual(
@@ -192,13 +192,13 @@ class TenantStaticFilesStorageTestCase(TenantTestCase):
 
         # location
         path_suffix = "/staticfiles/{}/other_dir".format(self.tenant.schema_name)
-        self.assertEqual(storage.location[-len(path_suffix) :], path_suffix)
+        self.assertEqual(storage.location[-len(path_suffix):], path_suffix)
 
         # path
         path_suffix = "/staticfiles/{}/other_dir/foo.txt".format(
             self.tenant.schema_name
         )
-        self.assertEqual(storage.path("foo.txt")[-len(path_suffix) :], path_suffix)
+        self.assertEqual(storage.path("foo.txt")[-len(path_suffix):], path_suffix)
 
         # base_url
         self.assertEqual(
@@ -290,7 +290,7 @@ class TenantFileSystemFinderTestCase(TenantTestCase):
             finder._storages,
             "Storages should not be initialized during construction.",
         )
-        storages = finder.storages
+        finder.storages
         self.assertIn(
             self.tenant.schema_name,
             finder._storages,
@@ -299,10 +299,10 @@ class TenantFileSystemFinderTestCase(TenantTestCase):
 
     def test_storages_getter_after_connection_change(self):
         finder = TenantFileSystemFinder()
-        storages = finder.storages
+        finder.storages
 
         connection.schema_name = "another_test"
-        storages = finder.storages
+        finder.storages
 
         self.assertTrue(len(finder._storages) == 2)
         self.assertIn("another_test", finder._storages)
