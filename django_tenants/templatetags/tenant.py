@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.template import Library
 from django.template.defaulttags import URLNode
 from django.template.defaulttags import url as default_url
@@ -23,3 +24,13 @@ def url(parser, token):
 @register.simple_tag
 def public_schema():
     return get_public_schema_name()
+
+
+@register.simple_tag()
+def is_tenant_app(app):
+    return app['app_label'] in [tenant_app.split('.')[-1] for tenant_app in settings.TENANT_APPS]
+
+
+@register.simple_tag(takes_context=True)
+def is_public_schema(context, app):
+    return context.request.tenant.schema_name == get_public_schema_name()
