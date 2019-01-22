@@ -76,3 +76,19 @@ class TenantClient(Client):
             extra['HTTP_HOST'] = self.tenant.get_primary_domain().domain
 
         return super().delete(path, data, **extra)
+    
+    def login(self, **credentials):
+        # Create a dummy HttpRequest object and add HTTP_HOST
+        from django.http import HttpRequest
+        request = HttpRequest()
+        request.META['HTTP_HOST'] = self.tenant.get_primary_domain().domain
+        
+        # Authenticate using django contrib's authenticate which passes the request on 
+        # to custom backends
+        from django.contrib.auth import authenticate
+        user = authenticate(request, **credentials)
+        if user:
+            super(TenantClient, self)._login(user)
+            return True
+        else:
+            return False
