@@ -14,9 +14,9 @@ class DefaultTenantMiddleware(SuspiciousTenantMiddleware):
     """
     DEFAULT_SCHEMA_NAME = None
 
-    def get_tenant(self, domain_model, hostname):
+    def get_domain(self, domain_model, hostname):
         try:
-            return super().get_tenant(domain_model, hostname)
+            return super(DefaultTenantMiddleware, self).get_tenant(domain_model, hostname)
         except domain_model.DoesNotExist:
             schema_name = self.DEFAULT_SCHEMA_NAME
             if not schema_name:

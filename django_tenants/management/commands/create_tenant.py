@@ -1,7 +1,9 @@
+from optparse import make_option
 from django.core import exceptions
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils.encoding import force_str
+from django.utils.six.moves import input
 from django.db.utils import IntegrityError
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model
 
@@ -16,25 +18,27 @@ class Command(BaseCommand):
                      if field.editable and not field.primary_key]
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(Command, self).__init__(*args, **kwargs)
 
     def add_arguments(self, parser):
 
         for field in self.tenant_fields:
             parser.add_argument('--%s' % field.name,
-                                help='Specifies the %s for tenant.' % field.name)
+                                             help='Specifies the %s for tenant.' % field.name)
 
         for field in self.domain_fields:
-            parser.add_argument('--domain-%s' % field.name,
-                                help="Specifies the %s for the tenant's domain." % field.name)
+            parser.add_argument('--%s' % field.name, help="Specifies the %s for the tenant's domain." % field.name)
+
+        parser.add_argument('--no-input',
+                            action="store_true",
+                            help='Tells Django to NOT prompt the user for input of any kind.')
 
         parser.add_argument('-s', action="store_true",
-                            help='Create a superuser afterwards.')
+                                  help='Create a superuser afterwards.')
 
     def handle(self, *args, **options):
 
         tenant_data = {}
-        tenant = BaseCommand
         for field in self.tenant_fields:
             input_value = options.get(field.name, None)
             tenant_data[field.name] = input_value
@@ -44,36 +48,36 @@ class Command(BaseCommand):
             input_value = options.get(field.name, None)
             domain_data[field.name] = input_value
 
-        while True:
+        if not options.get('no_input', None):
             for field in self.tenant_fields:
-                if tenant_data.get(field.name, '') == '':
+                if tenant_data.get(field.name, None) == None:
                     input_msg = field.verbose_name
                     default = field.get_default()
                     if default:
                         input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
-
                     input_value = input(force_str('%s: ' % input_msg)) or default
                     tenant_data[field.name] = input_value
-            tenant = self.store_tenant(**tenant_data)
-            if tenant is not None:
-                break
-            tenant_data = {}
 
-        while True:
-            domain_data['tenant'] = tenant
+        if tenant_data:
+            tenant = self.store_tenant(**tenant_data)
+
+        if not tenant:
+            return
+
+        domain_data['tenant'] = tenant
+
+        if not options.get('no_input', None):
             for field in self.domain_fields:
-                if domain_data.get(field.name, '') == '':
+                if domain_data.get(field.name, None) == None:
                     input_msg = field.verbose_name
                     default = field.get_default()
                     if default:
                         input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
-
                     input_value = input(force_str('%s: ' % input_msg)) or default
                     domain_data[field.name] = input_value
+
+        if domain_data:
             domain = self.store_tenant_domain(**domain_data)
-            if domain is not None:
-                break
-            domain_data = {}
 
         if options.get('s', None):
             self.stdout.write("Create superuser for %s" % tenant_data['schema_name'])
@@ -86,7 +90,11 @@ class Command(BaseCommand):
         except exceptions.ValidationError as e:
             self.stderr.write("Error: %s" % '; '.join(e.messages))
             return None
-        except IntegrityError:
+        except IntegrityError as e:
+            self.stderr.write("IntegrityError: %s" % e)
+            return None
+        except Exception as e:
+            self.stderr.write("Exception: %s" % e)
             return None
 
     def store_tenant_domain(self, **fields):
@@ -97,5 +105,9 @@ class Command(BaseCommand):
         except exceptions.ValidationError as e:
             self.stderr.write("Error: %s" % '; '.join(e.messages))
             return None
-        except IntegrityError:
+        except IntegrityError as e:
+            self.stderr.write("IntegrityError: %s" % e)
+            return None
+        except Exception as e:
+            self.stderr.write("Exception: %s" % e)
             return None

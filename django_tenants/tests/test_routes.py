@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.test.client import RequestFactory
 
-from django_tenants.middleware import TenantMainMiddleware
+from django_tenants.middleware import TenantMiddleware
 from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name
 
@@ -9,7 +9,7 @@ from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_
 class RoutesTestCase(BaseTestCase):
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
+        super(RoutesTestCase, cls).setUpClass()
         settings.SHARED_APPS = ('django_tenants',
                                 'customers')
         settings.TENANT_APPS = ('dts_test_app',
@@ -32,12 +32,12 @@ class RoutesTestCase(BaseTestCase):
         cls.public_domain.delete()
         cls.public_tenant.delete()
 
-        super().tearDownClass()
+        super(RoutesTestCase, cls).tearDownClass()
 
     def setUp(self):
-        super().setUp()
+        super(RoutesTestCase, self).setUp()
         self.factory = RequestFactory()
-        self.tm = TenantMainMiddleware()
+        self.tm = TenantMiddleware()
 
         self.tenant_domain = 'tenant.test.com'
         self.tenant = get_tenant_model()(schema_name='test')
@@ -53,7 +53,7 @@ class RoutesTestCase(BaseTestCase):
         self.domain.delete()
         self.tenant.delete(force_drop=True)
 
-        super().tearDown()
+        super(RoutesTestCase, self).tearDown()
 
     def test_tenant_routing(self):
         """

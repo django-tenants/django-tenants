@@ -11,5 +11,5 @@ class StandardExecutor(MigrationExecutor):
             run_migrations(self.args, self.options, self.codename, self.PUBLIC_SCHEMA_NAME)
             tenants.pop(tenants.index(self.PUBLIC_SCHEMA_NAME))
 
-        for idx, schema_name in enumerate(tenants):
-            run_migrations(self.args, self.options, self.codename, schema_name, idx=idx, count=len(tenants))
+        for schema_name in tenants:
+            run_migrations(self.args, self.options, self.codename, schema_name)

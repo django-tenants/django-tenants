@@ -13,7 +13,7 @@ import psycopg2
 DatabaseError = django.db.utils.DatabaseError
 IntegrityError = psycopg2.IntegrityError
 
-ORIGINAL_BACKEND = getattr(settings, 'ORIGINAL_BACKEND', 'django.db.backends.postgresql')
+ORIGINAL_BACKEND = getattr(settings, 'ORIGINAL_BACKEND', 'django.db.backends.postgresql_psycopg2')
 
 original_backend = import_module(ORIGINAL_BACKEND + '.base')
 
@@ -47,12 +47,13 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
     Adds the capability to manipulate the search_path using set_tenant and set_schema_name
     """
     include_public_schema = True
+    _previous_cursor = None
 
     def __init__(self, *args, **kwargs):
         self.search_path_set = None
         self.tenant = None
         self.schema_name = None
-        super().__init__(*args, **kwargs)
+        super(DatabaseWrapper, self).__init__(*args, **kwargs)
 
         # Use a patched version of the DatabaseIntrospection that only returns the table list for the
         # currently selected schema.
@@ -61,7 +62,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
     def close(self):
         self.search_path_set = False
-        super().close()
+        super(DatabaseWrapper, self).close()
 
     def set_tenant(self, tenant, include_public=True):
         """
@@ -114,13 +115,16 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         """
         if name:
             # Only supported and required by Django 1.11 (server-side cursor)
-            cursor = super()._cursor(name=name)
+            cursor = super(DatabaseWrapper, self)._cursor(name=name)
         else:
-            cursor = super()._cursor()
+            cursor = super(DatabaseWrapper, self)._cursor()
 
         # optionally limit the number of executions - under load, the execution
         # of `set search_path` can be quite time consuming
-        if (not get_limit_set_calls()) or not self.search_path_set:
+        if (not get_limit_set_calls()) or not self.search_path_set or self._previous_cursor != cursor:
+            # Store the cursor pointer to check if it has changed since we 
+            # last validated.
+            self._previous_cursor = cursor
             # Actual search_path modification for the cursor. Database will
             # search schemata from left to right when looking for the object
             # (table, index, sequence, etc.).

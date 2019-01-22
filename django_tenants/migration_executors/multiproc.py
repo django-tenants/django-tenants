@@ -6,19 +6,6 @@ from django.conf import settings
 from .base import MigrationExecutor, run_migrations
 
 
-def run_migrations_percent(args, options, codename, count, idx_schema_name):
-    idx, schema_name = idx_schema_name
-    return run_migrations(
-        args,
-        options,
-        codename,
-        schema_name,
-        allow_atomic=False,
-        idx=idx,
-        count=count
-    )
-
-
 class MultiprocessingExecutor(MigrationExecutor):
     codename = 'multiprocessing'
 
@@ -41,22 +28,21 @@ class MultiprocessingExecutor(MigrationExecutor):
                 2
             )
 
-            from django.db import connections
+            from django.db import connection
 
-            connection = connections[self.TENANT_DB_ALIAS]
             connection.close()
             connection.connection = None
 
             run_migrations_p = functools.partial(
-                run_migrations_percent,
+                run_migrations,
                 self.args,
                 self.options,
                 self.codename,
-                len(tenants)
+                allow_atomic=False
             )
             p = multiprocessing.Pool(processes=processes)
             p.map(
                 run_migrations_p,
-                enumerate(tenants),
+                tenants,
                 chunks
             )

@@ -2,6 +2,7 @@ from optparse import make_option
 from django.core import exceptions
 from django.core.management.base import BaseCommand
 from django.utils.encoding import force_str
+from django.utils.six.moves import input
 from django.db.utils import IntegrityError
 from django.db import connection
 from django_tenants.clone import CloneSchema
@@ -18,17 +19,21 @@ class Command(BaseCommand):
                      if field.editable and not field.primary_key]
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(Command, self).__init__(*args, **kwargs)
 
-        self.option_list = ()
+        self.option_list = BaseCommand.option_list
+
         self.option_list += (make_option('--clone_from',
                                          help='Specifies which schema to clone.'), )
+
         for field in self.tenant_fields:
             self.option_list += (make_option('--%s' % field.name,
                                              help='Specifies the %s for tenant.' % field.name), )
+
         for field in self.domain_fields:
             self.option_list += (make_option('--%s' % field.name,
                                              help="Specifies the %s for the tenant's domain." % field.name), )
+
 
     def handle(self, *args, **options):
 
@@ -46,6 +51,7 @@ class Command(BaseCommand):
         while clone_schema_from == '' or clone_schema_from is None:
             clone_schema_from = input(force_str('Clone schema from: '))
 
+        tenant = None
         while True:
             for field in self.tenant_fields:
                 if tenant_data.get(field.name, '') == '':
@@ -77,6 +83,8 @@ class Command(BaseCommand):
                 break
             domain_data = {}
 
+
+
     def store_tenant(self, clone_schema_from, **fields):
         connection.set_schema_to_public()
         cursor = connection.cursor()
@@ -94,6 +102,7 @@ class Command(BaseCommand):
             return None
         except IntegrityError:
             return None
+
 
     def store_tenant_domain(self, **fields):
         try:

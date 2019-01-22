@@ -1,9 +1,14 @@
+import django
 from django.conf import settings
 from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
 
+try:
+    from django.utils.six.moves import input
+except ImportError:
+    input = raw_input
 from django_tenants.utils import get_tenant_model, get_public_schema_name
 
 
@@ -18,7 +23,7 @@ class BaseTenantCommand(BaseCommand):
         """
         Sets option_list and help dynamically.
         """
-        obj = super().__new__(cls, *args, **kwargs)
+        obj = super(BaseTenantCommand, cls).__new__(cls, *args, **kwargs)
 
         app_name = get_commands()[obj.COMMAND_NAME]
         if isinstance(app_name, BaseCommand):
@@ -34,7 +39,7 @@ class BaseTenantCommand(BaseCommand):
         return obj
 
     def add_arguments(self, parser):
-        super().add_arguments(parser)
+        super(BaseTenantCommand, self).add_arguments(parser)
         parser.add_argument("-s", "--schema", dest="schema_name")
         parser.add_argument("-p", "--skip-public", dest="skip_public", action="store_true", default=False)
 
@@ -43,9 +48,9 @@ class BaseTenantCommand(BaseCommand):
 
         if verbosity >= 1:
             print()
-            print(self.style.NOTICE("=== Switching to schema '") +
-                  self.style.SQL_TABLE(tenant.schema_name) +
-                  self.style.NOTICE("' then calling %s:" % command_name))
+            print(self.style.NOTICE("=== Switching to schema '")
+                  + self.style.SQL_TABLE(tenant.schema_name)
+                  + self.style.NOTICE("' then calling %s:" % command_name))
 
         connection.set_tenant(tenant)
 
@@ -69,7 +74,7 @@ class BaseTenantCommand(BaseCommand):
 
 class InteractiveTenantOption(object):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(InteractiveTenantOption, self).__init__(*args, **kwargs)
 
     def add_arguments(self, parser):
         parser.add_argument("-s", "--schema", dest="schema_name", help="specify tenant schema")
@@ -107,8 +112,10 @@ class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):
     """
 
     def __new__(cls, *args, **kwargs):
-        obj = super().__new__(cls, *args, **kwargs)
+        obj = super(TenantWrappedCommand, cls).__new__(cls, *args, **kwargs)
         obj.command_instance = obj.COMMAND()
+        if django.VERSION <= (1, 10, 0):
+            obj.option_list = obj.command_instance.option_list
         return obj
 
     def handle(self, *args, **options):
@@ -118,7 +125,7 @@ class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):
         self.command_instance.execute(*args, **options)
 
     def add_arguments(self, parser):
-        super().add_arguments(parser)
+        super(TenantWrappedCommand, self).add_arguments(parser)
         self.command_instance.add_arguments(parser)
 
 

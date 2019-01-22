@@ -2,12 +2,16 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 from django.http import Http404
-from django.utils.deprecation import MiddlewareMixin
-
 from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_domain_model
+import django
+
+if django.VERSION >= (1, 10, 0):
+    MIDDLEWARE_MIXIN = django.utils.deprecation.MiddlewareMixin
+else:
+    MIDDLEWARE_MIXIN = object
 
 
-class TenantMainMiddleware(MiddlewareMixin):
+class TenantMainMiddleware(MIDDLEWARE_MIXIN):
     TENANT_NOT_FOUND_EXCEPTION = Http404
     """
     This middleware should be placed at the very top of the middleware stack.

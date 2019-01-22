@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connection, transaction
-from django.test.utils import override_settings
 
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 from django_tenants.test.cases import TenantTestCase
@@ -20,7 +19,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
+        super(TenantDataAndSettingsTest, cls).setUpClass()
         settings.SHARED_APPS = ('django_tenants',
                                 'customers')
         settings.TENANT_APPS = ('dts_test_app',
@@ -39,12 +38,12 @@ class TenantDataAndSettingsTest(BaseTestCase):
         cls.public_domain.delete()
         cls.public_tenant.delete()
 
-        super().tearDownClass()
+        super(TenantDataAndSettingsTest, cls).tearDownClass()
 
     def setUp(self):
         self.created = []
 
-        super().setUp()
+        super(TenantDataAndSettingsTest, self).setUp()
 
     def tearDown(self):
         from django_tenants.models import TenantMixin
@@ -57,7 +56,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
             else:
                 c.delete()
 
-        super().tearDown()
+        super(TenantDataAndSettingsTest, self).tearDown()
 
     def test_tenant_schema_is_created(self):
         """
@@ -169,66 +168,17 @@ class TenantDataAndSettingsTest(BaseTestCase):
         DummyModel(name="awesome!").save()
 
         # switch temporarily to tenant2's path
-        with self.assertNumQueries(6):
-            with tenant_context(tenant2):
-                # add some data, 3 DummyModels for tenant2
-                DummyModel(name="Man,").save()
-                DummyModel(name="testing").save()
-                DummyModel(name="is great!").save()
+        with tenant_context(tenant2):
+            # add some data, 3 DummyModels for tenant2
+            DummyModel(name="Man,").save()
+            DummyModel(name="testing").save()
+            DummyModel(name="is great!").save()
 
         # we should be back to tenant1's path, test what we have
-        with self.assertNumQueries(2):
-            self.assertEqual(2, DummyModel.objects.count())
+        self.assertEqual(2, DummyModel.objects.count())
 
         # switch back to tenant2's path
-        with self.assertNumQueries(2):
-            with tenant_context(tenant2):
-                self.assertEqual(3, DummyModel.objects.count())
-
-        self.created = [domain2, domain1, tenant2, tenant1]
-
-    @override_settings(TENANT_LIMIT_SET_CALLS=True)
-    def test_switching_search_path_limited_calls(self):
-        tenant1 = get_tenant_model()(schema_name='tenant1')
-        tenant1.save()
-
-        domain1 = get_tenant_domain_model()(tenant=tenant1, domain='something.test.com')
-        domain1.save()
-
-        connection.set_schema_to_public()
-
-        tenant2 = get_tenant_model()(schema_name='tenant2')
-        tenant2.save()
-
-        domain2 = get_tenant_domain_model()(tenant=tenant2, domain='example.com')
-        domain2.save()
-
-        # set path is not executed when setting tenant so 0 queries expected
-        with self.assertNumQueries(0):
-            connection.set_tenant(tenant1)
-
-        # switch temporarily to tenant2's path
-        # 1 query to set search path + 3 to save data
-        with self.assertNumQueries(4):
-            with tenant_context(tenant2):
-                DummyModel(name="Man,").save()
-                DummyModel(name="testing").save()
-                DummyModel(name="is great!").save()
-
-        # 0 queries as search path not set here
-        with self.assertNumQueries(0):
-            connection.set_tenant(tenant1)
-
-        # 1 set search path + 1 count
-        with self.assertNumQueries(2):
-            self.assertEqual(0, DummyModel.objects.count())
-
-        # 0 queries as search path not set here
-        with self.assertNumQueries(0):
-            connection.set_tenant(tenant2)
-
-        # 1 set search path + 1 count
-        with self.assertNumQueries(2):
+        with tenant_context(tenant2):
             self.assertEqual(3, DummyModel.objects.count())
 
         self.created = [domain2, domain1, tenant2, tenant1]
@@ -250,31 +200,6 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
         self.created = [domain, tenant]
 
-    def test_tenant_schema_behaves_as_decorator(self):
-        tenant = get_tenant_model()(schema_name='test')
-        tenant.save()
-
-        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
-        domain.save()
-
-        connection.tenant = None
-
-        @tenant_context(tenant)
-        def test_tenant_func():
-            DummyModel(name='No exception please').save()
-
-        test_tenant_func()
-
-        connection.tenant = None
-
-        @schema_context(tenant.schema_name)
-        def test_schema_func():
-            DummyModel(name='Survived it!').save()
-
-        test_schema_func()
-
-        self.created = [domain, tenant]
-
 
 class BaseSyncTest(BaseTestCase):
     """
@@ -291,7 +216,7 @@ class BaseSyncTest(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
+        super(BaseSyncTest, cls).setUpClass()
         cls.INSTALLED_APPS = cls.SHARED_APPS + cls.TENANT_APPS
 
         settings.SHARED_APPS = cls.SHARED_APPS
@@ -301,7 +226,7 @@ class BaseSyncTest(BaseTestCase):
         cls.available_apps = cls.INSTALLED_APPS
 
     def setUp(self):
-        super().setUp()
+        super(BaseSyncTest, self).setUp()
         # Django calls syncdb by default for the test database, but we want
         # a blank public schema for this set of tests.
         connection.set_schema_to_public()
@@ -319,7 +244,7 @@ class TenantSyncTest(BaseSyncTest):
         the a tenant schema.
         """
         shared_tables = self.get_tables_list_in_schema(get_public_schema_name())
-        self.assertEqual(2 + 6 + 1 + self.MIGRATION_TABLE_SIZE, len(shared_tables))
+        self.assertEqual(2+6+1+self.MIGRATION_TABLE_SIZE, len(shared_tables))
         self.assertNotIn('django_session', shared_tables)
 
     def test_tenant_apps_does_not_sync_shared_apps(self):
@@ -334,7 +259,7 @@ class TenantSyncTest(BaseSyncTest):
         domain.save()
 
         tenant_tables = self.get_tables_list_in_schema(tenant.schema_name)
-        self.assertEqual(1 + self.MIGRATION_TABLE_SIZE, len(tenant_tables))
+        self.assertEqual(1+self.MIGRATION_TABLE_SIZE, len(tenant_tables))
         self.assertIn('django_session', tenant_tables)
 
         connection.set_schema_to_public()
@@ -352,7 +277,7 @@ class TestSyncTenantsWithAuth(BaseSyncTest):
 
     def _pre_setup(self):
         self.sync_shared()
-        super()._pre_setup()
+        super(TestSyncTenantsWithAuth, self)._pre_setup()
 
     def test_tenant_apps_and_shared_apps_can_have_the_same_apps(self):
         """
@@ -367,9 +292,9 @@ class TestSyncTenantsWithAuth(BaseSyncTest):
 
         shared_tables = self.get_tables_list_in_schema(get_public_schema_name())
         tenant_tables = self.get_tables_list_in_schema(tenant.schema_name)
-        self.assertEqual(2 + 6 + 1 + 1 + self.MIGRATION_TABLE_SIZE, len(shared_tables))
+        self.assertEqual(2+6+1+1+self.MIGRATION_TABLE_SIZE, len(shared_tables))
         self.assertIn('django_session', shared_tables)
-        self.assertEqual(1 + self.MIGRATION_TABLE_SIZE, len(tenant_tables))
+        self.assertEqual(1+self.MIGRATION_TABLE_SIZE, len(tenant_tables))
         self.assertIn('django_session', tenant_tables)
 
 
@@ -391,15 +316,15 @@ class TestSyncTenantsNoAuth(BaseSyncTest):
 
         shared_tables = self.get_tables_list_in_schema(get_public_schema_name())
         tenant_tables = self.get_tables_list_in_schema(tenant.schema_name)
-        self.assertEqual(2 + 1 + self.MIGRATION_TABLE_SIZE, len(shared_tables))
+        self.assertEqual(2+1 + self.MIGRATION_TABLE_SIZE, len(shared_tables))
         self.assertIn('django_session', tenant_tables)
-        self.assertEqual(1 + self.MIGRATION_TABLE_SIZE, len(tenant_tables))
+        self.assertEqual(1+self.MIGRATION_TABLE_SIZE, len(tenant_tables))
         self.assertIn('django_session', tenant_tables)
 
 
 class SharedAuthTest(BaseTestCase):
     def setUp(self):
-        super().setUp()
+        super(SharedAuthTest, self).setUp()
 
         settings.SHARED_APPS = ('django_tenants',
                                 'customers',
@@ -440,7 +365,7 @@ class SharedAuthTest(BaseTestCase):
         self.domain.delete()
         self.tenant.delete(force_drop=True)
 
-        super().tearDown()
+        super(SharedAuthTest, self).tearDown()
 
     def test_cross_schema_constraint_gets_created(self):
         """
@@ -504,21 +429,3 @@ class TenantTestCaseTest(BaseTestCase, TenantTestCase):
     def test_tenant_survives_after_method2(self):
         # The same tenant still exists even after the previous method call
         self.assertEqual(1, get_tenant_model().objects.all().count())
-
-
-class TenantManagerMethodsTestCaseTest(BaseTestCase):
-    """
-    Tests manager's delete method.
-    """
-    def test_manager_method_deletes_schema(self):
-        Client = get_tenant_model()
-        Client.auto_drop_schema = True
-        tenant = Client(schema_name='test')
-        tenant.save()
-        self.assertTrue(schema_exists(tenant.schema_name))
-
-        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
-        domain.save()
-
-        Client.objects.filter(pk=tenant.pk).delete()
-        self.assertFalse(schema_exists(tenant.schema_name))

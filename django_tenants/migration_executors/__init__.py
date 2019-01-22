@@ -1,7 +1,7 @@
 import os
 
 from .base import MigrationExecutor
-from .multiproc import MultiprocessingExecutor  # noqa
+from .multiproc import MultiprocessingExecutor
 from .standard import StandardExecutor
 
 
