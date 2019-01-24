@@ -31,6 +31,11 @@ def is_tenant_app(app):
     return app['app_label'] in [tenant_app.split('.')[-1] for tenant_app in settings.TENANT_APPS]
 
 
+@register.simple_tag()
+def is_shared_app(app):
+    return app['app_label'] in [tenant_app.split('.')[-1] for tenant_app in settings.SHARED_APPS]
+
+
 @register.simple_tag(takes_context=True)
 def is_public_schema(context, app):
-    return context.request.tenant.schema_name == get_public_schema_name()
+    return not hasattr(context.request, 'tenant') or context.request.tenant.schema_name == get_public_schema_name()

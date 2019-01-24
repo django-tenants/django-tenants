@@ -7,19 +7,20 @@
             {% for app in app_list %}
                 {% is_public_schema app as is_public_schema %}
                 {% is_tenant_app app as is_tenant_app %}
+                {% is_shared_app app as is_shared_app %}
                 <div class="app-{{ app.app_label }} module">
                     <table id="change-history">
-                        {% if is_tenant_app and is_public_schema %}
+                        {% if is_public_schema and not is_shared_app %}
                             <div class="module">
-                                <caption {% if is_tenant_app %}style="background-color:#f7d904"{% endif %}>
+                                <caption {% if is_tenant_app %}style="background-color:#c6c6c6"{% endif %}>
                                     <div class="section" title="{% blocktrans with name=app.name %}Models in the {{ name }} application{% endblocktrans %}">{{ app.name }}</div>
                                     <tr>
-                                        <td scope="row">{% trans "Not available for Global schema" %}</td>
+                                        <td scope="row">{% trans "Not available for global schema" %}</td>
                                     </tr>
                                 </caption>
                             </div>
                         {% else %}
-                            <caption {% if is_tenant_app %}style="background-color:#f7d904"{% endif %} >
+                            <caption {% if not is_public_schema and is_tenant_app %}style="background-color:#008000"{% endif %} >
                                 <a href="{{ app.app_url }}" class="section" title="{% blocktrans with name=app.name %}Models in the {{ name }} application{% endblocktrans %}">{{ app.name }}</a>
                             </caption>
                             {% for model in app.models %}
