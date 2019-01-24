@@ -1,0 +1,59 @@
+{% extends "admin/index.html" %}
+{% load i18n admin_static tenant %}
+
+{% block content %}
+    <div id="content-main">
+        {% if app_list %}
+            {% for app in app_list %}
+                {% is_public_schema app as is_public_schema %}
+                {% is_tenant_app app as is_tenant_app %}
+                {% is_shared_app app as is_shared_app %}
+                <div class="app-{{ app.app_label }} module">
+                    <table id="change-history">
+                        {% if is_public_schema and not is_shared_app %}
+                            <div class="module">
+                                <caption {% if is_tenant_app %}style="background-color:#c6c6c6"{% endif %}>
+                                    <div class="section" title="{% blocktrans with name=app.name %}Models in the {{ name }} application{% endblocktrans %}">{{ app.name }}</div>
+                                    <tr>
+                                        <td scope="row">{% trans "Not available for global schema" %}</td>
+                                    </tr>
+                                </caption>
+                            </div>
+                        {% else %}
+                            <caption {% if not is_public_schema and is_tenant_app %}style="background-color:#008000"{% endif %} >
+                                <a href="{{ app.app_url }}" class="section" title="{% blocktrans with name=app.name %}Models in the {{ name }} application{% endblocktrans %}">{{ app.name }}</a>
+                            </caption>
+                            {% for model in app.models %}
+                                <tr class="model-{{ model.object_name|lower }}">
+                                    {% if model.admin_url %}
+                                        <th scope="row"><a href="{{ model.admin_url }}">{{ model.name }}</a></th>
+                                    {% else %}
+                                        <th scope="row">{{ model.name }}</th>
+                                    {% endif %}
+
+                                    {% if model.add_url %}
+                                        <td><a href="{{ model.add_url }}" class="addlink">{% trans 'Add' %}</a></td>
+                                    {% else %}
+                                        <td>&nbsp;</td>
+                                    {% endif %}
+
+                                    {% if model.admin_url %}
+                                        {% if model.view_only %}
+                                            <td><a href="{{ model.admin_url }}" class="viewlink">{% trans 'View' %}</a></td>
+                                        {% else %}
+                                            <td><a href="{{ model.admin_url }}" class="changelink">{% trans 'Change' %}</a></td>
+                                        {% endif %}
+                                    {% else %}
+                                        <td>&nbsp;</td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </table>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>{% trans "You don't have permission to view or edit anything." %}</p>
+        {% endif %}
+    </div>
+{% endblock %}

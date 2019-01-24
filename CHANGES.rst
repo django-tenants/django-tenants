@@ -9,6 +9,8 @@ This changelog is used to track all major changes to django-tenants.
 **Enhancements**
 
 - TenantAdminMixin is available in order to register the tenant model. [#223]
+- Admin site: highlight with a different color the tenant apps. [#227]
+- Admin site: disable the tenant apps when in the public schema. [#227]
 
 ## v2.1.0 (31 Dec 2018)
 
