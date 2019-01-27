@@ -267,8 +267,7 @@ Donation
 
 If this project help you reduce time to develop, you can give me cake :)
 
-.. image:: https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif
-   :target:: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=QU8BGC7DWB9G6&source=ur
+Click on my |ImageLink|_
 
 
 
@@ -282,3 +281,5 @@ If this project help you reduce time to develop, you can give me cake :)
 .. _django-tenant-schemas: http://github.com/bernardopires/django-tenant-schemas
 .. _django-schemata: https://github.com/tuttle/django-schemata
 .. _docker-compose: https://docs.docker.com/engine/reference/run/
+.. |ImageLink| https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif
+.. _ImageLink: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=QU8BGC7DWB9G6&source=ur
