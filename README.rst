@@ -262,6 +262,15 @@ env variable) or use `docker-compose`_ like this:
 (note that upon first run the ``Dockerfile`` will be built).
 
 
+Donation
+--------
+
+If this project help you reduce time to develop, you can give me cake :)
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](tom@twt.me.uk)
+
+
+
 .. _django: https://www.djangoproject.com/
 .. _PostgreSQL schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
 .. _PostgreSQL’s official documentation on schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
