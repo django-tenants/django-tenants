@@ -15,6 +15,8 @@ This application enables `django`_ powered websites to have multiple
 tenants via `PostgreSQL schemas`_. A vital feature for every
 Software-as-a-Service (SaaS) website.
 
+    Read the full documentaion here: `django-tenants.readthedocs.org`_
+
 Django provides currently no simple way to support multiple tenants
 using the same project instance, even when only the data is different.
 Because we don’t want you running many copies of your project, you’ll be
