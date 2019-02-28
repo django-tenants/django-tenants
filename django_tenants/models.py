@@ -37,6 +37,9 @@ class TenantMixin(models.Model):
     Leave this as None. Stores the current domain url so it can be used in the logs
     """
 
+
+    _previous_tenant = []
+
     class Meta:
         abstract = True
 
@@ -50,13 +53,13 @@ class TenantMixin(models.Model):
             # run some code in previous tenant (public probably)
         """
         connection = connections[get_tenant_database_alias()]
-        self._previous_tenant = connection.tenant
+        self._previous_tenant.append(connection.tenant)
         self.activate()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         connection = connections[get_tenant_database_alias()]
 
-        connection.set_tenant(self._previous_tenant)
+        connection.set_tenant(self._previous_tenant.pop())
 
     def activate(self):
         """
