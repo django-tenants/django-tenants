@@ -279,7 +279,7 @@ If this project help you reduce time to develop, you can give me cake :)
   :target: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=QU8BGC7DWB9G6&source=ur
 
 
-.. youtube: https://www.djangoproject.com/
+.. _youtube: https://www.djangoproject.com/
 .. _django: https://www.djangoproject.com/
 .. _PostgreSQL schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
 .. _PostgreSQL’s official documentation on schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
