@@ -266,8 +266,7 @@ env variable) or use `docker-compose`_ like this:
 Video Tutorial
 --------------
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/NsWlUMTfIFo/0.jpg)](https://www.youtube.com/watch?v=NsWlUMTfIFo)
-
+.. embed:: http://www.youtube.com/watch?v=NsWlUMTfIFo
 
 Donation
 --------
