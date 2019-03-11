@@ -263,6 +263,11 @@ env variable) or use `docker-compose`_ like this:
 
 (note that upon first run the ``Dockerfile`` will be built).
 
+Video Tutorial
+--------------
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/NsWlUMTfIFo/0.jpg)](https://www.youtube.com/watch?v=NsWlUMTfIFo)
+
 
 Donation
 --------
