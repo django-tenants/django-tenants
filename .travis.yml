@@ -9,6 +9,7 @@ services:
 env:
   matrix:
    - $DJANGO="Django>=2.0,<2.2"
+   - $DJANGO="Django==2.2rc1"
 
 install:
   - pip install -U pip
