@@ -7,7 +7,7 @@ django-tenants-test:
     - postgres
   volumes:
     - .:/code:z
-  command: ./run_tests.sh
+  command: ./run_tests_in_docker.sh
   environment:
     DATABASE_HOST: postgres
   ports:
