@@ -6,7 +6,7 @@ django-tenants-test:
   links:
     - postgres
   volumes:
-    - .:/code
+    - .:/code:z
   command: ./run_tests.sh
   environment:
     DATABASE_HOST: postgres
