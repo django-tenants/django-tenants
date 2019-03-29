@@ -3,6 +3,7 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils.encoding import force_str
 from django.db.utils import IntegrityError
+from django.db.transaction import atomic
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model
 
 
@@ -31,6 +32,7 @@ class Command(BaseCommand):
         parser.add_argument('-s', action="store_true",
                             help='Create a superuser afterwards.')
 
+    @atomic
     def handle(self, *args, **options):
 
         tenant_data = {}
@@ -41,7 +43,7 @@ class Command(BaseCommand):
 
         domain_data = {}
         for field in self.domain_fields:
-            input_value = options.get(field.name, None)
+            input_value = options.get('domain_%s' % field.name, None)
             domain_data[field.name] = input_value
 
         while True:
