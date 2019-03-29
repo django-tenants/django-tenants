@@ -1,8 +1,8 @@
 import warnings
 
-from django.conf import settings
 from django.db import connection
 from django.core.files.base import ContentFile
+from django.test import override_settings
 
 from django_tenants import utils
 from django_tenants.files.storage import TenantFileSystemStorage
@@ -11,11 +11,6 @@ from django_tenants.test.cases import TenantTestCase
 
 
 class TenantFileSystemStorageTestCase(TenantTestCase):
-    def setUp(self):
-        super().setUp()
-        settings.MEDIA_ROOT = "apps_dir/media"
-        settings.MEDIA_URL = "/media/"
-
     def test_deprecated_module_raises_warning(self):
         with warnings.catch_warnings(record=True) as warns:
             deprecation_warning = "TenantFileSystemStorage has been moved from django_tenants.files.storages " \
@@ -24,6 +19,8 @@ class TenantFileSystemStorageTestCase(TenantTestCase):
             OldTenantFileSystemStorage()
             self.assertTrue(any(deprecation_warning in str(w.message) for w in warns))
 
+    @override_settings(MEDIA_ROOT="apps_dir/media",
+                       MEDIA_URL="/media/")
     def test_files_are_saved_under_subdirectories_per_tenant(self):
         storage = TenantFileSystemStorage()
 
