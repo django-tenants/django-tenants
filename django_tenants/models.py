@@ -29,7 +29,7 @@ class TenantMixin(models.Model):
     to be automatically created upon save.
     """
 
-    schema_name = models.CharField(max_length=63, unique=True,
+    schema_name = models.CharField(max_length=63, unique=True, db_index=True,
                                    validators=[_check_schema_name])
 
     domain_url = None
@@ -227,7 +227,7 @@ class DomainMixin(models.Model):
                                on_delete=models.CASCADE)
 
     # Set this to true if this is the primary domain
-    is_primary = models.BooleanField(default=True)
+    is_primary = models.BooleanField(default=True, db_index=True)
 
     @transaction.atomic
     def save(self, *args, **kwargs):
