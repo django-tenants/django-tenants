@@ -227,7 +227,7 @@ class DomainMixin(models.Model):
                                on_delete=models.CASCADE)
 
     # Set this to true if this is the primary domain
-    is_primary = models.BooleanField(default=True)
+    is_primary = models.BooleanField(default=True, db_index=True)
 
     @transaction.atomic
     def save(self, *args, **kwargs):
