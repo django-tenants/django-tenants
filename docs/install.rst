@@ -143,9 +143,9 @@ Now run ``migrate_schemas --shared``, this will create the shared apps on the ``
 
     python manage.py migrate_schemas --shared
     
-.. warning::
+.. note::
 
-   Never use ``migrate`` or ``syncdb`` as it would sync *all* your apps to ``public``!
+   If you use ``migrate`` migrations will be applied to both shared and tenant schemas!
     
 .. warning::
 
