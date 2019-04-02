@@ -25,15 +25,15 @@ class BaseTestCase(TransactionTestCase):
             settings.ALLOWED_HOSTS += ['.test.com']
         cls.available_apps = settings.INSTALLED_APPS
 
-        super(BaseTestCase, cls).setUpClass()
+        super().setUpClass()
 
     def setUp(self):
         connection.set_schema_to_public()
-        super(BaseTestCase, self).setUp()
+        super().setUp()
 
     @classmethod
     def tearDownClass(cls):
-        super(BaseTestCase, cls).tearDownClass()
+        super().tearDownClass()
         if '.test.com' in settings.ALLOWED_HOSTS:
             settings.ALLOWED_HOSTS.remove('.test.com')
 
@@ -44,7 +44,6 @@ class BaseTestCase(TransactionTestCase):
               WHERE table_schema = %s"""
         cursor.execute(sql, (schema_name, ))
         return [row[0] for row in cursor.fetchall()]
-
 
     @classmethod
     def sync_shared(cls):

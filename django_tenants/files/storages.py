@@ -9,7 +9,7 @@ class TenantFileSystemStorage(NewTenantFileSystemStorage):
     """
 
     def __init__(self, location=None, base_url=None, *args, **kwargs):
-        super(TenantFileSystemStorage, self).__init__(location=location, base_url=base_url, *args, **kwargs)
+        super().__init__(location=location, base_url=base_url, *args, **kwargs)
 
         warnings.warn(
             "TenantFileSystemStorage has been moved from django_tenants.files.storages to django_tenants.files.storage.",

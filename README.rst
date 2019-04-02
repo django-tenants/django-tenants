@@ -15,6 +15,8 @@ This application enables `django`_ powered websites to have multiple
 tenants via `PostgreSQL schemas`_. A vital feature for every
 Software-as-a-Service (SaaS) website.
 
+    Read the full documentaion here: `django-tenants.readthedocs.org`_
+
 Django provides currently no simple way to support multiple tenants
 using the same project instance, even when only the data is different.
 Because we don’t want you running many copies of your project, you’ll be
@@ -261,7 +263,21 @@ env variable) or use `docker-compose`_ like this:
 
 (note that upon first run the ``Dockerfile`` will be built).
 
+Video Tutorial
+--------------
 
+An online video tutorial is available on `youtube`_.
+
+Donation
+--------
+
+If this project help you reduce time to develop, you can give me cake :)
+
+.. image:: https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif
+  :target: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=QU8BGC7DWB9G6&source=ur
+
+
+.. _youtube: https://youtu.be/NsWlUMTfIFo
 .. _django: https://www.djangoproject.com/
 .. _PostgreSQL schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
 .. _PostgreSQL’s official documentation on schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html

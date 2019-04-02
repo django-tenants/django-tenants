@@ -7,7 +7,7 @@ class MigrateSchemasCommand(SyncCommon):
     help = "Updates database schema. Manages both apps with migrations and those without."
 
     def add_arguments(self, parser):
-        super(MigrateSchemasCommand, self).add_arguments(parser)
+        super().add_arguments(parser)
         parser.add_argument('app_label', nargs='?',
                             help='App label of an application to synchronize the state.')
         parser.add_argument('migration_name', nargs='?',
@@ -30,11 +30,14 @@ class MigrateSchemasCommand(SyncCommon):
                                  'flag. Django will only check for an existing table name.')
         parser.add_argument('--list', '-l', action='store_true', dest='list', default=False,
                             help='Show a list of all known migrations and which are applied')
+        parser.add_argument('--plan', action='store_true',
+                            help='Shows a list of the migration actions that will be performed.',
+        )
         parser.add_argument('--run-syncdb', action='store_true', dest='run_syncdb',
                             help='Creates tables for apps without migrations.')
 
     def handle(self, *args, **options):
-        super(MigrateSchemasCommand, self).handle(*args, **options)
+        super().handle(*args, **options)
         self.PUBLIC_SCHEMA_NAME = get_public_schema_name()
 
         if self.sync_public and not self.schema_name:

@@ -10,7 +10,7 @@ class HomeView(TemplateView):
     template_name = "index_public.html"
 
     def get_context_data(self, **kwargs):
-        context = super(HomeView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
 
         hostname_without_port = remove_www(self.request.get_host().split(':')[0])
 

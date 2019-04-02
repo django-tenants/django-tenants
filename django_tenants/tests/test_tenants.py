@@ -20,7 +20,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(TenantDataAndSettingsTest, cls).setUpClass()
+        super().setUpClass()
         settings.SHARED_APPS = ('django_tenants',
                                 'customers')
         settings.TENANT_APPS = ('dts_test_app',
@@ -39,12 +39,12 @@ class TenantDataAndSettingsTest(BaseTestCase):
         cls.public_domain.delete()
         cls.public_tenant.delete()
 
-        super(TenantDataAndSettingsTest, cls).tearDownClass()
+        super().tearDownClass()
 
     def setUp(self):
         self.created = []
 
-        super(TenantDataAndSettingsTest, self).setUp()
+        super().setUp()
 
     def tearDown(self):
         from django_tenants.models import TenantMixin
@@ -57,7 +57,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
             else:
                 c.delete()
 
-        super(TenantDataAndSettingsTest, self).tearDown()
+        super().tearDown()
 
     def test_tenant_schema_is_created(self):
         """
@@ -276,7 +276,6 @@ class TenantDataAndSettingsTest(BaseTestCase):
         self.created = [domain, tenant]
 
 
-
 class BaseSyncTest(BaseTestCase):
     """
     Tests if the shared apps and the tenant apps get synced correctly
@@ -292,7 +291,7 @@ class BaseSyncTest(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(BaseSyncTest, cls).setUpClass()
+        super().setUpClass()
         cls.INSTALLED_APPS = cls.SHARED_APPS + cls.TENANT_APPS
 
         settings.SHARED_APPS = cls.SHARED_APPS
@@ -302,7 +301,7 @@ class BaseSyncTest(BaseTestCase):
         cls.available_apps = cls.INSTALLED_APPS
 
     def setUp(self):
-        super(BaseSyncTest, self).setUp()
+        super().setUp()
         # Django calls syncdb by default for the test database, but we want
         # a blank public schema for this set of tests.
         connection.set_schema_to_public()
@@ -320,7 +319,7 @@ class TenantSyncTest(BaseSyncTest):
         the a tenant schema.
         """
         shared_tables = self.get_tables_list_in_schema(get_public_schema_name())
-        self.assertEqual(2+6+1+self.MIGRATION_TABLE_SIZE, len(shared_tables))
+        self.assertEqual(2 + 6 + 1 + self.MIGRATION_TABLE_SIZE, len(shared_tables))
         self.assertNotIn('django_session', shared_tables)
 
     def test_tenant_apps_does_not_sync_shared_apps(self):
@@ -335,7 +334,7 @@ class TenantSyncTest(BaseSyncTest):
         domain.save()
 
         tenant_tables = self.get_tables_list_in_schema(tenant.schema_name)
-        self.assertEqual(1+self.MIGRATION_TABLE_SIZE, len(tenant_tables))
+        self.assertEqual(1 + self.MIGRATION_TABLE_SIZE, len(tenant_tables))
         self.assertIn('django_session', tenant_tables)
 
         connection.set_schema_to_public()
@@ -353,7 +352,7 @@ class TestSyncTenantsWithAuth(BaseSyncTest):
 
     def _pre_setup(self):
         self.sync_shared()
-        super(TestSyncTenantsWithAuth, self)._pre_setup()
+        super()._pre_setup()
 
     def test_tenant_apps_and_shared_apps_can_have_the_same_apps(self):
         """
@@ -368,9 +367,9 @@ class TestSyncTenantsWithAuth(BaseSyncTest):
 
         shared_tables = self.get_tables_list_in_schema(get_public_schema_name())
         tenant_tables = self.get_tables_list_in_schema(tenant.schema_name)
-        self.assertEqual(2+6+1+1+self.MIGRATION_TABLE_SIZE, len(shared_tables))
+        self.assertEqual(2 + 6 + 1 + 1 + self.MIGRATION_TABLE_SIZE, len(shared_tables))
         self.assertIn('django_session', shared_tables)
-        self.assertEqual(1+self.MIGRATION_TABLE_SIZE, len(tenant_tables))
+        self.assertEqual(1 + self.MIGRATION_TABLE_SIZE, len(tenant_tables))
         self.assertIn('django_session', tenant_tables)
 
 
@@ -392,15 +391,15 @@ class TestSyncTenantsNoAuth(BaseSyncTest):
 
         shared_tables = self.get_tables_list_in_schema(get_public_schema_name())
         tenant_tables = self.get_tables_list_in_schema(tenant.schema_name)
-        self.assertEqual(2+1 + self.MIGRATION_TABLE_SIZE, len(shared_tables))
+        self.assertEqual(2 + 1 + self.MIGRATION_TABLE_SIZE, len(shared_tables))
         self.assertIn('django_session', tenant_tables)
-        self.assertEqual(1+self.MIGRATION_TABLE_SIZE, len(tenant_tables))
+        self.assertEqual(1 + self.MIGRATION_TABLE_SIZE, len(tenant_tables))
         self.assertIn('django_session', tenant_tables)
 
 
 class SharedAuthTest(BaseTestCase):
     def setUp(self):
-        super(SharedAuthTest, self).setUp()
+        super().setUp()
 
         settings.SHARED_APPS = ('django_tenants',
                                 'customers',
@@ -441,7 +440,7 @@ class SharedAuthTest(BaseTestCase):
         self.domain.delete()
         self.tenant.delete(force_drop=True)
 
-        super(SharedAuthTest, self).tearDown()
+        super().tearDown()
 
     def test_cross_schema_constraint_gets_created(self):
         """

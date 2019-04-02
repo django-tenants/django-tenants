@@ -79,6 +79,25 @@ Here's an example, suppose we have an app named ``customers`` and we want to cre
     class Domain(DomainMixin):
         pass
 
+Admin Support
+=========================
+TenantAdminMixin is available in order to register the tenant model.
+Here's an example (following the example above), we want to register the ``Client`` model, so we create a the related admin class ``ClientAdmin``.
+The mixin disables save and delete buttons when not in current or public tenant (preventing Exceptions).
+
+.. code-block:: python
+
+    from django.db import models
+    from django.contrib import admin
+    from django_tenants.admin import TenantAdminMixin
+
+    from myapp.models import Client
+
+    @admin.register(Client)
+    class ClientAdmin(TenantAdminMixin, admin.ModelAdmin):
+            list_display = ('name', 'paid_until')
+
+
 Configure Tenant and Shared Applications
 ========================================
 To make use of shared and tenant-specific applications, there are two settings called ``SHARED_APPS`` and ``TENANT_APPS``. ``SHARED_APPS`` is a tuple of strings just like ``INSTALLED_APPS`` and should contain all apps that you want to be synced to ``public``. If ``SHARED_APPS`` is set, then these are the only apps that will be synced to your ``public`` schema! The same applies for ``TENANT_APPS``, it expects a tuple of strings where each string is an app. If set, only those applications will be synced to all your tenants. Here's a sample setting
@@ -124,9 +143,9 @@ Now run ``migrate_schemas --shared``, this will create the shared apps on the ``
 
     python manage.py migrate_schemas --shared
     
-.. warning::
+.. note::
 
-   Never use ``migrate`` or ``syncdb`` as it would sync *all* your apps to ``public``!
+   If you use ``migrate`` migrations will be applied to both shared and tenant schemas!
     
 .. warning::
 

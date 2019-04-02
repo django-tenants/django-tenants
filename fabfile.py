@@ -5,7 +5,7 @@ from fabtools.vagrant import vagrant
 from fabtools.deb import update_index
 import fabtools
 from fabric.context_managers import cd
-
+from fabtools.require.postgres import create_database
 
 @task
 def vagrant():
@@ -28,8 +28,9 @@ def provision_vagrant():
     vagrant()
     update_index()
     # fabtools.require.postfix.server('example.com')
-    create_pg_database()
+
     update_requirements()
+    create_pg_database()
     django_manage("migrate")
     django_migrate()
 
@@ -42,7 +43,7 @@ def create_superuser():
 @task
 def django_manage(command):
     with cd("/vagrant/examples/tenant_tutorial/"):
-        run("python manage.py %s" % command)
+        run("python3 manage.py %s" % command)
 
 
 def update_requirements():
@@ -53,6 +54,7 @@ def update_requirements():
                                    'libffi-dev',
                                    'libxslt1-dev',
                                    'python3-pip',
+                                   'python3-psycopg2',
                                    'git',
                                    'libboost-python1.58.0',
                                    'pkg-config',
@@ -60,8 +62,23 @@ def update_requirements():
                                    'postgresql-contrib',
                                    ])
 
-    sudo("pip3 install django==2.0")
+    sudo("pip3 install django==2.1.5")
 
+def install_database(name, owner, template='template0', encoding='UTF8', locale='en_US.UTF-8'):
+    """
+    Require a PostgreSQL database.
+
+    ::
+
+        from fabtools import require
+
+        require.postgres.database('myapp', owner='dbuser')
+
+    """
+
+
+    create_database(name, owner, template=template, encoding=encoding,
+                        locale=locale)
 
 @task
 def create_pg_database():
@@ -72,6 +89,7 @@ def create_pg_database():
     sudo("sed -i 's/all                                     peer/all"
          "                                     md5/g' /etc/postgresql/9.5/main/pg_hba.conf")
     sudo('service postgresql restart')
+    install_database(env.psql_db, env.psql_user)
 
 
 @task

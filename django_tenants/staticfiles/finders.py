@@ -81,7 +81,7 @@ class TenantFileSystemFinder(FileSystemFinder):
         In addition to parent class' checks, also ensure that MULTITENANT_STATICFILES_DIRS
         is a tuple or a list.
         """
-        errors = super(TenantFileSystemFinder, self).check(**kwargs)
+        errors = super().check(**kwargs)
         multitenant_staticfiles_dirs = settings.MULTITENANT_STATICFILES_DIRS
 
         if not isinstance(multitenant_staticfiles_dirs, (list, tuple)):
