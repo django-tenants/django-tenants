@@ -4,6 +4,7 @@ from django.contrib.staticfiles.utils import check_settings
 from django.core.files.storage import FileSystemStorage
 
 from django.conf import settings
+from django.utils.functional import cached_property
 
 from django_tenants import utils
 
@@ -12,28 +13,29 @@ class TenantStaticFilesStorage(FileSystemStorage):
     """
     Implementation that extends core Django's StaticFilesStorage for multi-tenant setups.
     """
-    def __init__(self, location=None, base_url=None, *args, **kwargs):
 
+    @cached_property
+    def relative_static_root(self):
         try:
-            relative_static_root = settings.MULTITENANT_RELATIVE_STATIC_ROOT
+            return settings.MULTITENANT_RELATIVE_STATIC_ROOT
         except AttributeError:
-            # MULTITENANT_RELATIVE_STATIC_ROOT is an optional setting, use the default value if none provided
-            relative_static_root = ""
+            # Use %s instead of "" to avoid raising exception every time in parse_tenant_config_path()
+            return "%s"
 
-        relative_static_root = utils.parse_tenant_config_path(relative_static_root)
+    @property
+    def base_url(self):
+        if self._base_url is not None and not self._base_url.endswith('/'):
+            self._base_url += '/'
+        _url = self._value_or_setting(self._base_url, settings.STATIC_URL)
 
-        if location is None:
-            location = os.path.join(settings.STATIC_ROOT, relative_static_root)
-        if base_url is None:
-            base_url = os.path.join(settings.STATIC_URL, relative_static_root)
-            if not base_url.endswith("/"):
-                base_url += "/"
+        _url = os.path.join(_url,
+                            utils.parse_tenant_config_path(self.relative_static_root))
+        if not _url.endswith("/"):
+            _url += "/"
 
-        check_settings(base_url)
+        check_settings(_url)
 
-        super(TenantStaticFilesStorage, self).__init__(
-            location, base_url, *args, **kwargs
-        )
+        return _url
 
     def listdir(self, path):
         """
