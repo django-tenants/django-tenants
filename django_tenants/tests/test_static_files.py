@@ -148,12 +148,18 @@ class TenantStaticFilesStorageTestCase(TenantTestCase):
     def test_checks_media_url_config_collision(self):
         with self.assertRaises(ImproperlyConfigured):
             settings.MEDIA_URL = "/static/{}/".format(self.tenant.schema_name)
-            TenantStaticFilesStorage()
+            obj = TenantStaticFilesStorage()
+            # Since check_settings() is not called at __init__, but each time
+            # base_url is accessed, we must trigger the getter of base_url
+            getattr(obj, "base_url")
 
     def test_checks_media_root_config_collision(self):
         with self.assertRaises(ImproperlyConfigured):
             settings.MEDIA_ROOT = settings.STATIC_ROOT = "/media/"
-            TenantStaticFilesStorage()
+            obj = TenantStaticFilesStorage()
+            # Since check_settings() is not called at __init__, but each time
+            # base_url is accessed, we must trigger the getter of base_url
+            getattr(obj, "base_url")
 
 
 class TenantFileSystemFinderTestCase(TenantTestCase):
