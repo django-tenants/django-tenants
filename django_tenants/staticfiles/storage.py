@@ -38,6 +38,12 @@ class TenantStaticFilesStorage(FileSystemStorage):
 
         return _url
 
+    @property  # not cached like in parent class
+    def location(self):
+        _location = os.path.join(settings.STATIC_ROOT,
+                                 utils.parse_tenant_config_path(self.relative_static_root))
+        return os.path.abspath(_location)
+
     def listdir(self, path):
         """
         More forgiving wrapper for parent class implementation that does not insist on
