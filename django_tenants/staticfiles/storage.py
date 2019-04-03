@@ -19,6 +19,7 @@ class TenantStaticFilesStorage(FileSystemStorage):
         try:
             return settings.MULTITENANT_RELATIVE_STATIC_ROOT
         except AttributeError:
+            # MULTITENANT_RELATIVE_STATIC_ROOT is an optional setting, use the default value if none provided
             # Use %s instead of "" to avoid raising exception every time in parse_tenant_config_path()
             return "%s"
 
