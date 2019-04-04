@@ -8,3 +8,4 @@ dist/
 django_tenants.egg-info
 .idea/
 .vagrant
+dts_test_project/*/media/*/*.txt

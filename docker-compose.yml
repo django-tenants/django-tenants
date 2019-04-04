@@ -6,9 +6,11 @@ django-tenants-test:
   links:
     - postgres
   volumes:
-    - .:/code
-  command: ./run_tests.sh
+    - .:/code:z
+  command: ./run_tests_in_docker.sh
   environment:
     DATABASE_HOST: postgres
   ports:
     - "8080:8080"
+  stdin_open: true
+  tty: true

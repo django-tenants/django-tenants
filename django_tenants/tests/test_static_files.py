@@ -1,5 +1,4 @@
 import os
-import warnings
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -7,8 +6,6 @@ from django.db import connection
 from django.template import Engine
 
 from django_tenants import utils
-from django_tenants.files.storage import TenantFileSystemStorage
-from django_tenants.files.storages import TenantFileSystemStorage as OldTenantFileSystemStorage
 from django_tenants.staticfiles.finders import TenantFileSystemFinder
 from django_tenants.staticfiles.storage import TenantStaticFilesStorage
 from django_tenants.template.loaders.filesystem import Loader
@@ -94,69 +91,6 @@ class TemplateLoaderTest(TenantTestCase):
         self.assertEqual(template.origin.template_name, "index.html")
 
 
-class TenantFileSystemStorageTestCase(TenantTestCase):
-    def setUp(self):
-        super().setUp()
-        settings.MEDIA_ROOT = "apps_dir/media"
-        settings.MEDIA_URL = "/media/"
-
-    def test_default(self):
-        storage = TenantFileSystemStorage()
-
-        # location
-        path_suffix = "{}/{}".format(settings.MEDIA_ROOT, self.tenant.schema_name)
-        self.assertEqual(storage.location[-len(path_suffix):], path_suffix)
-
-        # path
-        path_suffix = "{}/{}/foo.txt".format(
-            settings.MEDIA_ROOT, self.tenant.schema_name
-        )
-        self.assertEqual(storage.path("foo.txt")[-len(path_suffix):], path_suffix)
-
-        # base_url
-        self.assertEqual(storage.base_url, "/media/{}/".format(self.tenant.schema_name))
-
-        # url
-        self.assertEqual(
-            storage.url("foo.txt"), "/media/{}/foo.txt".format(self.tenant.schema_name)
-        )
-
-    def test_format_string(self):
-        settings.MULTITENANT_RELATIVE_MEDIA_ROOT = "%s/other_dir"
-        storage = TenantFileSystemStorage()
-
-        # location
-        path_suffix = "{}/{}/other_dir".format(
-            settings.MEDIA_ROOT, self.tenant.schema_name
-        )
-        self.assertEqual(storage.location[-len(path_suffix):], path_suffix)
-
-        # path
-        path_suffix = "{}/{}/other_dir/foo.txt".format(
-            settings.MEDIA_ROOT, self.tenant.schema_name
-        )
-        self.assertEqual(storage.path("foo.txt")[-len(path_suffix):], path_suffix)
-
-        # base_url
-        self.assertEqual(
-            storage.base_url, "/media/{}/other_dir/".format(self.tenant.schema_name)
-        )
-
-        # url
-        self.assertEqual(
-            storage.url("foo.txt"),
-            "/media/{}/other_dir/foo.txt".format(self.tenant.schema_name),
-        )
-
-    def test_deprecated_module_raises_warning(self):
-        with warnings.catch_warnings(record=True) as warns:
-            deprecation_warning = "TenantFileSystemStorage has been moved from django_tenants.files.storages " \
-                                  "to django_tenants.files.storage."
-
-            OldTenantFileSystemStorage()
-            self.assertTrue(any(deprecation_warning in str(w.message) for w in warns))
-
-
 class TenantStaticFilesStorageTestCase(TenantTestCase):
     def setUp(self):
         super().setUp()
@@ -214,12 +148,18 @@ class TenantStaticFilesStorageTestCase(TenantTestCase):
     def test_checks_media_url_config_collision(self):
         with self.assertRaises(ImproperlyConfigured):
             settings.MEDIA_URL = "/static/{}/".format(self.tenant.schema_name)
-            TenantStaticFilesStorage()
+            obj = TenantStaticFilesStorage()
+            # Since check_settings() is not called at __init__, but each time
+            # base_url is accessed, we must trigger the getter of base_url
+            getattr(obj, "base_url")
 
     def test_checks_media_root_config_collision(self):
         with self.assertRaises(ImproperlyConfigured):
             settings.MEDIA_ROOT = settings.STATIC_ROOT = "/media/"
-            TenantStaticFilesStorage()
+            obj = TenantStaticFilesStorage()
+            # Since check_settings() is not called at __init__, but each time
+            # base_url is accessed, we must trigger the getter of base_url
+            getattr(obj, "base_url")
 
 
 class TenantFileSystemFinderTestCase(TenantTestCase):
