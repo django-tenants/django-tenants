@@ -7,10 +7,9 @@ from django.test import override_settings
 from django_tenants import utils
 from django_tenants.files.storage import TenantFileSystemStorage
 from django_tenants.files.storages import TenantFileSystemStorage as OldTenantFileSystemStorage
-from django_tenants.test.cases import TenantTestCase
+from django_tenants.tests.testcases import BaseTestCase
 
-
-class TenantFileSystemStorageTestCase(TenantTestCase):
+class TenantFileSystemStorageTestCase(BaseTestCase):
     def test_deprecated_module_raises_warning(self):
         with warnings.catch_warnings(record=True) as warns:
             deprecation_warning = "TenantFileSystemStorage has been moved from django_tenants.files.storages " \
