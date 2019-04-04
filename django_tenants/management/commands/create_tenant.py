@@ -1,8 +1,8 @@
 from django.core import exceptions
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
-from django.utils.encoding import force_str
 from django.db.utils import IntegrityError
+from django.utils.encoding import force_str
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model
 
 
@@ -10,8 +10,10 @@ class Command(BaseCommand):
     help = 'Create a tenant'
 
     # Only use editable fields
+    # noinspection PyProtectedMember
     tenant_fields = [field for field in get_tenant_model()._meta.fields
                      if field.editable and not field.primary_key]
+    # noinspection PyProtectedMember
     domain_fields = [field for field in get_tenant_domain_model()._meta.fields
                      if field.editable and not field.primary_key]
 
@@ -34,14 +36,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         tenant_data = {}
-        tenant = BaseCommand
         for field in self.tenant_fields:
             input_value = options.get(field.name, None)
             tenant_data[field.name] = input_value
 
         domain_data = {}
         for field in self.domain_fields:
-            input_value = options.get(field.name, None)
+            input_value = options.get('domain_%s' % field.name, None)
             domain_data[field.name] = input_value
 
         while True:
