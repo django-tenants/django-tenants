@@ -2,15 +2,20 @@
 
 This changelog is used to track all major changes to django-tenants.
 
-## v2.1.1 (UNRELEASED)
+## v2.2.0 (UNRELEASED)
 
 **Fixes**
 
+- TenantFileSystemStorage now works [#249]
+
 **Enhancements**
 
+- support django>=2.2 [#238]
 - TenantAdminMixin is available in order to register the tenant model. [#223]
 - Admin site: highlight with a different color the tenant apps. [#227]
 - Admin site: disable the tenant apps when in the public schema. [#227]
+- Custom auth backend compatibility for TenantClient. [#228]
+- Switch to psycopg2 dependency rather than psycopg2-binary[#239]
 
 ## v2.1.0 (31 Dec 2018)
 
