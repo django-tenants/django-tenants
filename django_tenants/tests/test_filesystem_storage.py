@@ -9,6 +9,7 @@ from django_tenants.files.storage import TenantFileSystemStorage
 from django_tenants.files.storages import TenantFileSystemStorage as OldTenantFileSystemStorage
 from django_tenants.tests.testcases import BaseTestCase
 
+
 class TenantFileSystemStorageTestCase(BaseTestCase):
     def test_deprecated_module_raises_warning(self):
         with warnings.catch_warnings(record=True) as warns:
