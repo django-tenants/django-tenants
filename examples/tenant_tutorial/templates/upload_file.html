@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}{{ tenant.name }}{% endblock %}
+
+{% block summary %}
+    <h1>{{ request.tenant.name }}</h1>
+  <h2>{{ request.tenant.description }}</h2>
+{% endblock %}
+
+{% block instructions %}
+    <h2>Upload file.</h2>
+
+
+    <ul>
+    {% for upload_file in upload_files %}
+        <li>{{ upload_file.filename }}</li>
+
+
+    {% endfor %}
+    </ul>
+
+    <form action="{% url 'upload_file' %}" method="post" enctype="multipart/form-data">{% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Upload file" />
+    </form>
+
+    <p style="padding-top: 20px"></p>
+
+    <a href="{% url 'index' %}">Back to tenant index</a>
+{% endblock %}

@@ -130,6 +130,7 @@ TEMPLATES = [
                 'django.template.context_processors.media',
                 'django.template.context_processors.static',
                 'django.template.context_processors.tz',
+                'django.template.context_processors.request',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -204,4 +205,4 @@ LOGGING = {
 }
 
 DEFAULT_FILE_STORAGE = "django_tenants.files.storage.TenantFileSystemStorage"
-MULTITENANT_RELATIVE_MEDIA_ROOT = ""
+MULTITENANT_RELATIVE_MEDIA_ROOT = "uploaded_files"
