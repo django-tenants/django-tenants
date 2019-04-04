@@ -8,7 +8,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-__version__ = "2.1.1"
+__version__ = "2.2.0"
 
 setup(
     name='django-tenants',
