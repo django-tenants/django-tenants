@@ -27,7 +27,7 @@ Because django will not create tenants for you during your tests, we have packed
     class BaseSetup(TenantTestCase):
 
         def setUp(self):
-            super(BaseSetup, self).setUp()
+            super().setUp()
             self.c = TenantClient(self.tenant)
             
         def test_user_profile_view(self):
@@ -65,7 +65,7 @@ If you have there are two routines to look at ``setup_tenant`` and ``setup_domai
             domain.ssl = True
 
         def setUp(self):
-            super(BaseSetup, self).setUp()
+            super().setUp()
             self.c = TenantClient(self.tenant)
 
         def test_user_profile_view(self):
