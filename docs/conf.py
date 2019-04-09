@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # dinnertime documentation build configuration file, created by
 # sphinx-quickstart on Wed Aug 19 10:27:46 2009.
 #
