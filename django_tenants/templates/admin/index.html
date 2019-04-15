@@ -1,6 +1,20 @@
 {% extends "admin/index.html" %}
 {% load i18n admin_static tenant %}
 
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+     .module caption.tenant-app {
+        background: #008000;
+    }
+    .module caption.public-disabled {
+        background: #c6c6c6;
+    }
+    </style>
+
+{% endblock %}
+
 {% block content %}
     <div id="content-main">
         {% if app_list %}
@@ -12,7 +26,7 @@
                     <table id="change-history">
                         {% if is_public_schema and not is_shared_app %}
                             <div class="module">
-                                <caption {% if is_tenant_app %}style="background-color:#c6c6c6"{% endif %}>
+                                <caption {% if is_tenant_app %}class="public-disabled"{% endif %}>
                                     <div class="section" title="{% blocktrans with name=app.name %}Models in the {{ name }} application{% endblocktrans %}">{{ app.name }}</div>
                                     <tr>
                                         <td scope="row">{% trans "Not available for global schema" %}</td>
@@ -20,7 +34,7 @@
                                 </caption>
                             </div>
                         {% else %}
-                            <caption {% if not is_public_schema and is_tenant_app %}style="background-color:#008000"{% endif %} >
+                            <caption {% if not is_public_schema and is_tenant_app %}class="tenant-app"{% endif %} >
                                 <a href="{{ app.app_url }}" class="section" title="{% blocktrans with name=app.name %}Models in the {{ name }} application{% endblocktrans %}">{{ app.name }}</a>
                             </caption>
                             {% for model in app.models %}
