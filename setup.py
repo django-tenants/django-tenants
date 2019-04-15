@@ -30,6 +30,7 @@ setup(
         'django_tenants.staticfiles',
         'django_tenants.middleware',
     ],
+    include_package_data=True,
     scripts=[],
     url='https://github.com/tomturner/django-tenants',
     license='MIT',
