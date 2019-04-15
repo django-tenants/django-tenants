@@ -2,7 +2,13 @@
 
 This changelog is used to track all major changes to django-tenants.
 
-## v2.2.0 (UNRELEASED)
+## v2.2.1 (16 April 2019)
+
+**Fixes**
+
+- Fixed an issue with the different color of tenant apps in the admin area. [#261]
+
+## v2.2.0 (15 April 2019)
 
 **Fixes**
 
