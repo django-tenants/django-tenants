@@ -39,7 +39,8 @@ class TenantAppDirectoriesFinder(AppDirectoriesFinder):
         """
         Find a requested static file in an app's static locations.
         """
-        path = os.path.sep.join(path.split(os.path.sep)[1:])
+        if getattr(settings, "MULTITENANT_STATICFILES_DIRS", False):
+            path = os.path.sep.join(path.split(os.path.sep)[1:])
         return super().find_in_app(app, path)
 
 class TenantFileSystemFinder(FileSystemFinder):
