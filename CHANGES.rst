@@ -2,11 +2,18 @@
 
 This changelog is used to track all major changes to django-tenants.
 
+## v2.2.3 (15 April 2019)
+
+**Fixes**
+
+- Fixed an issue in setup.py to allow different color of tenant apps in the admin area. Should now work with PyPi.
+
+
 ## v2.2.2 (15 April 2019)
 
 **Fixes**
 
-- Fixed an in setup.py to allow different color of tenant apps in the admin area. [#262]
+- Fixed an issue in setup.py to allow different color of tenant apps in the admin area. Take 2[#262]
 
 ## v2.2.1 (15 April 2019)
 
