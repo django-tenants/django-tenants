@@ -2,6 +2,13 @@
 
 This changelog is used to track all major changes to django-tenants.
 
+## v2.2.4 (UNRELEASED)
+
+**Fixes**
+
+- Fixed an issue where tenant-specific application static files (stylesheets, Javascript, images etc.), that have
+not been collected yet using ``collectstatic_schemas``, were not being found using ``TenantStaticFilesStorage``.
+
 ## v2.2.3 (15 April 2019)
 
 **Fixes**
