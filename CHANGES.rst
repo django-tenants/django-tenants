@@ -1,33 +1,39 @@
-# Changelog
+*********
+Changelog
+*********
 
 This changelog is used to track all major changes to django-tenants.
 
-## v2.2.4 (UNRELEASED)
+v2.2.4 (UNRELEASED)
+===================
 
 **Fixes**
 
 - Fixed an issue where tenant-specific application static files (stylesheets, Javascript, images etc.), that have not been collected yet using ``collectstatic_schemas``, were not being found using ``TenantStaticFilesStorage``. Fixes `#265 <https://github.com/tomturner/django-tenants/issues/265>`_.
 
-## v2.2.3 (15 April 2019)
+v2.2.3 (15 April 2019)
+======================
 
 **Fixes**
 
 - Fixed an issue in setup.py to allow different color of tenant apps in the admin area. Should now work with PyPi.
 
-
-## v2.2.2 (15 April 2019)
+v2.2.2 (15 April 2019)
+======================
 
 **Fixes**
 
 - Fixed an issue in setup.py to allow different color of tenant apps in the admin area. Take 2. [`#262 <https://github.com/tomturner/django-tenants/issues/262>`_]
 
-## v2.2.1 (15 April 2019)
+v2.2.1 (15 April 2019)
+======================
 
 **Fixes**
 
 - Fixed an issue with the different color of tenant apps in the admin area. [`#261 <https://github.com/tomturner/django-tenants/issues/261>`_]
 
-## v2.2.0 (14 April 2019)
+v2.2.0 (14 April 2019)
+======================
 
 **Fixes**
 
@@ -42,7 +48,8 @@ This changelog is used to track all major changes to django-tenants.
 - Custom auth backend compatibility for TenantClient. [`#228 <https://github.com/tomturner/django-tenants/issues/228>`_]
 - Switch to psycopg2 dependency rather than psycopg2-binary [`#239 <https://github.com/tomturner/django-tenants/issues/239>`_]
 
-## v2.1.0 (31 Dec 2018)
+v2.1.0 (31 Dec 2018)
+====================
 
 **Enhancements**
 
