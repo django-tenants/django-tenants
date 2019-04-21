@@ -296,6 +296,37 @@ Running in Development
 If you want to use django-tenant in development you will have to fake a domain name. You can do this by editing the hosts file or using a program such as ``Acrylic DNS Proxy (Windows)``.
 
 
+Migrating Single-Tenant to Multi-Tenant
+---------------------------------------
+
+.. warning::
+
+    The following instructions may or may not work for you.
+    Use at your own risk!
+
+- Create a backup of your existing single-tenant database,
+  presumably non PostgreSQL::
+
+    ./manage.py dumpdata --all --indent 2 > database.json
+
+- Edit ``settings.py`` to connect to your new PostrgeSQL database
+- Execute ``manage.py migrate`` to create all tables in the PostgreSQL database
+- Ensure newly created tables are empty::
+
+    ./manage.py sqlflush | ./manage.py dbshell
+
+- Load previously exported data into the database::
+
+    ./manage.py loaddata --format json database.json
+
+- Create the ``public`` tenant::
+
+    ./manage.py create_tenant
+
+At this point your application should be multi-tenant aware and you may proceed
+creating more tenants.
+
+
 Third Party Apps
 ----------------
 
