@@ -41,7 +41,6 @@ setup(
         'Environment :: Web Environment',
         'License :: OSI Approved :: MIT License',
         'Framework :: Django',
-        'Framework :: Django :: 2.0',
         'Framework :: Django :: 2.1',
         'Framework :: Django :: 2.2',
         'Programming Language :: Python',
@@ -51,7 +50,7 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     install_requires=[
-        'Django >= 2.0,<3.0',
+        'Django >= 2.1,<3.0',
         'psycopg2',
     ],
     zip_safe=False,
