@@ -37,7 +37,7 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
                                            "without having set the STATIC_ROOT "
                                            "setting to a filesystem path.")
 
-    @property
+    @cached_property
     def relative_static_url(self):
         url = settings.STATIC_URL
         if not url.endswith('/'):
@@ -52,7 +52,6 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
                     # the tenant schema_name to STATIC_ROOT if no configuration value is provided
                     multitenant_relative_url = "%s"
 
-                multitenant_relative_url = multitenant_relative_url % connection.schema_name
                 return "{}{}".format(url, multitenant_relative_url)
 
         except AttributeError:
@@ -67,7 +66,7 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
 
     @property  # Not cached like in parent class
     def base_url(self):
-        url = self.relative_static_url
+        url = self.relative_static_url % connection.schema_name
 
         if not url.endswith('/'):
             url += '/'
