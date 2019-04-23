@@ -55,7 +55,7 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
                     # the tenant schema_name to STATIC_ROOT if no configuration value is provided
                     multitenant_relative_url = "%s"
 
-                return "{}{}".format(url, multitenant_relative_url)
+                url = "{}{}".format(url, multitenant_relative_url)
 
         except AttributeError:
             # REWRITE_STATIC_URLS not set - ignore
