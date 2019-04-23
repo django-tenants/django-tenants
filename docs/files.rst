@@ -105,6 +105,13 @@ The command to collect the static files for all tenants is ``collectstatic_schem
     
     ./manage.py collectstatic_schemas --schema=your_tenant_schema_name
 
+.. note::
+
+   If you have configured an HTTP server, like `nginx <https://nginx.org>`_, to serve static files instead of the
+   Django built-in server, then you also need to set ``REWRITE_STATIC_URLS = True``. This tells django-tenants to
+   rewrite ``STATIC_URL`` to include ``MULTITENANT_RELATIVE_STATIC_ROOT`` when static files are requested so that
+   these files can be found and served directly by the external HTTP server.
+
 
 Configuring media file storage
 ------------------------------

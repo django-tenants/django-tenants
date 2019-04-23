@@ -2,6 +2,7 @@ import os
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.db import connection
 from django.utils.functional import cached_property
 
 from django_tenants import utils
@@ -36,14 +37,39 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
                                            "without having set the STATIC_ROOT "
                                            "setting to a filesystem path.")
 
+    @property
+    def relative_static_url(self):
+        url = settings.STATIC_URL
+        if not url.endswith('/'):
+            url += '/'
+
+        try:
+            if settings.REWRITE_STATIC_URLS is True:
+                try:
+                    multitenant_relative_url = settings.MULTITENANT_RELATIVE_STATIC_ROOT
+                except AttributeError:
+                    # MULTITENANT_RELATIVE_STATIC_ROOT is an optional setting. Use the default of just appending
+                    # the tenant schema_name to STATIC_ROOT if no configuration value is provided
+                    multitenant_relative_url = "%s"
+
+                multitenant_relative_url = multitenant_relative_url % connection.schema_name
+                return "{}{}".format(url, multitenant_relative_url)
+
+        except AttributeError:
+            # REWRITE_STATIC_URLS not set - ignore
+            pass
+
+        return url
+
     @property  # Not cached like in parent class
     def base_location(self):
         return utils.parse_tenant_config_path(self.relative_static_root)
 
     @property  # Not cached like in parent class
     def base_url(self):
-        url_ = settings.STATIC_URL
-        if not url_.endswith('/'):
-            url_ += '/'
+        url = self.relative_static_url
 
-        return url_
+        if not url.endswith('/'):
+            url += '/'
+
+        return url
