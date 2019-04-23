@@ -40,11 +40,14 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
     @cached_property
     def relative_static_url(self):
         url = settings.STATIC_URL
+        rewrite_on = False
+
         if not url.endswith('/'):
             url += '/'
 
         try:
             if settings.REWRITE_STATIC_URLS is True:
+                rewrite_on = True
                 try:
                     multitenant_relative_url = settings.MULTITENANT_RELATIVE_STATIC_ROOT
                 except AttributeError:
@@ -58,7 +61,7 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
             # REWRITE_STATIC_URLS not set - ignore
             pass
 
-        return url
+        return rewrite_on, url
 
     @property  # Not cached like in parent class
     def base_location(self):
@@ -66,7 +69,9 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
 
     @property  # Not cached like in parent class
     def base_url(self):
-        url = self.relative_static_url % connection.schema_name
+        rewrite_on, url = self.relative_static_url
+        if rewrite_on:
+            url = url % connection.schema_name
 
         if not url.endswith('/'):
             url += '/'
