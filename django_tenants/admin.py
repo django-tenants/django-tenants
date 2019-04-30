@@ -1,4 +1,4 @@
-class TenantAdminMixin(object):
+class TenantAdminMixin:
     """
     Mixin for Tenant model:
     It disables save and delete buttons when not in current or public tenant (preventing Exceptions).
