@@ -69,11 +69,14 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
 
     @property  # Not cached like in parent class
     def base_url(self):
-        rewrite_on, url = self.relative_static_url
+        if self._base_url is not None and not self._base_url.endswith('/'):
+            self._base_url += '/'
+
+        rewrite_on, relative_tenant_url = self.relative_static_url
         if rewrite_on:
-            url = url % connection.schema_name
+            relative_tenant_url = relative_tenant_url % connection.schema_name
 
-        if not url.endswith('/'):
-            url += '/'
+        if not relative_tenant_url.endswith('/'):
+            relative_tenant_url += '/'
 
-        return url
+        return self._value_or_setting(self._base_url, relative_tenant_url)
