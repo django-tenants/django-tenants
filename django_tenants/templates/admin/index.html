@@ -5,6 +5,7 @@
 {% block extrastyle %}
     {{ block.super }}
     <style>
+    {% colour_admin_apps as colour_admin_apps %}
      {% if colour_admin_apps %}
      .module caption.tenant-app {
         background: #008000;
