@@ -57,5 +57,6 @@ Contents
    examples
    files
    test
+   links
    involved
    credits
