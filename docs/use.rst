@@ -135,6 +135,17 @@ Example
 
         # send email to client to as tenant is ready to use
 
+Other settings
+~~~~~~~~~~~~~~
+
+By default if you look at the admin all the tenant apps will be colored dark green you can disable this by doing.
+
+.. code-block:: python
+
+    TENANT_COLOR_ADMIN_APPS = False
+
+
+
 Reverse
 ~~~~~~~
 
