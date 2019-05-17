@@ -67,7 +67,7 @@ class BaseTenantCommand(BaseCommand):
                     self.execute_command(tenant, self.COMMAND_NAME, *args, **options)
 
 
-class InteractiveTenantOption(object):
+class InteractiveTenantOption:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

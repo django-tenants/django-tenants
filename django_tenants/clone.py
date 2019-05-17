@@ -198,7 +198,7 @@ ALTER FUNCTION clone_schema(text, text, boolean)
 """
 
 
-class CloneSchema(object):
+class CloneSchema:
 
     def _create_clone_schema_function(self):
         """
