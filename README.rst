@@ -281,7 +281,7 @@ If this project help you reduce time to develop, you can give me cake :)
 .. _django: https://www.djangoproject.com/
 .. _PostgreSQL schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
 .. _PostgreSQL’s official documentation on schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
-.. _Multi-Tenant Data Architecture: http://msdn.microsoft.com/en-us/library/aa479086.aspx
+.. _Multi-Tenant Data Architecture: https://web.archive.org/web/20160311212239/https://msdn.microsoft.com/en-us/library/aa479086.aspx
 .. _setup: https://django-tenants.readthedocs.org/en/latest/install.html
 .. _examples: https://django-tenants.readthedocs.org/en/latest/examples.html
 .. _django-tenants.readthedocs.org: https://django-tenants.readthedocs.org/en/latest/

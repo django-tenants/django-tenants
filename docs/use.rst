@@ -135,6 +135,17 @@ Example
 
         # send email to client to as tenant is ready to use
 
+Other settings
+~~~~~~~~~~~~~~
+
+By default if you look at the admin all the tenant apps will be colored dark green you can disable this by doing.
+
+.. code-block:: python
+
+    TENANT_COLOR_ADMIN_APPS = False
+
+
+
 Reverse
 ~~~~~~~
 
@@ -296,6 +307,37 @@ Running in Development
 If you want to use django-tenant in development you will have to fake a domain name. You can do this by editing the hosts file or using a program such as ``Acrylic DNS Proxy (Windows)``.
 
 
+Migrating Single-Tenant to Multi-Tenant
+---------------------------------------
+
+.. warning::
+
+    The following instructions may or may not work for you.
+    Use at your own risk!
+
+- Create a backup of your existing single-tenant database,
+  presumably non PostgreSQL::
+
+    ./manage.py dumpdata --all --indent 2 > database.json
+
+- Edit ``settings.py`` to connect to your new PostrgeSQL database
+- Execute ``manage.py migrate`` to create all tables in the PostgreSQL database
+- Ensure newly created tables are empty::
+
+    ./manage.py sqlflush | ./manage.py dbshell
+
+- Load previously exported data into the database::
+
+    ./manage.py loaddata --format json database.json
+
+- Create the ``public`` tenant::
+
+    ./manage.py create_tenant
+
+At this point your application should be multi-tenant aware and you may proceed
+creating more tenants.
+
+
 Third Party Apps
 ----------------
 
@@ -322,3 +364,16 @@ django-debug-toolbar
             '',
             url(r'^__debug__/', include(debug_toolbar.urls)),
         )
+
+Useful information
+~~~~~~~~~~~~~~~~~~
+
+If you want to run some code on every tenant you can do the following
+
+.. code-block:: python
+    #import tenant model
+    from django_tenants.utils import tenant_context
+
+    for tenant in Tenant.objects.all():
+        with tenant_context(tenant):
+            #do whatever you want in that tenant

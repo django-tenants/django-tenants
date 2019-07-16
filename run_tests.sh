@@ -21,5 +21,5 @@ pushd dts_test_project
 EXECUTORS=( standard multiprocessing )
 
 for executor in "${EXECUTORS[@]}"; do
-    EXECUTOR=$executor python3 -Wd manage.py test django_tenants.tests
+    EXECUTOR=$executor python -Wd manage.py test django_tenants.tests
 done

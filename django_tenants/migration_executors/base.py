@@ -49,7 +49,7 @@ def run_migrations(args, options, executor_codename, schema_name, allow_atomic=T
     connection.set_schema_to_public()
 
 
-class MigrationExecutor(object):
+class MigrationExecutor:
     codename = None
 
     def __init__(self, args, options):
