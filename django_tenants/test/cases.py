@@ -124,6 +124,7 @@ class FastTenantTestCase(TenantTestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.add_allowed_test_domain()
         tenant_model = get_tenant_model()
 
         test_schema_name = cls.get_test_schema_name()
