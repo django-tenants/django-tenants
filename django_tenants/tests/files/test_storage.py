@@ -90,39 +90,39 @@ class TenantFileSystemStorageTestCase(BaseTestCase):
         # like encodeURIComponent() JavaScript function do
         self.assertEqual(
             self.storage.url(r"~!*()'@#$%^&*abc`+ =.file"),
-            f"/test_media_url/{connection.schema_name}/~!*()'%40%23%24%25%5E%26*abc%60%2B%20%3D.file",
+            "/test_media_url/{}/~!*()'%40%23%24%25%5E%26*abc%60%2B%20%3D.file".format(connection.schema_name),
         )
         self.assertEqual(
             self.storage.url("ab\0c"),
-            f"/test_media_url/{connection.schema_name}/ab%00c",
+            "/test_media_url/{}/ab%00c".format(connection.schema_name),
         )
 
         # should translate os path separator(s) to the url path separator
         self.assertEqual(
             self.storage.url("""a/b\\c.file"""),
-            f"/test_media_url/{connection.schema_name}/a/b/c.file",
+            "/test_media_url/{}/a/b/c.file".format(connection.schema_name),
         )
 
         # remove leading slashes from file names to prevent unsafe url output
         self.assertEqual(
             self.storage.url("/evil.com"),
-            f"/test_media_url/{connection.schema_name}/evil.com",
+            "/test_media_url/{}/evil.com".format(connection.schema_name),
         )
         self.assertEqual(
             self.storage.url(r"\evil.com"),
-            f"/test_media_url/{connection.schema_name}/evil.com",
+            "/test_media_url/{}/evil.com".format(connection.schema_name),
         )
         self.assertEqual(
             self.storage.url("///evil.com"),
-            f"/test_media_url/{connection.schema_name}/evil.com",
+            "/test_media_url/{}/evil.com".format(connection.schema_name),
         )
         self.assertEqual(
             self.storage.url(r"\\\evil.com"),
-            f"/test_media_url/{connection.schema_name}/evil.com",
+            "/test_media_url/{}/evil.com".format(connection.schema_name),
         )
 
         self.assertEqual(
-            self.storage.url(None), f"/test_media_url/{connection.schema_name}/"
+            self.storage.url(None), "/test_media_url/{}/".format(connection.schema_name)
         )
 
     def test_base_url(self):
@@ -132,7 +132,7 @@ class TenantFileSystemStorageTestCase(BaseTestCase):
         self.storage._base_url = None
         # with self.assertRaises(ValueError):
         self.assertEqual(
-            self.storage.url("test.file"), f"{connection.schema_name}/test.file"
+            self.storage.url("test.file"), "{}/test.file".format(connection.schema_name)
         )
 
         # missing ending slash in base_url should be auto-corrected

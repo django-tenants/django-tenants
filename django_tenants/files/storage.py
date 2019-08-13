@@ -1,8 +1,8 @@
 import os
+import urllib.parse
 
 from django.conf import settings
 from django.utils.functional import cached_property
-from django.db import connection
 
 from django.core.files.storage import FileSystemStorage
 
@@ -30,11 +30,6 @@ class TenantFileSystemStorage(FileSystemStorage):
 
     @cached_property
     def relative_media_url(self):
-        url = settings.MEDIA_URL
-
-        if not url.endswith('/'):
-            url += '/'
-
         try:
             multitenant_relative_url = settings.MULTITENANT_RELATIVE_MEDIA_ROOT
         except AttributeError:
@@ -42,15 +37,21 @@ class TenantFileSystemStorage(FileSystemStorage):
             # the tenant schema_name to STATIC_ROOT if no configuration value is provided
             multitenant_relative_url = "%s"
 
-        url = "{}{}".format(url, multitenant_relative_url)
-        return url
+        multitenant_relative_url = urllib.parse.urljoin(settings.MEDIA_URL, multitenant_relative_url)
+
+        if not multitenant_relative_url.endswith('/'):
+            multitenant_relative_url += '/'
+
+        return multitenant_relative_url
 
     @property  # Not cached like in parent class
     def base_location(self):
-        return self._value_or_setting(
-            self._location,
-            utils.parse_tenant_config_path(self.relative_media_root)
-        )
+        relative_tenant_media_root = utils.parse_tenant_config_path(self.relative_media_root)
+
+        if self._location is None:
+            return relative_tenant_media_root
+
+        return os.path.join(self._location, relative_tenant_media_root)
 
     @property  # Not cached like in parent class
     def location(self):
@@ -58,15 +59,14 @@ class TenantFileSystemStorage(FileSystemStorage):
 
     @property
     def base_url(self):
-        if self._base_url is not None and not self._base_url.endswith('/'):
-            self._base_url += '/'
+        relative_tenant_media_url = utils.parse_tenant_config_path(self.relative_media_url)
 
-        relative_tenant_url = self.relative_media_url % connection.schema_name
+        if self._base_url is None:
+            return relative_tenant_media_url
 
-        if not relative_tenant_url.endswith('/'):
-            relative_tenant_url += '/'
+        relative_tenant_media_url = urllib.parse.urljoin(self._base_url, relative_tenant_media_url)
 
-        return self._value_or_setting(self._base_url, relative_tenant_url)
+        return relative_tenant_media_url
 
     def listdir(self, path):
         """
