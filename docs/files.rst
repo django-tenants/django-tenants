@@ -15,7 +15,7 @@ The process for making Django's file handling tenant-aware generally consists of
 3. Using a custom tenant-aware file ``storage`` handler for collecting and managing those files
 4. Using a custom tenant-aware ``loader`` for finding and loading Django templates
 
-We'll cover the configurations steps for each in turn.
+We'll cover the configuration steps for each in turn.
 
 Project layout
 ==============
@@ -159,7 +159,7 @@ It can be configured by inserting the custom ``Loader`` at the top of the list i
         "absolute/path/to/your_project_dir/tenants/%s/templates"
     ]
 
-Notice that ``django.template.loaders.filesystem.Loader`` is added at the top of the list. This will cause Django to look for the tenant-specific templates first, before reverting to the standard search path. This makes it possible for tenants to *override* individual templates as required.
+Notice that ``django_tenants.template.loaders.filesystem.Loader`` is added at the top of the list. This will cause Django to look for the tenant-specific templates first, before reverting to the standard search path. This makes it possible for tenants to *override* individual templates as required.
 
 Just like with standard Django, the first template found will be returned.
 
