@@ -454,13 +454,24 @@ class SharedAuthTest(BaseTestCase):
         FROM
             information_schema.table_constraints AS tc
             JOIN information_schema.key_column_usage AS kcu
-              ON tc.constraint_name = kcu.constraint_name
+              ON tc.constraint_schema = kcu.constraint_schema AND tc.constraint_name = kcu.constraint_name
             JOIN information_schema.constraint_column_usage AS ccu
-              ON ccu.constraint_name = tc.constraint_name
-        WHERE constraint_type = 'FOREIGN KEY' AND tc.table_name=%s
+              ON tc.constraint_schema = ccu.constraint_schema AND ccu.constraint_name = tc.constraint_name
+        WHERE
+            constraint_type = 'FOREIGN KEY' AND 
+            tc.table_name=%s AND 
+            ccu.table_schema=%s AND 
+            ccu.constraint_schema=%s
         """
         cursor = connection.cursor()
-        cursor.execute(sql, (ModelWithFkToPublicUser._meta.db_table, ))
+        cursor.execute(
+            sql,
+            (
+                ModelWithFkToPublicUser._meta.db_table,
+                self.public_tenant.schema_name,
+                self.tenant.schema_name
+            )
+        )
         fk_constraints = cursor.fetchall()
         self.assertEqual(1, len(fk_constraints))
 

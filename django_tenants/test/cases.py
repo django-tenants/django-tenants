@@ -86,6 +86,14 @@ class TenantTestCase(TestCase):
 
 
 class FastTenantTestCase(TenantTestCase):
+    """
+    A faster variant of `TenantTestCase`: the test schema and its migrations will only be created and ran once.
+
+    WARNING: although this does produce significant improvements in speed it also means that these type of tests
+             are not fully encapsulated and that some state will be shared between tests.
+
+    See: https://github.com/tomturner/django-tenants/issues/100
+    """
 
     @classmethod
     def flush_data(cls):
@@ -108,6 +116,14 @@ class FastTenantTestCase(TenantTestCase):
         Gets called if a new tenant is created in the database
         """
         pass
+
+    @classmethod
+    def get_test_tenant_domain(cls):
+        return 'tenant.fast_test.com'
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return 'fast_test'
 
     @classmethod
     def setup_test_tenant_and_domain(cls):
