@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -42,9 +43,6 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
         url = settings.STATIC_URL
         rewrite_on = False
 
-        if not url.endswith('/'):
-            url += '/'
-
         try:
             if settings.REWRITE_STATIC_URLS is True:
                 rewrite_on = True
@@ -55,7 +53,10 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
                     # the tenant schema_name to STATIC_ROOT if no configuration value is provided
                     multitenant_relative_url = "%s"
 
-                url = "{}{}".format(url, multitenant_relative_url)
+                multitenant_relative_url = urllib.parse.urljoin(url, multitenant_relative_url)
+
+                if not multitenant_relative_url.endswith('/'):
+                    multitenant_relative_url += '/'
 
         except AttributeError:
             # REWRITE_STATIC_URLS not set - ignore
@@ -69,14 +70,14 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
 
     @property  # Not cached like in parent class
     def base_url(self):
-        if self._base_url is not None and not self._base_url.endswith('/'):
-            self._base_url += '/'
-
         rewrite_on, relative_tenant_url = self.relative_static_url
         if rewrite_on:
-            relative_tenant_url = relative_tenant_url % connection.schema_name
+            relative_tenant_url = utils.parse_tenant_config_path(relative_tenant_url)
 
         if not relative_tenant_url.endswith('/'):
             relative_tenant_url += '/'
+
+        if self._base_url is not None and not self._base_url.endswith('/'):
+            self._base_url += '/'
 
         return self._value_or_setting(self._base_url, relative_tenant_url)
