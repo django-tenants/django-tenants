@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.db import connection
+from django.test import override_settings
 
 from django_tenants.staticfiles.storage import TenantStaticFilesStorage
 from django_tenants.test.cases import TenantTestCase
@@ -36,6 +38,10 @@ class TenantStaticFilesStorageTestCase(TenantTestCase):
 
     def test_base_url_uses_static_url(self):
         self.assertEqual(self.storage.base_url, "/static/")
+
+    @override_settings(REWRITE_STATIC_URLS=True)
+    def test_base_url_rewrites_static_url(self):
+        self.assertEqual(self.storage.base_url, "/static/{}/other_dir/".format(connection.schema_name))
 
     def test_base_url_defaults_to_static_url(self):
         del settings.MULTITENANT_RELATIVE_STATIC_ROOT
