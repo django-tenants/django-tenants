@@ -1,9 +1,7 @@
 import os
-import urllib.parse
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db import connection
 from django.utils.functional import cached_property
 
 from django_tenants import utils
@@ -53,10 +51,7 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
                     # the tenant schema_name to STATIC_ROOT if no configuration value is provided
                     multitenant_relative_url = "%s"
 
-                multitenant_relative_url = urllib.parse.urljoin(url, multitenant_relative_url)
-
-                if not multitenant_relative_url.endswith('/'):
-                    multitenant_relative_url += '/'
+                url = "/".join(s.strip("/") for s in [url, multitenant_relative_url]) + "/"
 
         except AttributeError:
             # REWRITE_STATIC_URLS not set - ignore

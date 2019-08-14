@@ -5,7 +5,6 @@ import warnings
 
 from django.db import connection
 from django.core.files.base import ContentFile
-from django.test import override_settings
 
 from django_tenants import utils
 from django_tenants.files.storage import TenantFileSystemStorage
@@ -130,9 +129,13 @@ class TenantFileSystemStorageTestCase(BaseTestCase):
         File storage returns a url even when its base_url is unset or modified.
         """
         self.storage._base_url = None
+
+        # This standard Django test is no longer relevant since we don't make use of @cached_property
         # with self.assertRaises(ValueError):
+        #     self.storage.url('test.file')
+
         self.assertEqual(
-            self.storage.url("test.file"), "{}/test.file".format(connection.schema_name)
+            self.storage.url("test.file"), "/{}/test.file".format(connection.schema_name)
         )
 
         # missing ending slash in base_url should be auto-corrected
@@ -143,11 +146,8 @@ class TenantFileSystemStorageTestCase(BaseTestCase):
             storage.url("test.file"), "%s%s" % (storage.base_url, "test.file")
         )
 
-    @override_settings(MEDIA_ROOT="apps_dir/media", MEDIA_URL="/media/")
     def test_files_are_saved_under_subdirectories_per_tenant(self):
-        storage = TenantFileSystemStorage()
-
-        connection.set_schema_to_public()
+        # Create new tenants
         tenant1 = utils.get_tenant_model()(schema_name="tenant1")
         tenant1.save()
 
@@ -156,43 +156,44 @@ class TenantFileSystemStorageTestCase(BaseTestCase):
         )
         domain1.save()
 
-        connection.set_schema_to_public()
         tenant2 = utils.get_tenant_model()(schema_name="tenant2")
         tenant2.save()
 
         domain2 = utils.get_tenant_domain_model()(tenant=tenant2, domain="example.com")
         domain2.save()
 
-        # this file should be saved on the public schema
-        public_file_name = storage.save("hello_world.txt", ContentFile("Hello World"))
-        public_os_path = storage.path(public_file_name)
-        public_url = storage.url(public_file_name)
+        connection.set_schema_to_public()
 
-        # switch to tenant1
+        # This file should be saved on the public schema
+        public_file_name = self.storage.save("hello_world.txt", ContentFile("Hello World"))
+        public_os_path = self.storage.path(public_file_name)
+        public_url = self.storage.url(public_file_name)
+
+        # Switch to tenant1
         with utils.tenant_context(tenant1):
-            t1_file_name = storage.save("hello_from_1.txt", ContentFile("Hello T1"))
-            t1_os_path = storage.path(t1_file_name)
-            t1_url = storage.url(t1_file_name)
+            t1_file_name = self.storage.save("hello_from_1.txt", ContentFile("Hello T1"))
+            t1_os_path = self.storage.path(t1_file_name)
+            t1_url = self.storage.url(t1_file_name)
 
-        # switch to tenant2
+        # Switch to tenant2
         with utils.tenant_context(tenant2):
-            t2_file_name = storage.save("hello_from_2.txt", ContentFile("Hello T2"))
-            t2_os_path = storage.path(t2_file_name)
-            t2_url = storage.url(t2_file_name)
+            t2_file_name = self.storage.save("hello_from_2.txt", ContentFile("Hello T2"))
+            t2_os_path = self.storage.path(t2_file_name)
+            t2_url = self.storage.url(t2_file_name)
 
-        # assert the paths are correct
+        # Assert the paths are correct
         self.assertTrue(
-            public_os_path.endswith("apps_dir/media/public/%s" % public_file_name)
+            public_os_path.endswith("public/%s" % public_file_name)
         )
-        self.assertTrue(t1_os_path.endswith("apps_dir/media/tenant1/%s" % t1_file_name))
-        self.assertTrue(t2_os_path.endswith("apps_dir/media/tenant2/%s" % t2_file_name))
+        self.assertTrue(t1_os_path.endswith("tenant1/%s" % t1_file_name))
+        self.assertTrue(t2_os_path.endswith("tenant2/%s" % t2_file_name))
 
-        # assert urls are correct
-        self.assertEqual(public_url, "/media/public/%s" % public_file_name)
-        self.assertEqual(t1_url, "/media/tenant1/%s" % t1_file_name)
-        self.assertEqual(t2_url, "/media/tenant2/%s" % t2_file_name)
+        # Assert urls are correct
+        self.assertEqual(public_url, "/test_media_url/public/%s" % public_file_name)
+        self.assertEqual(t1_url, "/test_media_url/tenant1/%s" % t1_file_name)
+        self.assertEqual(t2_url, "/test_media_url/tenant2/%s" % t2_file_name)
 
-        # assert contents are correct
+        # Assert contents are correct
         with open(public_os_path, "r") as f:
             self.assertEqual(f.read(), "Hello World")
 

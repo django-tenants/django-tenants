@@ -1,5 +1,4 @@
 import os
-import urllib.parse
 
 from django.conf import settings
 from django.utils.functional import cached_property
@@ -37,10 +36,7 @@ class TenantFileSystemStorage(FileSystemStorage):
             # the tenant schema_name to STATIC_ROOT if no configuration value is provided
             multitenant_relative_url = "%s"
 
-        multitenant_relative_url = urllib.parse.urljoin(settings.MEDIA_URL, multitenant_relative_url)
-
-        if not multitenant_relative_url.endswith('/'):
-            multitenant_relative_url += '/'
+        multitenant_relative_url = "/".join(s.strip("/") for s in [settings.MEDIA_URL, multitenant_relative_url]) + "/"
 
         return multitenant_relative_url
 
@@ -64,7 +60,7 @@ class TenantFileSystemStorage(FileSystemStorage):
         if self._base_url is None:
             return relative_tenant_media_url
 
-        relative_tenant_media_url = urllib.parse.urljoin(self._base_url, relative_tenant_media_url)
+        relative_tenant_media_url = "/" + "/".join(s.strip("/") for s in [self._base_url, relative_tenant_media_url]) + "/"
 
         return relative_tenant_media_url
 
