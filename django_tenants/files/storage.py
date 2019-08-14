@@ -38,6 +38,9 @@ class TenantFileSystemStorage(FileSystemStorage):
 
         multitenant_relative_url = "/".join(s.strip("/") for s in [settings.MEDIA_URL, multitenant_relative_url]) + "/"
 
+        if not multitenant_relative_url.startswith("/"):
+            multitenant_relative_url = "/" + multitenant_relative_url
+
         return multitenant_relative_url
 
     @property  # Not cached like in parent class
