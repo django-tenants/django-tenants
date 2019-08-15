@@ -45,12 +45,7 @@ class TenantFileSystemStorage(FileSystemStorage):
 
     @property  # Not cached like in parent class
     def base_location(self):
-        relative_tenant_media_root = utils.parse_tenant_config_path(self.relative_media_root)
-
-        if self._location is None:
-            return relative_tenant_media_root
-
-        return os.path.join(self._location, relative_tenant_media_root)
+        return self._value_or_setting(self._location, utils.parse_tenant_config_path(self.relative_media_root))
 
     @property  # Not cached like in parent class
     def location(self):

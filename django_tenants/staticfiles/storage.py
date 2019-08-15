@@ -61,7 +61,7 @@ class TenantStaticFilesStorage(TenantFileSystemStorage):
 
     @property  # Not cached like in parent class
     def base_location(self):
-        return utils.parse_tenant_config_path(self.relative_static_root)
+        return self._value_or_setting(self._location, utils.parse_tenant_config_path(self.relative_static_root))
 
     @property  # Not cached like in parent class
     def base_url(self):

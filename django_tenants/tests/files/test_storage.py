@@ -20,7 +20,7 @@ class TenantFileSystemStorageTestCase(BaseTestCase):
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
         self.storage = self.storage_class(
-            location=self.temp_dir, base_url="/test_media_url/"
+            location="{}/{}".format(self.temp_dir, connection.schema_name), base_url="/test_media_url/"
         )
         # Set up a second temporary directory which is ensured to have a mixed
         # case name.
@@ -50,8 +50,8 @@ class TenantFileSystemStorageTestCase(BaseTestCase):
         f_name = self.storage.save("test.file", f)
 
         self.assertEqual(
-            self.storage.path(f_name),
             os.path.join(self.temp_dir, connection.schema_name, f_name),
+            self.storage.path(f_name),
         )
 
         self.storage.delete(f_name)
@@ -171,15 +171,21 @@ class TenantFileSystemStorageTestCase(BaseTestCase):
 
         # Switch to tenant1
         with utils.tenant_context(tenant1):
-            t1_file_name = self.storage.save("hello_from_1.txt", ContentFile("Hello T1"))
-            t1_os_path = self.storage.path(t1_file_name)
-            t1_url = self.storage.url(t1_file_name)
+            storage = self.storage_class(
+                location="{}/{}".format(self.temp_dir, connection.schema_name), base_url="/test_media_url/"
+            )
+            t1_file_name = storage.save("hello_from_1.txt", ContentFile("Hello T1"))
+            t1_os_path = storage.path(t1_file_name)
+            t1_url = storage.url(t1_file_name)
 
         # Switch to tenant2
         with utils.tenant_context(tenant2):
-            t2_file_name = self.storage.save("hello_from_2.txt", ContentFile("Hello T2"))
-            t2_os_path = self.storage.path(t2_file_name)
-            t2_url = self.storage.url(t2_file_name)
+            storage = self.storage_class(
+                location="{}/{}".format(self.temp_dir, connection.schema_name), base_url="/test_media_url/"
+            )
+            t2_file_name = storage.save("hello_from_2.txt", ContentFile("Hello T2"))
+            t2_os_path = storage.path(t2_file_name)
+            t2_url = storage.url(t2_file_name)
 
         # Assert the paths are correct
         self.assertTrue(
