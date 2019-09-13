@@ -23,8 +23,7 @@ class TenantFileSystemStorage(FileSystemStorage):
     @property  # not cached like in parent class
     def base_url(self):
         _url = super().base_url
-        _url = os.path.join(_url,
-                            utils.parse_tenant_config_path(self.relative_media_root))
+        _url = os.path.join(_url, utils.parse_tenant_config_path('%s'))
         if not _url.endswith('/'):
             _url += '/'
         return _url
