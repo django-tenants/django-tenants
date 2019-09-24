@@ -21,7 +21,7 @@ original_backend = import_module(ORIGINAL_BACKEND + '.base')
 EXTRA_SEARCH_PATHS = getattr(settings, 'PG_EXTRA_SEARCH_PATHS', [])
 
 # from the postgresql doc
-SQL_IDENTIFIER_RE = re.compile(r'^[_a-zA-Z][_a-zA-Z0-9]{,62}$')
+SQL_IDENTIFIER_RE = re.compile(r'^[_a-zA-Z0-9]{1,63}$')
 SQL_SCHEMA_NAME_RESERVED_RE = re.compile(r'^pg_', re.IGNORECASE)
 
 
