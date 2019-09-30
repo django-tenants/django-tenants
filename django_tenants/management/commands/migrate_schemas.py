@@ -49,7 +49,7 @@ class MigrateSchemasCommand(SyncCommon):
             executor.run_migrations(tenants=[self.PUBLIC_SCHEMA_NAME])
         if self.sync_tenant:
             if self.schema_name and self.schema_name != self.PUBLIC_SCHEMA_NAME:
-                if not schema_exists(self.schema_name):
+                if not schema_exists(self.schema_name, self.options.get('database', None)):
                     raise RuntimeError('Schema "{}" does not exist'.format(
                         self.schema_name))
                 else:

@@ -136,8 +136,8 @@ def django_is_in_test_mode():
     return hasattr(mail, 'outbox')
 
 
-def schema_exists(schema_name):
-    _connection = connections[get_tenant_database_alias()]
+def schema_exists(schema_name, database=get_tenant_database_alias()):
+    _connection = connections[database]
     cursor = _connection.cursor()
 
     # check if this schema already exists in the db
