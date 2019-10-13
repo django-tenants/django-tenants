@@ -8,7 +8,7 @@ The default Django behaviour is for all tenants to share **one** set of template
 - Location for files uploaded by users (usually stored in a */media* directory)
 - Django templates
 
-Making Django's handling of the above tenant-aware generally consists of four easy steps:
+The process for making Django's file handling tenant-aware generally consists of the following steps:
 
 1. Using a custom tenant-aware ``finder`` for locating files
 2. Specifying where ``finders`` should look for files
@@ -85,7 +85,7 @@ For the path provided above, ``%s`` will be replaced with the current tenant's `
 Configuring the static files storage
 ------------------------------------
 
-By default, Django uses ``StaticFilesStorage`` for collecting static files into a dedicated folder on the server when the ``collectstatic`` management command is run. The location that the files are written to is specified in the ``STATIC_ROOT`` setting (usually set to *staticfiles*).
+By default, Django uses ``StaticFilesStorage`` for collecting static files into a dedicated folder on the server when the ``collectstatic`` management command is run. The location that the files are written to is specified in the ``STATIC_ROOT`` setting (usually configured to point to *'staticfiles'*).
 
 django-tenants provides a replacement tenant-aware ``TenantStaticFilesStorage`` than can be configured by setting:
 
@@ -105,15 +105,20 @@ The command to collect the static files for all tenants is ``collectstatic_schem
     
     ./manage.py collectstatic_schemas --schema=your_tenant_schema_name
 
+.. note::
+
+   If you have configured an HTTP server, like `nginx <https://nginx.org>`_, to serve static files instead of the
+   Django built-in server, then you also need to set ``REWRITE_STATIC_URLS = True``. This tells django-tenants to
+   rewrite ``STATIC_URL`` to include ``MULTITENANT_RELATIVE_STATIC_ROOT`` when static files are requested so that
+   these files can be found and served directly by the external HTTP server.
+
 
 Configuring media file storage
 ------------------------------
 
-By default, any files uploaded by any tenant users will be stored in the same folder specified via the standard ``MEDIA_ROOT`` setting.
+The default Django behavior is to store all files that are uploaded by users in one folder. The path for this upload folder can be configured via the standard ``MEDIA_ROOT`` setting.
 
-This behaviour can be changed for multi-tenant setups so that each tenant will have a dedicated sub-directory for storing its own media files.
-
-To make media file storage tenant-aware, change ``DEFAULT_FILE_STORAGE`` so that ``TenantFileSystemStorage`` replaces the standard ``FileSystemStorage`` handler:
+The above behaviour can be changed for multi-tenant setups so that each tenant will have a dedicated sub-directory for storing user-uploaded files. To do this simply change ``DEFAULT_FILE_STORAGE`` so that ``TenantFileSystemStorage`` replaces the standard ``FileSystemStorage`` handler:
 
 .. code-block:: python
 
@@ -123,14 +128,14 @@ To make media file storage tenant-aware, change ``DEFAULT_FILE_STORAGE`` so that
 
     MULTITENANT_RELATIVE_MEDIA_ROOT = ""  # (default: create sub-directory for each tenant)
 
-The path specified in ``MULTITENANT_RELATIVE_MEDIA_ROOT`` tells ``TenantStaticFilesStorage`` where in ``MEDIA_ROOT`` the tenant's files should be saved. The default behaviour is to just create a sub-directory for each tenant in ``MEDIA_ROOT``.
+The path specified in ``MULTITENANT_RELATIVE_MEDIA_ROOT`` tells ``TenantFileSystemStorage`` where in ``MEDIA_ROOT`` the tenant's files should be saved. The default behaviour is to just create a sub-directory for each tenant in ``MEDIA_ROOT``.
 
 Configuring the template loaders
 --------------------------------
 
 django-tenants provides a tenant-aware template loader that uses the current tenant's ``schema_name`` when looking for templates.
 
-It can be configured by inserting the custom ``loader`` at the top of the list in the ``TEMPLATES`` setting, and specifying the template search path to be used in the ``MULTITENANT_TEMPLATE_DIRS`` setting, as illustrated below:
+It can be configured by inserting the custom ``Loader`` at the top of the list in the ``TEMPLATES`` setting, and specifying the template search path to be used in the ``MULTITENANT_TEMPLATE_DIRS`` setting, as illustrated below:
 
 .. code-block:: python
 
@@ -154,7 +159,7 @@ It can be configured by inserting the custom ``loader`` at the top of the list i
         "absolute/path/to/your_project_dir/tenants/%s/templates"
     ]
 
-Notice that ``django_tenants.template.loaders.filesystem.Loader`` is added at the top of the list. This will cause Django to look for the tenant-specific templates first, before reverting to the standard search path. This makes it possible for tenants to *override* the general project templates as required.
+Notice that ``django_tenants.template.loaders.filesystem.Loader`` is added at the top of the list. This will cause Django to look for the tenant-specific templates first, before reverting to the standard search path. This makes it possible for tenants to *override* individual templates as required.
 
 Just like with standard Django, the first template found will be returned.
 
@@ -167,7 +172,7 @@ Just like with standard Django, the first template found will be returned.
 Specifying a different target directory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-django-tenants can do simple Python string formatting for the various path strings used throughout the configuration steps: any occurances of ``%s`` in the path string will be replaced with the current tenant's schema name during runtime.
+django-tenants supports simple Python string formatting for configuring the various path strings used throughout the configuration steps.  any occurances of ``%s`` in the path string will be replaced with the current tenant's ``schema_name`` during runtime.
 
 This makes it possible to cater for more elaborate folder structures. Some examples are provided below:
 
@@ -180,7 +185,7 @@ This makes it possible to cater for more elaborate folder structures. Some examp
 
     MULTITENANT_RELATIVE_STATIC_ROOT = "tenants/%s
 
-Static files will be collected into -> absolute/path/to/your_project_dir/staticfiles/tenants/``tenant_name``.
+Static files will be collected into -> absolute/path/to/your_project_dir/staticfiles/tenants/``schema_name``.
 
 ...and for media files:
 
@@ -193,4 +198,4 @@ Static files will be collected into -> absolute/path/to/your_project_dir/staticf
 
     MULTITENANT_RELATIVE_MEDIA_ROOT = "%s/other_dir"
 
-Media files will be uploaded at -> absolute/path/to/your_project_dir/apps_dir/media/``tenant_name``/other_dir
+Media files will be uploaded at -> absolute/path/to/your_project_dir/apps_dir/media/``schema_name``/other_dir

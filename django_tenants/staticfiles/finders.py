@@ -5,8 +5,8 @@ from collections import OrderedDict
 
 from django.db import connection
 
-from django_tenants import utils
-from django_tenants.staticfiles.storage import TenantStaticFilesStorage
+from django_tenants import utils as tenant_utils
+from django_tenants.files.storage import TenantFileSystemStorage
 
 
 class TenantFileSystemFinder(FileSystemFinder):
@@ -36,7 +36,7 @@ class TenantFileSystemFinder(FileSystemFinder):
         if self._locations.get(connection.schema_name, None) is None:
             schema_locations = []
             for root in settings.MULTITENANT_STATICFILES_DIRS:
-                root = utils.parse_tenant_config_path(root)
+                root = tenant_utils.parse_tenant_config_path(root)
 
                 if isinstance(root, (list, tuple)):
                     prefix, root = root
@@ -64,7 +64,7 @@ class TenantFileSystemFinder(FileSystemFinder):
             schema_storages = OrderedDict()
 
             for prefix, root in self.locations:
-                filesystem_storage = TenantStaticFilesStorage(location=root)
+                filesystem_storage = TenantFileSystemStorage(location=root)
                 filesystem_storage.prefix = prefix
                 schema_storages[root] = filesystem_storage
 
