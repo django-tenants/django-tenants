@@ -1,4 +1,5 @@
-from django.contrib.staticfiles.finders import FileSystemFinder
+import os
+from django.contrib.staticfiles.finders import AppDirectoriesFinder, FileSystemFinder
 from django.conf import settings
 from django.core.checks import Error
 from collections import OrderedDict
@@ -8,6 +9,39 @@ from django.db import connection
 from django_tenants import utils as tenant_utils
 from django_tenants.files.storage import TenantFileSystemStorage
 
+class TenantAppDirectoriesFinder(AppDirectoriesFinder):
+    """
+    This is a replacement for the AppDirectoriesFinder. The only difference between
+    this and the standard AppDirectoriesFinder implementation is that this one will
+    understand how tenant-aware file handling works and where to search for your
+    files.
+
+    In-detail explanation:
+
+    Let's say that we have a Tenant called "Foo" (foo.com).
+    When we try to access, let's say, foo.com/admin, the browser will issue a request
+    to (among others) foo.com/static/foo/admin/css/base.css , instead of the
+    usual request if we didn't use django-tenants (foo.com/static/admin/css/base.css).
+
+    See the "foo" right before "admin"?
+
+    In order for this to work as expected we must remove the "foo", as we have
+    already added the path "tenants/%s/static" to the paths that Django will
+    look.
+
+    If we didn't remove the "foo" from the path, Django would look in
+    /code/tenants/foo/static/foo/admin/css/base.css , which is wrong.
+
+    Note: Keep in mind that this code won't run at all when behind uWSGI/NGINX/whatever
+    web server you're using. Django won't even know where your static files are at!
+    """
+    def find_in_app(self, app, path):
+        """
+        Find a requested static file in an app's static locations.
+        """
+        if getattr(settings, "MULTITENANT_STATICFILES_DIRS", False):
+            path = os.path.sep.join(path.split(os.path.sep)[1:])
+        return super().find_in_app(app, path)
 
 class TenantFileSystemFinder(FileSystemFinder):
     """
@@ -26,6 +60,19 @@ class TenantFileSystemFinder(FileSystemFinder):
         # the first time they are needed.
         self._locations = {}
         self._storages = {}
+
+    def find_location(self, root, path, prefix=None):
+        """
+        Find a requested static file in a location and return the found
+        absolute path (or ``None`` if no match).
+        """
+        # This will remove the name of the tenant from the path. This will
+        # allow is to correctly match the path when using Djang's built-in
+        # server.
+        # Note that this doesn't matter at all when running in production
+        # mode as Django won't be handling the static files.
+        path = os.path.sep.join(path.split(os.path.sep)[1:])
+        return super().find_location(root, path, prefix)
 
     @property
     def locations(self):
