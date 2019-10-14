@@ -6,8 +6,8 @@ from django.test.utils import override_settings
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.tests.testcases import BaseTestCase
-from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, get_public_schema_name, \
-    get_tenant_domain_model
+from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, \
+    get_public_schema_name, get_tenant_domain_model
 
 from django_tenants.migration_executors import get_executor
 
@@ -525,12 +525,16 @@ class TenantTestCaseTest(BaseTestCase, TenantTestCase):
     """
 
     def test_tenant_survives_after_method1(self):
-        # There is one tenant in the database, the one created by TenantTestCase
-        self.assertEqual(1, get_tenant_model().objects.all().count())
+        # There is one tenant with schema name 'test' in the database, the one created by TenantTestCase
+        self.assertEqual(1, get_tenant_model().objects.filter(
+            schema_name=TenantTestCase.get_test_schema_name()
+        ).count())
 
     def test_tenant_survives_after_method2(self):
         # The same tenant still exists even after the previous method call
-        self.assertEqual(1, get_tenant_model().objects.all().count())
+        self.assertEqual(1, get_tenant_model().objects.filter(
+            schema_name=TenantTestCase.get_test_schema_name()
+        ).count())
 
 
 class TenantManagerMethodsTestCaseTest(BaseTestCase):
