@@ -275,6 +275,22 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
         self.created = [domain, tenant]
 
+    def test_tenant_schema_creation_with_sql_keyword_name(self):
+        tenant = get_tenant_model()(schema_name='select')
+        tenant.save()
+
+        self.assertTrue(schema_exists(tenant.schema_name))
+
+        self.created = [tenant]
+
+    def test_tenant_schema_creation_with_only_numbers_name(self):
+        tenant = get_tenant_model()(schema_name='123')
+        tenant.save()
+
+        self.assertTrue(schema_exists(tenant.schema_name))
+
+        self.created = [tenant]
+
 
 class BaseSyncTest(BaseTestCase):
     """

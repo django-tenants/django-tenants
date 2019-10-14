@@ -244,6 +244,18 @@ For example if you have a field in the ``TenantMixin`` model called company you 
 If no argument are specified for a field then you be promted for the values.
 There is an additional argument of -s which sets up a superuser for that tenant.
 
+
+delete_tenant
+~~~~~~~~~~~~~
+
+The command ``delete_tenant`` deletes a schema
+
+.. code-block:: bash
+
+    ./manage.py delete_tenant
+
+Warning this command will delete a tenant and PostgreSQL schema regardless if ``auto_drop_schema`` is set to False.
+
 PostGIS
 -------
 
