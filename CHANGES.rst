@@ -4,8 +4,10 @@ Changelog
 
 This changelog is used to track all major changes to django-tenants.
 
-v2.2.4 (UNRELEASED)
+v3.0.0 (UNRELEASED)
 ===================
+
+- Django 3 support
 
 **Fixes**
 
