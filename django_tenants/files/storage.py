@@ -53,7 +53,8 @@ class TenantFileSystemStorage(FileSystemStorage):
 
     @property
     def base_url(self):
-        relative_tenant_media_url = utils.parse_tenant_config_path(self.relative_media_url)
+        baseurl = super().base_url
+        relative_tenant_media_url = os.path.join(baseurl, utils.parse_tenant_config_path('%s')) + "/"
 
         if self._base_url is None:
             return relative_tenant_media_url
