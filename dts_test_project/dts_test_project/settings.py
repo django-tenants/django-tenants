@@ -82,8 +82,8 @@ WSGI_APPLICATION = 'dts_test_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django_tenants.postgresql_backend',
-        'NAME': 'dts_test_project',
-        'USER': 'postgres',
+        'NAME': os.environ.get('DATABASE_DB', 'dts_test_project'),
+        'USER': os.environ.get('DATABASE_USER', 'postgres'),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'root'),
         'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
         'PORT': '',
