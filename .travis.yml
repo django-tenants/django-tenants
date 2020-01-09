@@ -1,5 +1,6 @@
 language: python
 python:
+  - "3.5"
   - "3.6"
   - "3.7"
   - "3.8"
@@ -9,10 +10,15 @@ addons:
 services:
   - postgresql
 env:
+  - $DJANGO="Django>=2.1,<2.9"
+  - $DJANGO="Django>=3.0,<3.1"
   matrix:
-   - $DJANGO="Django>=2.1,<2.2"
-   - $DJANGO="Django>=2.2,<3.1"
-
+    exclude:
+      - python: '3.5'
+        env: DJANGO="Django>=3.0,<3.1"
+      - python: '3.8'
+        env: DJANGO="Django>=2.1,<2.9"
+    fast_finish: true
 install:
   - pip install -U pip
   - if [[ $TRAVIS_PYTHON_VERSION == pypy* ]]; then pip install psycopg2cffi; fi
