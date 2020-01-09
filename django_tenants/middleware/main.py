@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import connection
 from django.http import Http404
+from django.urls import set_urlconf
 from django.utils.deprecation import MiddlewareMixin
 
 from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_domain_model
@@ -45,3 +46,4 @@ class TenantMainMiddleware(MiddlewareMixin):
         # Do we have a public-specific urlconf?
         if hasattr(settings, 'PUBLIC_SCHEMA_URLCONF') and request.tenant.schema_name == get_public_schema_name():
             request.urlconf = settings.PUBLIC_SCHEMA_URLCONF
+            set_urlconf(request.urlconf)
