@@ -18,7 +18,7 @@ echo "postgres connection established"
 
 pushd dts_test_project
 
-EXECUTORS=( standard, )
+EXECUTORS=( standard )
 
 for executor in "${EXECUTORS[@]}"; do
     EXECUTOR=$executor python -Wd manage.py test django_tenants.tests
