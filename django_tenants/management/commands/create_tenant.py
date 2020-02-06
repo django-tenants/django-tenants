@@ -23,12 +23,13 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
 
         for field in self.tenant_fields:
-            parser.add_argument('--%s' % field.name,
-                                help='Specifies the %s for tenant.' % field.name)
+            parser.add_argument('--%s' % field.attname,
+                                help='Specifies the %s for tenant.' % field.attname)
+
 
         for field in self.domain_fields:
-            parser.add_argument('--domain-%s' % field.name,
-                                help="Specifies the %s for the tenant's domain." % field.name)
+            parser.add_argument('--domain-%s' % field.attname,
+                                help="Specifies the %s for the tenant's domain." % field.attname)
 
         parser.add_argument('-s', action="store_true",
                             help='Create a superuser afterwards.')
@@ -37,40 +38,40 @@ class Command(BaseCommand):
 
         tenant_data = {}
         for field in self.tenant_fields:
-            input_value = options.get(field.name, None)
-            tenant_data[field.name] = input_value
+            input_value = options.get(field.attname, None)
+            tenant_data[field.attname] = input_value
 
         domain_data = {}
         for field in self.domain_fields:
-            input_value = options.get('domain_%s' % field.name, None)
-            domain_data[field.name] = input_value
+            input_value = options.get('domain_%s' % field.attname, None)
+            domain_data[field.attname] = input_value
 
         while True:
             for field in self.tenant_fields:
-                if tenant_data.get(field.name, '') == '':
+                if tenant_data.get(field.attname, '') == '':
                     input_msg = field.verbose_name
                     default = field.get_default()
                     if default:
                         input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
 
                     input_value = input(force_str('%s: ' % input_msg)) or default
-                    tenant_data[field.name] = input_value
+                    tenant_data[field.attname] = input_value
             tenant = self.store_tenant(**tenant_data)
             if tenant is not None:
                 break
             tenant_data = {}
 
         while True:
-            domain_data['tenant'] = tenant
+            domain_data['tenant_id'] = tenant.pk
             for field in self.domain_fields:
-                if domain_data.get(field.name, '') == '':
+                if domain_data.get(field.attname, '') == '':
                     input_msg = field.verbose_name
                     default = field.get_default()
                     if default:
                         input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
 
                     input_value = input(force_str('%s: ' % input_msg)) or default
-                    domain_data[field.name] = input_value
+                    domain_data[field.attname] = input_value
             domain = self.store_tenant_domain(**domain_data)
             if domain is not None:
                 break
