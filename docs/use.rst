@@ -256,6 +256,34 @@ The command ``delete_tenant`` deletes a schema
 
 Warning this command will delete a tenant and PostgreSQL schema regardless if ``auto_drop_schema`` is set to False.
 
+
+clone_tenant
+~~~~~~~~~~~~~
+
+The command ``clone_tenant`` clones a schema.
+
+.. code-block:: bash
+
+    ./manage.py clone_tenant
+
+
+There are some options to that can be set. You can view all the options by running
+
+.. code-block:: bash
+
+    ./manage.py clone_tenant -h
+
+The main option that you need to know about is the database user to set this
+add ``--db_user`` option to the management command.
+For the example project that comes with Django Tenants run
+
+.. code-block:: bash
+
+    ./manage.py clone_tenant --db_user=django_tenants
+
+Credits to `pg-clone-schema <https://github.com/denishpatel/pg-clone-schema>`_.
+
+
 PostGIS
 -------
 
