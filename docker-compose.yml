@@ -10,14 +10,17 @@ services:
       - POSTGRES_USER=django_tenants
       - POSTGRES_PASSWORD=django_tenants
       - POSTGRES_DB=django_tenants
+      - DATABASE_PORT=5433
+    ports:
+      - "5433:5432"
   web:
     build: .
-    command: gunicorn drawshapes.wsgi:application --bind 0.0.0.0:8000
+    command: gunicorn dts_test_project.wsgi:application --bind 0.0.0.0:8088
     container_name: django_tenants_web
     volumes:
       - .:/code
     ports:
-      - "8080:8080"
+      - "8088:8088"
     depends_on:
       - db
     environment:
