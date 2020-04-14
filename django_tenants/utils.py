@@ -81,21 +81,9 @@ class schema_context(ContextDecorator):
             self.connection.set_tenant(self.previous_tenant)
 
 
-class tenant_context(ContextDecorator):
+class tenant_context(schema_context):
     def __init__(self, *args, **kwargs):
-        self.tenant = args[0]
-        super().__init__()
-
-    def __enter__(self):
-        self.connection = connections[get_tenant_database_alias()]
-        self.previous_tenant = connection.tenant
-        self.connection.set_tenant(self.tenant)
-
-    def __exit__(self, *exc):
-        if self.previous_tenant is None:
-            self.connection.set_schema_to_public()
-        else:
-            self.connection.set_tenant(self.previous_tenant)
+        super().__init__(args[0].schema_name, **kwargs)
 
 
 def clean_tenant_url(url_string):
