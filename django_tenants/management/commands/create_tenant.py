@@ -21,11 +21,9 @@ class Command(BaseCommand):
         super().__init__(*args, **kwargs)
 
     def add_arguments(self, parser):
-
         for field in self.tenant_fields:
             parser.add_argument('--%s' % field.attname,
                                 help='Specifies the %s for tenant.' % field.attname)
-
 
         for field in self.domain_fields:
             parser.add_argument('--domain-%s' % field.attname,
