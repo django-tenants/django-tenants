@@ -714,12 +714,13 @@ class CloneSchema:
         cursor.execute(CLONE_SCHEMA_FUNCTION % {'db_user': self.database_user})
         cursor.close()
 
-    def clone_schema(self, base_schema_name, new_schema_name):
+    def clone_schema(self, base_schema_name, new_schema_name, set_connection=True):
         """
         Creates a new schema `new_schema_name` as a clone of an existing schema
         `old_schema_name`.
         """
-        connection.set_schema_to_public()
+        if set_connection:
+            connection.set_schema_to_public()
         cursor = connection.cursor()
 
         # check if the clone_schema function already exists in the db

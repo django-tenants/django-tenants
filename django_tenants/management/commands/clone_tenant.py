@@ -39,7 +39,6 @@ class Command(BaseCommand):
         parser.add_argument('-s', action="store_true",
                             help='Create a superuser afterwards.')
 
-
     def handle(self, *args, **options):
         TenantModel = get_tenant_model()
         all_tenants = TenantModel.objects.all()
@@ -126,12 +125,8 @@ class Command(BaseCommand):
                 tenant = get_tenant_model()(**fields)
             tenant.auto_create_schema = False
             tenant.save()
-            print('---------------------')
-            print(tenant)
-
-
             clone_schema = CloneSchema(database_user=database_user)
-            clone_schema.clone_schema(clone_schema_from, tenant.schema_name)
+            clone_schema.clone_schema(clone_schema_from, tenant.schema_name, set_connection=False)
             return tenant
         except exceptions.ValidationError as e:
             self.stderr.write("Error: %s" % '; '.join(e.messages))
