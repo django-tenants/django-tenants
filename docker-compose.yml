@@ -1,16 +1,30 @@
-postgres:
-  image: postgres:latest
+version: '3.7'
 
-django-tenants-test:
-  build: .
-  links:
-    - postgres
-  volumes:
-    - .:/code:z
-  command: ./run_tests_in_docker.sh
-  environment:
-    DATABASE_HOST: postgres
-  ports:
-    - "8080:8080"
-  stdin_open: true
-  tty: true
+services:
+  db:
+    image: postgres
+    container_name: django_tenants_db
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=django_tenants
+      - POSTGRES_PASSWORD=django_tenants
+      - POSTGRES_DB=django_tenants
+      - DATABASE_PORT=5433
+    ports:
+      - "5433:5432"
+  web:
+    build: .
+    command: gunicorn dts_test_project.wsgi:application --bind 0.0.0.0:8088
+    container_name: django_tenants_web
+    volumes:
+      - .:/code
+    ports:
+      - "8088:8088"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_USER=django_tenants
+      - DATABASE_PASSWORD=django_tenants
+      - DATABASE_DB=django_tenants
+      - DATABASE_HOST=db

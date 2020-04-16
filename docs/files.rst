@@ -59,7 +59,7 @@ Start by inserting django-tenants' ``django_tenants.staticfiles.finders.TenantFi
     STATICFILES_FINDERS = [
         "django_tenants.staticfiles.finders.TenantFileSystemFinder",  # Must be first
         "django.contrib.staticfiles.finders.FileSystemFinder",
-        "django_tenants.staticfiles.finders.TenantAppDirectoriesFinder", # This replaces Django's AppDirectoriesFinder
+        "django.contrib.staticfiles.finders.AppDirectoriesFinder",
         "compressor.finders.CompressorFinder",
     ]
 
@@ -102,7 +102,7 @@ The path specified in ``MULTITENANT_RELATIVE_STATIC_ROOT`` tells ``TenantStaticF
 The command to collect the static files for all tenants is ``collectstatic_schemas``. The optional ``--schema`` argument can be used to only collect files for a single tenant.
 
 .. code-block:: bash
-
+    
     ./manage.py collectstatic_schemas --schema=your_tenant_schema_name
 
 .. note::

@@ -74,17 +74,6 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         self.include_public_schema = include_public
         self.set_settings_schema(self.schema_name)
         self.search_path_set = False
-
-    def set_schema(self, schema_name, include_public=True):
-        """
-        Main API method to current database schema,
-        but it does not actually modify the db connection.
-        """
-        self.tenant = FakeTenant(schema_name=schema_name)
-        self.schema_name = schema_name
-        self.include_public_schema = include_public
-        self.set_settings_schema(schema_name)
-        self.search_path_set = False
         # Content type can no longer be cached as public and tenant schemas
         # have different models. If someone wants to change this, the cache
         # needs to be separated between public and shared schemas. If this
@@ -94,14 +83,18 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         # wrong model will be fetched.
         ContentType.objects.clear_cache()
 
+    def set_schema(self, schema_name, include_public=True):
+        """
+        Main API method to current database schema,
+        but it does not actually modify the db connection.
+        """
+        self.set_tenant(FakeTenant(schema_name=schema_name), include_public)
+
     def set_schema_to_public(self):
         """
         Instructs to stay in the common 'public' schema.
         """
-        self.tenant = FakeTenant(schema_name=get_public_schema_name())
-        self.schema_name = get_public_schema_name()
-        self.set_settings_schema(self.schema_name)
-        self.search_path_set = False
+        self.set_tenant(FakeTenant(schema_name=get_public_schema_name()))
 
     def set_settings_schema(self, schema_name):
         self.settings_dict['SCHEMA'] = schema_name

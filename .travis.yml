@@ -1,23 +1,41 @@
 language: python
 python:
-  - "3.5"
-  - "3.6"
-  - "3.7"
+  - 3.5
+  - 3.6
+  - 3.7
+  - 3.8
 dist: xenial
 addons:
-  postgresql: "9.5"
+  postgresql: "9.6"
 services:
   - postgresql
+
 env:
-  matrix:
-   - $DJANGO="Django>=2.1,<2.2"
-   - $DJANGO="Django>=2.2,<3.0"
+  - DJANGO="Django>=2.0,<2.1"
+  - DJANGO="Django>=2.1,<2.2"
+  - DJANGO="Django>=2.2,<2.3"
+  - DJANGO="Django>=3.0,<3.1"
+
+matrix:
+  exclude:
+    - python: 3.8
+      env: DJANGO="Django>=1.11,<1.12"
+    - python: 3.8
+      env: DJANGO="Django>=2.0,<2.1"
+    - python: 2.7
+      env: DJANGO="Django>=2.1,<2.2"
+    - python: 3.8
+      env: DJANGO="Django>=2.1,<2.2"
+    - python: 3.8
+      env: DJANGO="Django>=2.2,<2.3"
+    - python: 3.5
+      env: DJANGO="Django>=3.0,<3.1"
 
 install:
   - pip install -U pip
   - if [[ $TRAVIS_PYTHON_VERSION == pypy* ]]; then pip install psycopg2cffi; fi
   - if [[ $TRAVIS_PYTHON_VERSION != pypy* ]]; then pip install psycopg2; fi
-  - pip install -q "$DJANGO"
+  - pip install "$DJANGO"
   - python setup.py develop
 
 before_script:

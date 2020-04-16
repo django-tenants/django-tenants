@@ -1,0 +1,12 @@
+# .readthedocs.yml
+version: 2
+sphinx:
+  builder: html
+  configuration: docs/conf.py
+formats: all
+python:
+  version: 3.7
+  install:
+    - requirements: docs/requirements.txt
+submodules:
+  exclude: all
