@@ -75,6 +75,7 @@ ROOT_URLCONF = 'dts_test_project.urls'
 
 WSGI_APPLICATION = 'dts_test_project.wsgi.application'
 
+SUBFOLDER_PREFIX = 'clients'
 
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
