@@ -98,7 +98,7 @@ class Command(BaseCommand):
                 tenant_data = {}
 
         while True:
-            domain_data['tenant'] = tenant
+            domain_data['tenant_id'] = tenant.id
             for field in self.domain_fields:
                 if domain_data.get(field.attname, '') == '':
                     input_msg = field.verbose_name
