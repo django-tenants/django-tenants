@@ -39,6 +39,10 @@ class Command(BaseCommand):
         parser.add_argument('-s', action="store_true",
                             help='Create a superuser afterwards.')
 
+    def _input(self, question):
+        """Wrapper around 'input' for overriding while testing"""
+        return input(question)
+
     def handle(self, *args, **options):
         tenant_model = get_tenant_model()
         all_tenants = tenant_model.objects.all()
@@ -56,9 +60,9 @@ class Command(BaseCommand):
         while clone_schema_from == '' or clone_schema_from is None:
 
             while True:
-                clone_schema_from = input("Clone Tenant Schema ('?' to list schemas): ")
+                clone_schema_from = self._input("Clone Tenant Schema ('?' to list schemas): ")
                 if clone_schema_from == '?':
-                    print('\n'.join(["%s" % t.schema_name for t in all_tenants]))
+                    self.stdout.write('\n'.join(["%s" % t.schema_name for t in all_tenants]))
                 else:
                     break
 
@@ -66,12 +70,12 @@ class Command(BaseCommand):
 
         clone_tenant_fields = options.get('clone_tenant_fields')
         while clone_tenant_fields is None or clone_tenant_fields.lower() not in ['no', 'yes', 'true', 'false']:
-            clone_tenant_fields = input("Clone Tenant tenant fields: ")
+            clone_tenant_fields = self._input("Clone Tenant tenant fields: ")
 
         if clone_tenant_fields.lower() in ['yes', 'true']:
             new_schema_name = options.get('schema_name')
             while new_schema_name == '' or new_schema_name is None:
-                new_schema_name = input("New tenant schema name: ")
+                new_schema_name = self._input("New tenant schema name: ")
             tenant_data['schema_name'] = new_schema_name
 
             tenant = self.store_tenant(database_user=database_user,
@@ -87,7 +91,7 @@ class Command(BaseCommand):
                         if default:
                             input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
 
-                        input_value = input(force_str('%s: ' % input_msg)) or default
+                        input_value = self._input(force_str('%s: ' % input_msg)) or default
                         tenant_data[field.attname] = input_value
                 tenant = self.store_tenant(database_user=database_user,
                                            clone_schema_from=clone_schema_from,
@@ -106,7 +110,7 @@ class Command(BaseCommand):
                     if default:
                         input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
 
-                    input_value = input(force_str('%s: ' % input_msg)) or default
+                    input_value = self._input(force_str('%s: ' % input_msg)) or default
                     domain_data[field.attname] = input_value
             domain = self.store_tenant_domain(**domain_data)
             if domain is not None:

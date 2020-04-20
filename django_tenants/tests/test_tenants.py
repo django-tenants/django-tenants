@@ -1,13 +1,18 @@
+from io import StringIO
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.management import call_command
 from django.db import connection, transaction
+from django.test import TransactionTestCase
 from django.test.utils import override_settings
 
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.tests.testcases import BaseTestCase
-from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, get_public_schema_name, \
+from django_tenants.utils import tenant_context, schema_context, schema_exists,\
+    get_tenant_model, get_public_schema_name, \
     get_tenant_domain_model
+from django_tenants.management.commands.clone_tenant import Command as CloneTenantCommand
 
 from django_tenants.migration_executors import get_executor
 
@@ -538,3 +543,44 @@ class TenantManagerMethodsTestCaseTest(BaseTestCase):
 
         Client.objects.filter(pk=tenant.pk).delete()
         self.assertFalse(schema_exists(tenant.schema_name))
+
+class InteractiveCloneSchemaTestCase(TransactionTestCase):
+    """
+    Tests the interactive behaviod of the cloneschema command.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        TenantModel = get_tenant_model()
+        DomainModel = get_tenant_domain_model()
+        tenant = TenantModel(schema_name="tenant1")
+        tenant.auto_create_schema = True
+        tenant.save(verbosity=0)
+        DomainModel.objects.create(tenant=tenant, domain="tenant1.test.com", is_primary=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        TenantModel = get_tenant_model()
+        TenantModel.objects.all().delete()
+
+    def test_interactive_clone_schema(self):
+        class CustomCloneTenantCommand(CloneTenantCommand):
+            answer_provider = (
+                n
+                for n in [
+                    "tenant1",  # Would you like to create a database entry?
+                    "yes",  # Clone the tenant fields.
+                    "tenant2",  # Domain name, simulated wrong answer
+                    "tenant2.test.com",  # Domain name, good answer
+                ]
+            )
+
+            def _input(self, question):
+                return next(self.answer_provider)
+
+        with StringIO() as stdout:
+            with StringIO() as stderr:
+                command = CustomCloneTenantCommand(stdout=stdout, stderr=stderr)
+                call_command(command, verbosity=1)
+        self.assertTrue(schema_exists("tenant2"))
+
