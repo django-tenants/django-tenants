@@ -2,7 +2,6 @@
 import sys
 import os
 
-from django_tenants.settings_utils import get_installed_apps
 
 DEBUG = True
 
@@ -174,7 +173,7 @@ TENANT_DOMAIN_MODEL = "customers.Domain"  # app.Model
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
-INSTALLED_APPS = get_installed_apps(shared_app=SHARED_APPS, tenant_app=TENANT_APPS)
+INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
