@@ -44,13 +44,13 @@ class Command(BaseCommand):
         all_tenants = TenantModel.objects.all()
         tenant_data = {}
         for field in self.tenant_fields:
-            input_value = options.get(field.name, None)
-            tenant_data[field.name] = input_value
+            input_value = options.get(field.attname, None)
+            tenant_data[field.attname] = input_value
 
         domain_data = {}
         for field in self.domain_fields:
-            input_value = options.get(field.name, None)
-            domain_data[field.name] = input_value
+            input_value = options.get('domain_%s' % field.attname, None)
+            domain_data[field.attname] = input_value
 
         clone_schema_from = options.get('clone_from')
         while clone_schema_from == '' or clone_schema_from is None:
@@ -81,14 +81,14 @@ class Command(BaseCommand):
         else:
             while True:
                 for field in self.tenant_fields:
-                    if tenant_data.get(field.name, '') == '':
+                    if tenant_data.get(field.attname, '') == '':
                         input_msg = field.verbose_name
                         default = field.get_default()
                         if default:
                             input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
 
                         input_value = input(force_str('%s: ' % input_msg)) or default
-                        tenant_data[field.name] = input_value
+                        tenant_data[field.attname] = input_value
                 tenant = self.store_tenant(database_user=database_user,
                                            clone_schema_from=clone_schema_from,
                                            clone_tenant_fields=False,
@@ -100,14 +100,14 @@ class Command(BaseCommand):
         while True:
             domain_data['tenant'] = tenant
             for field in self.domain_fields:
-                if domain_data.get(field.name, '') == '':
+                if domain_data.get(field.attname, '') == '':
                     input_msg = field.verbose_name
                     default = field.get_default()
                     if default:
                         input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
 
                     input_value = input(force_str('%s: ' % input_msg)) or default
-                    domain_data[field.name] = input_value
+                    domain_data[field.attname] = input_value
             domain = self.store_tenant_domain(**domain_data)
             if domain is not None:
                 break
@@ -131,7 +131,8 @@ class Command(BaseCommand):
         except exceptions.ValidationError as e:
             self.stderr.write("Error: %s" % '; '.join(e.messages))
             return None
-        except IntegrityError:
+        except IntegrityError as e:
+            self.stderr.write("Error: " + str(e))
             return None
 
     def store_tenant_domain(self, **fields):
@@ -142,5 +143,6 @@ class Command(BaseCommand):
         except exceptions.ValidationError as e:
             self.stderr.write("Error: %s" % '; '.join(e.messages))
             return None
-        except IntegrityError:
+        except IntegrityError as e:
+            self.stderr.write("Error: " + str(e))
             return None
