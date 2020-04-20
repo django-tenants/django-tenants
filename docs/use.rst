@@ -220,6 +220,19 @@ If you don't specify a schema, you will be prompted to enter one. Otherwise, you
 
     ./manage.py tenant_command loaddata --schema=customer1
 
+
+
+all_tenants_command
+~~~~~~~~~~~~~~~~~~~
+
+To run any command on an every schema, you can use the special ``all_tenants_command``, which creates a wrapper around your command so that it run on every schema. For example
+
+.. code-block:: bash
+
+    ./manage.py all_tenants_command loaddata
+
+
+
 create_tenant_superuser
 ~~~~~~~~~~~~~~~~~~~~~~~
 

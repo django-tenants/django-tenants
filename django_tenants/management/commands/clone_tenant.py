@@ -40,8 +40,8 @@ class Command(BaseCommand):
                             help='Create a superuser afterwards.')
 
     def handle(self, *args, **options):
-        TenantModel = get_tenant_model()
-        all_tenants = TenantModel.objects.all()
+        tenant_model = get_tenant_model()
+        all_tenants = tenant_model.objects.all()
         tenant_data = {}
         for field in self.tenant_fields:
             input_value = options.get(field.attname, None)
