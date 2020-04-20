@@ -544,9 +544,10 @@ class TenantManagerMethodsTestCaseTest(BaseTestCase):
         Client.objects.filter(pk=tenant.pk).delete()
         self.assertFalse(schema_exists(tenant.schema_name))
 
+
 class InteractiveCloneSchemaTestCase(TransactionTestCase):
     """
-    Tests the interactive behaviod of the cloneschema command.
+    Tests the interactive behaviod of the clone_tenant command.
     """
 
     @classmethod

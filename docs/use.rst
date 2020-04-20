@@ -286,14 +286,6 @@ There are some options to that can be set. You can view all the options by runni
 
     ./manage.py clone_tenant -h
 
-The main option that you need to know about is the database user to set this
-add ``--db_user`` option to the management command.
-For the example project that comes with Django Tenants run
-
-.. code-block:: bash
-
-    ./manage.py clone_tenant --db_user=django_tenants
-
 Credits to `pg-clone-schema <https://github.com/denishpatel/pg-clone-schema>`_.
 
 

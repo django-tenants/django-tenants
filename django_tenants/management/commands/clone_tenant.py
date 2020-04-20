@@ -66,8 +66,6 @@ class Command(BaseCommand):
                 else:
                     break
 
-        database_user = options.get('db_user', '')
-
         clone_tenant_fields = options.get('clone_tenant_fields')
         while clone_tenant_fields is None or clone_tenant_fields.lower() not in ['no', 'yes', 'true', 'false']:
             clone_tenant_fields = self._input("Clone Tenant tenant fields: ")
@@ -78,8 +76,7 @@ class Command(BaseCommand):
                 new_schema_name = self._input("New tenant schema name: ")
             tenant_data['schema_name'] = new_schema_name
 
-            tenant = self.store_tenant(database_user=database_user,
-                                       clone_schema_from=clone_schema_from,
+            tenant = self.store_tenant(clone_schema_from=clone_schema_from,
                                        clone_tenant_fields=True,
                                        **tenant_data)
         else:
@@ -93,8 +90,7 @@ class Command(BaseCommand):
 
                         input_value = self._input(force_str('%s: ' % input_msg)) or default
                         tenant_data[field.attname] = input_value
-                tenant = self.store_tenant(database_user=database_user,
-                                           clone_schema_from=clone_schema_from,
+                tenant = self.store_tenant(clone_schema_from=clone_schema_from,
                                            clone_tenant_fields=False,
                                            **tenant_data)
                 if tenant is not None:
@@ -117,7 +113,7 @@ class Command(BaseCommand):
                 break
             domain_data = {}
 
-    def store_tenant(self, database_user, clone_schema_from, clone_tenant_fields, **fields):
+    def store_tenant(self, clone_schema_from, clone_tenant_fields, **fields):
 
         connection.set_schema_to_public()
         try:
@@ -129,7 +125,7 @@ class Command(BaseCommand):
                 tenant = get_tenant_model()(**fields)
             tenant.auto_create_schema = False
             tenant.save()
-            clone_schema = CloneSchema(database_user=database_user)
+            clone_schema = CloneSchema()
             clone_schema.clone_schema(clone_schema_from, tenant.schema_name, set_connection=False)
             return tenant
         except exceptions.ValidationError as e:

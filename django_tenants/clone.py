@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import connection, transaction
 from django.db.utils import ProgrammingError
 
@@ -695,14 +696,12 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION public.clone_schema(text, text, boolean, boolean) OWNER TO %(db_user)s;
+ALTER FUNCTION public.clone_schema(text, text, boolean, boolean) OWNER TO {user};
 """
 
 
 class CloneSchema:
 
-    def __init__(self, database_user='postgres'):
-        self.database_user = database_user
 
     def _create_clone_schema_function(self):
         """
@@ -711,7 +710,8 @@ class CloneSchema:
         `postgres` superuser.
         """
         cursor = connection.cursor()
-        cursor.execute(CLONE_SCHEMA_FUNCTION % {'db_user': self.database_user})
+        cursor.execute(CLONE_SCHEMA_FUNCTION.format(
+            user=settings.DATABASES["default"].get("USER", None) or "postgres"))
         cursor.close()
 
     def clone_schema(self, base_schema_name, new_schema_name, set_connection=True):
