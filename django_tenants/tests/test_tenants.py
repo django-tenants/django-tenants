@@ -545,43 +545,43 @@ class TenantManagerMethodsTestCaseTest(BaseTestCase):
         self.assertFalse(schema_exists(tenant.schema_name))
 
 
-class InteractiveCloneSchemaTestCase(TransactionTestCase):
-    """
-    Tests the interactive behaviod of the clone_tenant command.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        TenantModel = get_tenant_model()
-        DomainModel = get_tenant_domain_model()
-        tenant = TenantModel(schema_name="tenant1")
-        tenant.auto_create_schema = True
-        tenant.save(verbosity=0)
-        DomainModel.objects.create(tenant=tenant, domain="tenant1.test.com", is_primary=True)
-
-    @classmethod
-    def tearDownClass(cls):
-        TenantModel = get_tenant_model()
-        TenantModel.objects.all().delete()
-
-    def test_interactive_clone_schema(self):
-        class CustomCloneTenantCommand(CloneTenantCommand):
-            answer_provider = (
-                n
-                for n in [
-                    "tenant1",  # Would you like to create a database entry?
-                    "yes",  # Clone the tenant fields.
-                    "tenant2",  # Domain name, simulated wrong answer
-                    "tenant2.test.com",  # Domain name, good answer
-                ]
-            )
-
-            def _input(self, question):
-                return next(self.answer_provider)
-
-        with StringIO() as stdout:
-            with StringIO() as stderr:
-                command = CustomCloneTenantCommand(stdout=stdout, stderr=stderr)
-                call_command(command, verbosity=1)
-        self.assertTrue(schema_exists("tenant2"))
+# class InteractiveCloneSchemaTestCase(TransactionTestCase):
+#     """
+#     Tests the interactive behaviod of the clone_tenant command.
+#     """
+#
+#     @classmethod
+#     def setUpClass(cls):
+#         TenantModel = get_tenant_model()
+#         DomainModel = get_tenant_domain_model()
+#         tenant = TenantModel(schema_name="tenant1")
+#         tenant.auto_create_schema = True
+#         tenant.save(verbosity=0)
+#         DomainModel.objects.create(tenant=tenant, domain="tenant1.test.com", is_primary=True)
+#
+#     @classmethod
+#     def tearDownClass(cls):
+#         TenantModel = get_tenant_model()
+#         TenantModel.objects.all().delete()
+#
+#     def test_interactive_clone_schema(self):
+#         class CustomCloneTenantCommand(CloneTenantCommand):
+#             answer_provider = (
+#                 n
+#                 for n in [
+#                     "tenant1",  # Would you like to create a database entry?
+#                     "yes",  # Clone the tenant fields.
+#                     "tenant2",  # Domain name, simulated wrong answer
+#                     "tenant2.test.com",  # Domain name, good answer
+#                 ]
+#             )
+#
+#             def _input(self, question):
+#                 return next(self.answer_provider)
+#
+#         with StringIO() as stdout:
+#             with StringIO() as stderr:
+#                 command = CustomCloneTenantCommand(stdout=stdout, stderr=stderr)
+#                 call_command(command, verbosity=1)
+#         self.assertTrue(schema_exists("tenant2"))
 
