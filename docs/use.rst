@@ -220,6 +220,19 @@ If you don't specify a schema, you will be prompted to enter one. Otherwise, you
 
     ./manage.py tenant_command loaddata --schema=customer1
 
+
+
+all_tenants_command
+~~~~~~~~~~~~~~~~~~~
+
+To run any command on an every schema, you can use the special ``all_tenants_command``, which creates a wrapper around your command so that it run on every schema. For example
+
+.. code-block:: bash
+
+    ./manage.py all_tenants_command loaddata
+
+
+
 create_tenant_superuser
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -272,14 +285,6 @@ There are some options to that can be set. You can view all the options by runni
 .. code-block:: bash
 
     ./manage.py clone_tenant -h
-
-The main option that you need to know about is the database user to set this
-add ``--db_user`` option to the management command.
-For the example project that comes with Django Tenants run
-
-.. code-block:: bash
-
-    ./manage.py clone_tenant --db_user=django_tenants
 
 Credits to `pg-clone-schema <https://github.com/denishpatel/pg-clone-schema>`_.
 

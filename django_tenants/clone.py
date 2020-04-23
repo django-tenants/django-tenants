@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import connection, transaction
 from django.db.utils import ProgrammingError
 
@@ -73,7 +74,7 @@ BEGIN
    WHERE nspname = quote_ident(source_schema);
   IF NOT FOUND
     THEN
-    RAISE NOTICE 'source schema %% does not exist!', source_schema;
+    RAISE NOTICE 'source schema % does not exist!', source_schema;
     RETURN ;
   END IF;
 
@@ -83,7 +84,7 @@ BEGIN
    WHERE nspname = quote_ident(dest_schema);
   IF FOUND
     THEN
-    RAISE NOTICE 'dest schema %% already exists!', dest_schema;
+    RAISE NOTICE 'dest schema % already exists!', dest_schema;
     RETURN ;
   END IF;
   IF ddl_only and include_recs THEN
@@ -94,7 +95,7 @@ BEGIN
   -- Set the search_path to source schema. Before exiting set it back to what it was before.
   SELECT setting INTO src_path_old FROM pg_settings WHERE name='search_path';
   EXECUTE 'SET search_path = ' || quote_ident(source_schema) ;
-  -- RAISE NOTICE 'Using source search_path=%%', buffer;
+  -- RAISE NOTICE 'Using source search_path=%', buffer;
 
   -- Validate required types exist.  If not, create them.
   select a.objtypecnt, b.permtypecnt INTO cnt, cnt2 FROM
@@ -118,7 +119,7 @@ BEGIN
   END IF;
 
   IF ddl_only THEN
-    RAISE NOTICE '%%', 'CREATE SCHEMA ' || quote_ident(dest_schema);
+    RAISE NOTICE '%', 'CREATE SCHEMA ' || quote_ident(dest_schema);
   ELSE
     EXECUTE 'CREATE SCHEMA ' || quote_ident(dest_schema) ;
   END IF;
@@ -129,18 +130,18 @@ BEGIN
   FOR arec IN
     SELECT n.nspname as schemaname, a.rolname as ownername , c.collname, c.collprovider,  c.collcollate as locale,
     'CREATE COLLATION ' || quote_ident(dest_schema) || '."' || c.collname || '" (provider = ' || CASE WHEN c.collprovider = 'i' THEN 'icu' WHEN c.collprovider = 'c' THEN 'libc' ELSE '' END || ', locale = ''' || c.collcollate || ''');' as COLL_DDL
-    FROM pg_collation c JOIN pg_namespace n ON (c.collnamespace = n.oid) JOIN pg_authid a ON (c.collowner = a.oid) WHERE n.nspname = quote_ident(source_schema) order by c.collname
+    FROM pg_collation c JOIN pg_namespace n ON (c.collnamespace = n.oid) JOIN pg_roles a ON (c.collowner = a.oid) WHERE n.nspname = quote_ident(source_schema) order by c.collname
   LOOP
     BEGIN
       cnt := cnt + 1;
       IF ddl_only THEN
-        RAISE INFO '%%', arec.coll_ddl;
+        RAISE INFO '%', arec.coll_ddl;
       ELSE
         EXECUTE arec.coll_ddl;
       END IF;
     END;
   END LOOP;
-  RAISE NOTICE '  COLLATIONS cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '  COLLATIONS cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- MV: Create Domains
   action := 'Domains';
@@ -160,13 +161,13 @@ BEGIN
     BEGIN
       cnt := cnt + 1;
       IF ddl_only THEN
-        RAISE INFO '%%', arec.dom_ddl;
+        RAISE INFO '%', arec.dom_ddl;
       ELSE
         EXECUTE arec.dom_ddl;
       END IF;
     END;
   END LOOP;
-  RAISE NOTICE '     DOMAINS cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '     DOMAINS cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- MV: Create types
   action := 'Types';
@@ -185,26 +186,26 @@ BEGIN
       cnt := cnt + 1;
       -- Keep composite and enum types in separate branches for fine tuning later if needed.
       IF arec.typcategory = 'E' THEN
-          -- RAISE NOTICE '%%', arec.type_ddl;
+          -- RAISE NOTICE '%', arec.type_ddl;
       IF ddl_only THEN
-        RAISE INFO '%%', arec.type_ddl;
+        RAISE INFO '%', arec.type_ddl;
       ELSE
         EXECUTE arec.type_ddl;
       END IF;
 
       ELSEIF arec.typcategory = 'C' THEN
-        -- RAISE NOTICE '%%', arec.type_ddl;
+        -- RAISE NOTICE '%', arec.type_ddl;
         IF ddl_only THEN
-          RAISE INFO '%%', arec.type_ddl;
+          RAISE INFO '%', arec.type_ddl;
         ELSE
           EXECUTE arec.type_ddl;
         END IF;
       ELSE
-          RAISE NOTICE 'Unhandled type:%%-%%', arec.typcategory, arec.typname;
+          RAISE NOTICE 'Unhandled type:%-%', arec.typcategory, arec.typname;
       END IF;
     END;
   END LOOP;
-  RAISE NOTICE '       TYPES cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '       TYPES cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- Create sequences
   action := 'Sequences';
@@ -217,7 +218,7 @@ BEGIN
   LOOP
     cnt := cnt + 1;
     IF ddl_only THEN
-      RAISE INFO '%%', 'CREATE SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(object) || ';';
+      RAISE INFO '%', 'CREATE SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(object) || ';';
     ELSE
       EXECUTE 'CREATE SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(object);
     END IF;
@@ -249,7 +250,7 @@ BEGIN
            || ' '              || sq_cycled || ' ;' ;
 
     IF ddl_only THEN
-      RAISE INFO '%%', qry;
+      RAISE INFO '%', qry;
     ELSE
       EXECUTE qry;
     END IF;
@@ -259,14 +260,14 @@ BEGIN
       EXECUTE 'SELECT setval( ''' || buffer || ''', ' || sq_last_value || ', ' || sq_is_called || ');' ;
     ELSE
       if ddl_only THEN
-        RAISE INFO '%%', 'SELECT setval( ''' || buffer || ''', ' || sq_start_value || ', ' || sq_is_called || ');' ;
+        RAISE INFO '%', 'SELECT setval( ''' || buffer || ''', ' || sq_start_value || ', ' || sq_is_called || ');' ;
       ELSE
         EXECUTE 'SELECT setval( ''' || buffer || ''', ' || sq_start_value || ', ' || sq_is_called || ');' ;
       END IF;
 
     END IF;
   END LOOP;
-  RAISE NOTICE '   SEQUENCES cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '   SEQUENCES cloned: %', LPAD(cnt::text, 5, ' ');
 
 -- Create tables
   action := 'Tables';
@@ -281,7 +282,7 @@ BEGIN
     cnt := cnt + 1;
     buffer := quote_ident(dest_schema) || '.' || quote_ident(object);
     IF ddl_only THEN
-      RAISE INFO '%%', 'CREATE TABLE ' || buffer || ' (LIKE ' || quote_ident(source_schema) || '.' || quote_ident(object) || ' INCLUDING ALL)';
+      RAISE INFO '%', 'CREATE TABLE ' || buffer || ' (LIKE ' || quote_ident(source_schema) || '.' || quote_ident(object) || ' INCLUDING ALL)';
     ELSE
       EXECUTE 'CREATE TABLE ' || buffer || ' (LIKE ' || quote_ident(source_schema) || '.' || quote_ident(object) || ' INCLUDING ALL)';
     END IF;
@@ -300,7 +301,7 @@ BEGIN
         ORDER BY old.indexname, new.indexname
     LOOP
       IF ddl_only THEN
-        RAISE INFO '%%', 'ALTER INDEX ' || quote_ident(dest_schema) || '.'  || quote_ident(ix_new_name) || ' RENAME TO ' || quote_ident(ix_old_name) || ';';
+        RAISE INFO '%', 'ALTER INDEX ' || quote_ident(dest_schema) || '.'  || quote_ident(ix_new_name) || ' RENAME TO ' || quote_ident(ix_old_name) || ';';
       ELSE
         EXECUTE 'ALTER INDEX ' || quote_ident(dest_schema) || '.'  || quote_ident(ix_new_name) || ' RENAME TO ' || quote_ident(ix_old_name) || ';';
       END IF;
@@ -309,7 +310,7 @@ BEGIN
     IF include_recs
       THEN
       -- Insert records from source table
-      RAISE NOTICE 'Populating cloned table, %%', buffer;
+      RAISE NOTICE 'Populating cloned table, %', buffer;
       EXECUTE 'INSERT INTO ' || buffer || ' SELECT * FROM ' || quote_ident(source_schema) || '.' || quote_ident(object) || ';';
     END IF;
 
@@ -320,11 +321,11 @@ BEGIN
         FROM information_schema.COLUMNS
        WHERE table_schema = source_schema
          AND TABLE_NAME = object
-         AND column_default LIKE 'nextval(%%' || quote_ident(source_schema) || '%%::regclass)'
+         AND column_default LIKE 'nextval(%' || quote_ident(source_schema) || '%::regclass)'
     LOOP
       IF ddl_only THEN
         -- May need to come back and revisit this since previous sql will not return anything since no schema as created!
-        RAISE INFO '%%', 'ALTER TABLE ' || buffer || ' ALTER COLUMN ' || column_ || ' SET DEFAULT ' || default_ || ';';
+        RAISE INFO '%', 'ALTER TABLE ' || buffer || ' ALTER COLUMN ' || column_ || ' SET DEFAULT ' || default_ || ';';
       ELSE
         EXECUTE 'ALTER TABLE ' || buffer || ' ALTER COLUMN ' || column_ || ' SET DEFAULT ' || default_;
       END IF;
@@ -332,7 +333,7 @@ BEGIN
     EXECUTE 'SET search_path = ' || quote_ident(source_schema) ;
 
   END LOOP;
-  RAISE NOTICE '      TABLES cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '      TABLES cloned: %', LPAD(cnt::text, 5, ' ');
 
   --  add FK constraint
   action := 'FK Constraints';
@@ -349,13 +350,13 @@ BEGIN
   LOOP
     cnt := cnt + 1;
     IF ddl_only THEN
-      RAISE INFO '%%', qry;
+      RAISE INFO '%', qry;
     ELSE
       EXECUTE qry;
     END IF;
   END LOOP;
   EXECUTE 'SET search_path = ' || quote_ident(source_schema) ;
-  RAISE NOTICE '       FKEYS cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '       FKEYS cloned: %', LPAD(cnt::text, 5, ' ');
 
 -- Create views
   action := 'Views';
@@ -375,12 +376,12 @@ BEGIN
        AND table_name = quote_ident(object);
 
     IF ddl_only THEN
-      RAISE INFO '%%', 'CREATE OR REPLACE VIEW ' || buffer || ' AS ' || v_def || ';' ;
+      RAISE INFO '%', 'CREATE OR REPLACE VIEW ' || buffer || ' AS ' || v_def || ';' ;
     ELSE
     EXECUTE 'CREATE OR REPLACE VIEW ' || buffer || ' AS ' || v_def || ';' ;
     END IF;
   END LOOP;
-  RAISE NOTICE '       VIEWS cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '       VIEWS cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- Create Materialized views
     action := 'Mat. Views';
@@ -403,7 +404,7 @@ BEGIN
            EXECUTE 'CREATE MATERIALIZED VIEW ' || buffer || ' AS ' || v_def || ';' ;
          ELSE
            IF ddl_only THEN
-             RAISE INFO '%%', 'CREATE MATERIALIZED VIEW ' || buffer || ' AS ' || v_def || ' WITH NO DATA;' ;
+             RAISE INFO '%', 'CREATE MATERIALIZED VIEW ' || buffer || ' AS ' || v_def || ' WITH NO DATA;' ;
            ELSE
              EXECUTE 'CREATE MATERIALIZED VIEW ' || buffer || ' AS ' || v_def || ' WITH NO DATA;' ;
            END IF;
@@ -411,7 +412,7 @@ BEGIN
          END IF;
 
     END LOOP;
-    RAISE NOTICE '   MAT VIEWS cloned: %%', LPAD(cnt::text, 5, ' ');
+    RAISE NOTICE '   MAT VIEWS cloned: %', LPAD(cnt::text, 5, ' ');
 
 -- Create functions
   action := 'Functions';
@@ -425,13 +426,13 @@ BEGIN
     SELECT pg_get_functiondef(func_oid) INTO qry;
     SELECT replace(qry, source_schema, dest_schema) INTO dest_qry;
     IF ddl_only THEN
-      RAISE INFO '%%', dest_qry;
+      RAISE INFO '%', dest_qry;
     ELSE
       EXECUTE dest_qry;
     END IF;
 
   END LOOP;
-  RAISE NOTICE '   FUNCTIONS cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '   FUNCTIONS cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- MV: Create Triggers
   action := 'Triggers';
@@ -445,14 +446,14 @@ BEGIN
     BEGIN
       cnt := cnt + 1;
       IF ddl_only THEN
-        RAISE INFO '%%', arec.trig_ddl;
+        RAISE INFO '%', arec.trig_ddl;
       ELSE
         EXECUTE arec.trig_ddl;
       END IF;
 
     END;
   END LOOP;
-  RAISE NOTICE '    TRIGGERS cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '    TRIGGERS cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- ---------------------
   -- MV: Permissions: Defaults
@@ -466,24 +467,24 @@ BEGIN
     FROM pg_catalog.pg_default_acl d LEFT JOIN pg_catalog.pg_namespace n ON (n.oid = d.defaclnamespace) WHERE n.nspname IS NOT NULL and n.nspname = quote_ident(source_schema) ORDER BY 3, 2, 1
   LOOP
     BEGIN
-      -- RAISE NOTICE 'owner=%%  type=%%  defaclacl=%%  defaclstr=%%', arec.owner, arec.atype, arec.defaclacl, arec.defaclstr;
+      -- RAISE NOTICE 'owner=%  type=%  defaclacl=%  defaclstr=%', arec.owner, arec.atype, arec.defaclacl, arec.defaclstr;
 
       FOREACH aclstr IN ARRAY arec.defaclacl
       LOOP
           cnt := cnt + 1;
-          -- RAISE NOTICE 'aclstr=%%', aclstr;
+          -- RAISE NOTICE 'aclstr=%', aclstr;
           -- break up into grantor, grantee, and privs, mydb_update=rwU/mydb_owner
           SELECT split_part(aclstr, '=',1) INTO grantee;
           SELECT split_part(aclstr, '=',2) INTO grantor;
           SELECT split_part(grantor, '/',1) INTO privs;
           SELECT split_part(grantor, '/',2) INTO grantor;
-          -- RAISE NOTICE 'grantor=%%  grantee=%%  privs=%%', grantor, grantee, privs;
+          -- RAISE NOTICE 'grantor=%  grantee=%  privs=%', grantor, grantee, privs;
 
           IF arec.atype = 'function' THEN
             -- Just having execute is enough to grant all apparently.
             buffer := 'ALTER DEFAULT PRIVILEGES FOR ROLE ' || grantor || ' IN SCHEMA ' || quote_ident(dest_schema) || ' GRANT ALL ON FUNCTIONS TO "' || grantee || '";';
             IF ddl_only THEN
-              RAISE INFO '%%', buffer;
+              RAISE INFO '%', buffer;
             ELSE
               EXECUTE buffer;
             END IF;
@@ -493,7 +494,7 @@ BEGIN
               -- arU is enough for all privs
               buffer := 'ALTER DEFAULT PRIVILEGES FOR ROLE ' || grantor || ' IN SCHEMA ' || quote_ident(dest_schema) || ' GRANT ALL ON SEQUENCES TO "' || grantee || '";';
               IF ddl_only THEN
-                RAISE INFO '%%', buffer;
+                RAISE INFO '%', buffer;
               ELSE
                 EXECUTE buffer;
               END IF;
@@ -520,7 +521,7 @@ BEGIN
               END IF;
               buffer := 'ALTER DEFAULT PRIVILEGES FOR ROLE ' || grantor || ' IN SCHEMA ' || quote_ident(dest_schema) || ' GRANT ' || buffer2 || ' ON SEQUENCES TO "' || grantee || '";';
               IF ddl_only THEN
-                RAISE INFO '%%', buffer;
+                RAISE INFO '%', buffer;
               ELSE
                 EXECUTE buffer;
               END IF;
@@ -569,19 +570,19 @@ BEGIN
             END IF;
             buffer := 'ALTER DEFAULT PRIVILEGES FOR ROLE ' || grantor || ' IN SCHEMA ' || quote_ident(dest_schema) || ' GRANT ' || buffer2 || ' ON TABLES TO "' || grantee || '";';
             IF ddl_only THEN
-              RAISE INFO '%%', buffer;
+              RAISE INFO '%', buffer;
             ELSE
               EXECUTE buffer;
             END IF;
 
           ELSE
-              RAISE WARNING 'Doing nothing for type=%%  privs=%%', arec.atype, privs;
+              RAISE WARNING 'Doing nothing for type=%  privs=%', arec.atype, privs;
           END IF;
       END LOOP;
     END;
   END LOOP;
 
-  RAISE NOTICE '  DFLT PRIVS cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '  DFLT PRIVS cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- MV: PRIVS: schema
   -- crunchy data extension, check_access
@@ -598,14 +599,14 @@ BEGIN
     BEGIN
       cnt := cnt + 1;
       IF ddl_only THEN
-        RAISE INFO '%%', arec.schema_ddl;
+        RAISE INFO '%', arec.schema_ddl;
       ELSE
         EXECUTE arec.schema_ddl;
       END IF;
 
     END;
   END LOOP;
-  RAISE NOTICE 'SCHEMA PRIVS cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE 'SCHEMA PRIVS cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- MV: PRIVS: sequences
   action := 'PRIVS: Sequences';
@@ -618,14 +619,14 @@ BEGIN
     BEGIN
       cnt := cnt + 1;
       IF ddl_only THEN
-        RAISE INFO '%%', arec.seq_ddl;
+        RAISE INFO '%', arec.seq_ddl;
       ELSE
         EXECUTE arec.seq_ddl;
       END IF;
 
     END;
   END LOOP;
-  RAISE NOTICE '  SEQ. PRIVS cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '  SEQ. PRIVS cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- MV: PRIVS: functions
   action := 'PRIVS: Functions';
@@ -638,14 +639,14 @@ BEGIN
     BEGIN
       cnt := cnt + 1;
       IF ddl_only THEN
-        RAISE INFO '%%', arec.func_ddl;
+        RAISE INFO '%', arec.func_ddl;
       ELSE
         EXECUTE arec.func_ddl;
       END IF;
 
     END;
   END LOOP;
-  RAISE NOTICE '  FUNC PRIVS cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '  FUNC PRIVS cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- MV: PRIVS: tables
   action := 'PRIVS: Tables';
@@ -659,12 +660,12 @@ BEGIN
   LOOP
     BEGIN
       cnt := cnt + 1;
-      -- RAISE NOTICE 'ddl=%%', arec.tbl_ddl;
+      -- RAISE NOTICE 'ddl=%', arec.tbl_ddl;
       IF arec.relkind = 'f' THEN
-        RAISE WARNING 'Foreign tables are not currently implemented, so skipping privs for them. ddl=%%', arec.tbl_ddl;
+        RAISE WARNING 'Foreign tables are not currently implemented, so skipping privs for them. ddl=%', arec.tbl_ddl;
       ELSE
         IF ddl_only THEN
-          RAISE INFO '%%', arec.tbl_ddl;
+          RAISE INFO '%', arec.tbl_ddl;
         ELSE
           EXECUTE arec.tbl_ddl;
         END IF;
@@ -672,7 +673,7 @@ BEGIN
       END IF;
     END;
   END LOOP;
-  RAISE NOTICE ' TABLE PRIVS cloned: %%', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE ' TABLE PRIVS cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- Set the search_path back to what it was before
   EXECUTE 'SET search_path = ' || src_path_old;
@@ -683,7 +684,7 @@ BEGIN
          GET STACKED DIAGNOSTICS v_diag1 = MESSAGE_TEXT, v_diag2 = PG_EXCEPTION_DETAIL, v_diag3 = PG_EXCEPTION_HINT, v_diag4 = RETURNED_SQLSTATE, v_diag5 = PG_CONTEXT, v_diag6 = PG_EXCEPTION_CONTEXT;
  	 -- v_ret := 'line=' || v_diag6 || '. '|| v_diag4 || '. ' || v_diag1 || ' .' || v_diag2 || ' .' || v_diag3;
  	 v_ret := 'line=' || v_diag6 || '. '|| v_diag4 || '. ' || v_diag1;
-         RAISE EXCEPTION 'Action: %%  Diagnostics: %%',action, v_ret;
+         RAISE EXCEPTION 'Action: %  Diagnostics: %',action, v_ret;
          -- Set the search_path back to what it was before
          EXECUTE 'SET search_path = ' || src_path_old;
          RETURN;
@@ -695,14 +696,11 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION public.clone_schema(text, text, boolean, boolean) OWNER TO %(db_user)s;
+ALTER FUNCTION public.clone_schema(text, text, boolean, boolean) OWNER TO {db_user};
 """
 
 
 class CloneSchema:
-
-    def __init__(self, database_user='postgres'):
-        self.database_user = database_user
 
     def _create_clone_schema_function(self):
         """
@@ -711,7 +709,9 @@ class CloneSchema:
         `postgres` superuser.
         """
         cursor = connection.cursor()
-        cursor.execute(CLONE_SCHEMA_FUNCTION % {'db_user': self.database_user})
+
+        db_user = settings.DATABASES["default"].get("USER", None) or "postgres"
+        cursor.execute(CLONE_SCHEMA_FUNCTION.format(db_user=db_user))
         cursor.close()
 
     def clone_schema(self, base_schema_name, new_schema_name, set_connection=True):
