@@ -4,11 +4,12 @@ from django.db import connection, transaction
 from django.test.utils import override_settings
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 
+from django_tenants.clone import CloneSchema
 from django_tenants.migration_executors import get_executor
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, \
-    get_public_schema_name, get_tenant_domain_model
+    get_public_schema_name, get_tenant_domain_model, schema_rename
 
 
 class TenantDataAndSettingsTest(BaseTestCase):
@@ -553,44 +554,29 @@ class TenantManagerMethodsTestCaseTest(BaseTestCase):
         Client.objects.filter(pk=tenant.pk).delete()
         self.assertFalse(schema_exists(tenant.schema_name))
 
+    def test_rename_schema_ok(self):
+        Client = get_tenant_model()
+        Client.auto_drop_schema = True
+        tenant = Client(schema_name='test')
+        tenant.save()
+        self.assertTrue(schema_exists(tenant.schema_name))
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+        schema_rename(tenant=Client.objects.filter(pk=tenant.pk), new_schema_name='new_name')
+        self.assertFalse(schema_exists('test'))
+        self.assertFalse(schema_exists('new_name'))
 
-# class InteractiveCloneSchemaTestCase(TransactionTestCase):
-#     """
-#     Tests the interactive behaviod of the clone_tenant command.
-#     """
-#
-#     @classmethod
-#     def setUpClass(cls):
-#         TenantModel = get_tenant_model()
-#         DomainModel = get_tenant_domain_model()
-#         tenant = TenantModel(schema_name="tenant1")
-#         tenant.auto_create_schema = True
-#         tenant.save(verbosity=0)
-#         DomainModel.objects.create(tenant=tenant, domain="tenant1.test.com", is_primary=True)
-#
-#     @classmethod
-#     def tearDownClass(cls):
-#         TenantModel = get_tenant_model()
-#         TenantModel.objects.all().delete()
-#
-#     def test_interactive_clone_schema(self):
-#         class CustomCloneTenantCommand(CloneTenantCommand):
-#             answer_provider = (
-#                 n
-#                 for n in [
-#                     "tenant1",  # Would you like to create a database entry?
-#                     "yes",  # Clone the tenant fields.
-#                     "tenant2",  # Domain name, simulated wrong answer
-#                     "tenant2.test.com",  # Domain name, good answer
-#                 ]
-#             )
-#
-#             def _input(self, question):
-#                 return next(self.answer_provider)
-#
-#         with StringIO() as stdout:
-#             with StringIO() as stderr:
-#                 command = CustomCloneTenantCommand(stdout=stdout, stderr=stderr)
-#                 call_command(command, verbosity=1)
-#         self.assertTrue(schema_exists("tenant2"))
+    def test_clone_schema(self):
+        Client = get_tenant_model()
+        Client.auto_drop_schema = True
+        tenant = Client(schema_name='test')
+        tenant.save()
+        self.assertTrue(schema_exists(tenant.schema_name))
 
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+        clone_schema = CloneSchema()
+        clone_schema.clone_schema(base_schema_name='test', new_schema_name='new_name')
+
+        self.assertTrue(schema_exists('test'))
+        self.assertFalse(schema_exists('new_name'))

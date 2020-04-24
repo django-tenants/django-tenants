@@ -2,8 +2,10 @@ import os
 from contextlib import ContextDecorator
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import connections, DEFAULT_DB_ALIAS, connection
+
+from django_tenants.postgresql_backend.base import _check_schema_name
 
 try:
     from django.apps import apps
@@ -141,6 +143,24 @@ def schema_exists(schema_name, database=get_tenant_database_alias()):
     cursor.close()
 
     return exists
+
+
+def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(), save=True):
+    """
+    This renames a schema to a new name. It checks to see if it exists first
+    """
+    _connection = connections[database]
+    cursor = _connection.cursor()
+
+    if schema_exists(new_schema_name):
+        raise ValidationError("New schema name already exists")
+    _check_schema_name(new_schema_name)
+    sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(tenant.schema_name, new_schema_name)
+    cursor.execute(sql)
+    cursor.close()
+    tenant.schema_name = new_schema_name
+    if save:
+        tenant.save()
 
 
 def app_labels(apps_list):

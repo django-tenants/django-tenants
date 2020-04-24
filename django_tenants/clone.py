@@ -1,6 +1,9 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import connection, transaction
 from django.db.utils import ProgrammingError
+
+from django_tenants.utils import schema_exists
 
 CLONE_SCHEMA_FUNCTION = """
 -- https://github.com/denishpatel/pg-clone-schema/ rev 0d3b522
@@ -729,6 +732,9 @@ class CloneSchema:
         except ProgrammingError:
             self._create_clone_schema_function()
             transaction.commit()
+
+        if schema_exists(new_schema_name):
+            raise ValidationError("New schema name already exists")
 
         sql = 'SELECT clone_schema(%(base_schema)s, %(new_schema)s, true, false)'
         cursor.execute(
