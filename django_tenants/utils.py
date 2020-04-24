@@ -5,7 +5,6 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import connections, DEFAULT_DB_ALIAS, connection
 
-from django_tenants.postgresql_backend.base import _check_schema_name
 
 try:
     from django.apps import apps
@@ -149,12 +148,14 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
     """
     This renames a schema to a new name. It checks to see if it exists first
     """
+    from django_tenants.postgresql_backend.base import is_valid_schema_name
     _connection = connections[database]
     cursor = _connection.cursor()
 
     if schema_exists(new_schema_name):
         raise ValidationError("New schema name already exists")
-    _check_schema_name(new_schema_name)
+    if not is_valid_schema_name(new_schema_name):
+        raise ValidationError("Invalid string used for the schema name.")
     sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(tenant.schema_name, new_schema_name)
     cursor.execute(sql)
     cursor.close()
