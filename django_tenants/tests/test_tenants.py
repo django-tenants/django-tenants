@@ -554,18 +554,18 @@ class TenantManagerMethodsTestCaseTest(BaseTestCase):
         Client.objects.filter(pk=tenant.pk).delete()
         self.assertFalse(schema_exists(tenant.schema_name))
 
-    # def test_rename_schema_ok(self):
-    #     Client = get_tenant_model()
-    #     Client.auto_drop_schema = True
-    #     tenant = Client(schema_name='test')
-    #     tenant.save()
-    #     self.assertTrue(schema_exists(tenant.schema_name))
-    #     domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
-    #     domain.save()
-    #     schema_rename(tenant=Client.objects.filter(pk=tenant.pk), new_schema_name='new_name')
-    #     self.assertFalse(schema_exists('test'))
-    #     self.assertFalse(schema_exists('new_name'))
-    #
+    def test_rename_schema_ok(self):
+        Client = get_tenant_model()
+        Client.auto_drop_schema = True
+        tenant = Client(schema_name='test')
+        tenant.save()
+        self.assertTrue(schema_exists(tenant.schema_name))
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+        schema_rename(tenant=Client.objects.filter(pk=tenant.pk), new_schema_name='new_name')
+        self.assertFalse(schema_exists('test'))
+        self.assertFalse(schema_exists('new_name'))
+
     # def test_clone_schema(self):
     #     Client = get_tenant_model()
     #     Client.auto_drop_schema = True
