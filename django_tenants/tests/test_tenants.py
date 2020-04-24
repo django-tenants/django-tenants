@@ -568,6 +568,8 @@ class TenantRenameSchemaTest(BaseTestCase):
         self.assertFalse(schema_exists('test'))
         self.assertTrue(schema_exists('new_name'))
 
+
+class TenantCloneSchemaTest(BaseSyncTest):
     def test_clone_schema(self):
         Client = get_tenant_model()
         tenant = Client(schema_name='test')
