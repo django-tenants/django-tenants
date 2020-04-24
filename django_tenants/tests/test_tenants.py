@@ -554,6 +554,9 @@ class TenantManagerMethodsTestCaseTest(BaseTestCase):
         Client.objects.filter(pk=tenant.pk).delete()
         self.assertFalse(schema_exists(tenant.schema_name))
 
+
+class TenantRenameSchemaTest(BaseTestCase):
+
     def test_rename_schema_ok(self):
         Client = get_tenant_model()
         Client.auto_drop_schema = True
