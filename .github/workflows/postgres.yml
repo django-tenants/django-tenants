@@ -13,7 +13,7 @@ jobs:
       fail-fast: true
       matrix:
         python-version: [3.6]
-        postgres-version: [latest, 12, 11, 10, 9, 9.5]
+        postgres-version: [latest, 12, 11, 10]
 
     steps:
     - uses: actions/checkout@v2
