@@ -33,6 +33,26 @@ How it works
 ------------
 Tenants are identified via their host name (i.e tenant.domain.com). This information is stored on a table on the ``public`` schema. Whenever a request is made, the host name is used to match a tenant in the database. If there's a match, the search path is updated to use this tenant's schema. So from now on all queries will take place at the tenant's schema. For example, suppose you have a tenant ``customer`` at http://customer.example.com. Any request incoming at ``customer.example.com`` will automatically use ``customer``'s schema and make the tenant available at the request. If no tenant is found, a 404 error is raised. This also means you should have a tenant for your main domain, typically using the ``public`` schema. For more information please read the [setup](#setup) section.
 
+.. important::
+
+    Tenant's domain name and schema name are usually the same or similar but they don't have to be!
+    For example the tenant at http://acme.example.com could be backed by the ``acme`` schema, while
+    http://looney-tunes.tld could be backed by the ``tenant2`` schema!  Notice that domain names are
+    not related in any way to schema names! There is also no restriction whether or not you should
+    use sub-domains or top-level domains.
+
+.. warning::
+
+    Schema names and domain names have different validation rules. Underscores (``_``) and capital
+    letters are permitted in schema names but they are illegal for domain names! On the other hand
+    domain names may contain a dash (``-``) which is illegal for schema names!
+
+    You must be careful if using schema names and domain names interchangeably in your multi-tenant
+    applications! The tenant and domain model classes, creation and validation of input data are
+    something that you need to handle yourself, possibly imposing additional constraints to the
+    acceptable values!
+
+
 Shared and Tenant-Specific Applications
 ---------------------------------------
 Tenant-Specific Applications
