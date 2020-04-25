@@ -1,4 +1,4 @@
-name: postgres
+name: code
 
 on:
   pull_request:
