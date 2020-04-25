@@ -14,7 +14,7 @@ jobs:
       matrix:
         python-version: [3.6, 3.7, 3.8]
         django-version: ["~=2.0.0", "~=2.1.0", "~=2.2.0", "~=3.0.0"]
-        postgres-version: [10.8]
+        postgres-version: [10.12, 11.7, 12.2]
   
     steps:
     - uses: actions/checkout@v2
