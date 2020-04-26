@@ -4,6 +4,29 @@ Changelog
 
 This changelog is used to track all major changes to django-tenants.
 
+
+v3.1.0 (26 April 2020)
+======================
+
+- Allowed a schema to be renamed. #388
+- Stopped a crash id logging with the public tenant #358
+- Fix clone_tenant command #379
+- Cloning SQL changed to allow it work on AWS etc #381
+- Now testing with workflow instead of Travis CI
+- Read the docs now work again
+
+v3.0.3 (16 April 2020)
+======================
+
+- Fixed a problem with clone tenant
+
+v3.0.2 (15 April 2020)
+======================
+
+- You can now clone a tenants with the clone_tenant command #322
+- Fixed some issues with docker-compose and the example project
+- Refactor some classes/methods #325
+
 v3.0.1 (17 Feb 2020)
 ===================
 
