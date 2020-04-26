@@ -146,26 +146,35 @@ PUBLIC_SCHEMA_URLCONF = 'tenant_tutorial.urls_public'
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'tenant_tutorial.wsgi.application'
 
-SHARED_APPS = (
-    'django_tenants',  # mandatory
-    'customers',  # you must list the app where your tenant model resides in
+HAS_MULTI_STATIC_TENANTS = True
+MULTI_DYNAMIC_TENANT_KEY = "dynamic"
 
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-)
+TENANTS = {
+    "www": {
+        "APPS": ['customers',  # you must list the app where your tenant model resides in
 
-TENANT_APPS = (
-    'django.contrib.contenttypes',
-    'django.contrib.auth',
-    'django.contrib.admin',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'tenant_only',
-)
+                 'django.contrib.admin',
+                 'django.contrib.auth',
+                 'django.contrib.contenttypes',
+                 'django.contrib.sessions',
+                 'django.contrib.messages',
+                 'django.contrib.staticfiles', ],
+        "URLCONF": "app_main.urls",
+        "WS_URLCONF": "app_main.ws_urls",
+        "DOMAINS": ["test.com"],
+    },
+    "dynamic": {
+        "APPS": ['django.contrib.contenttypes',
+                 'django.contrib.auth',
+                 'django.contrib.admin',
+                 'django.contrib.sessions',
+                 'django.contrib.messages',
+                 'tenant_only'],
+        "URLCONF": "app_main.urls",
+        "WS_URLCONF": "app_main.ws_urls",
+    }
+}
+
 
 TENANT_MODEL = "customers.Client"  # app.Model
 
@@ -173,7 +182,10 @@ TENANT_DOMAIN_MODEL = "customers.Domain"  # app.Model
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
-INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
+
+INSTALLED_APPS = ['django_tenants']
+for schema in TENANTS:
+    INSTALLED_APPS += [app for app in TENANTS[schema]["APPS"] if app not in INSTALLED_APPS]
 
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'

@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.apps import apps as django_apps
 
+from django_tenants.utils import has_multi_static_tenants, get_static_tenants, get_multi_dynamic_tenant_settings
+
 
 class TenantSyncRouter(object):
     """
@@ -34,11 +36,21 @@ class TenantSyncRouter(object):
             return False
 
         connection = connections[db]
-        if connection.schema_name == get_public_schema_name():
-            if not self.app_in_list(app_label, settings.SHARED_APPS):
-                return False
+
+        if has_multi_static_tenants():
+            static_tenants = get_static_tenants()
+            if connection.schema_name in static_tenants:
+                if not self.app_in_list(app_label, static_tenants[connection.schema_name]['APPS']):
+                    return False
+            else:
+                if not self.app_in_list(app_label, get_multi_dynamic_tenant_settings()['APPS']):
+                    return False
         else:
-            if not self.app_in_list(app_label, settings.TENANT_APPS):
-                return False
+            if connection.schema_name == get_public_schema_name():
+                if not self.app_in_list(app_label, settings.SHARED_APPS):
+                    return False
+            else:
+                if not self.app_in_list(app_label, settings.TENANT_APPS):
+                    return False
 
         return None

@@ -31,6 +31,19 @@ def get_public_schema_name():
     return getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
 
 
+def has_multi_static_tenants():
+    return getattr(settings, 'HAS_MULTI_STATIC_TENANTS', False)
+
+
+def get_multi_dynamic_tenant_settings():
+    multi_dynamic_tenant_key = getattr(settings, 'MULTI_DYNAMIC_TENANT_KEY ', 'dynamic')
+    return get_static_tenants()[multi_dynamic_tenant_key]
+
+
+def get_static_tenants():
+    return getattr(settings, 'TENANTS')
+
+
 def get_limit_set_calls():
     return getattr(settings, 'TENANT_LIMIT_SET_CALLS', False)
 
