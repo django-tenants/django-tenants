@@ -4,8 +4,6 @@ from django.db import connection
 from django.test import TestCase
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name
 
-ALLOWED_TEST_DOMAIN = '.test.com'
-
 
 class TenantTestCase(TestCase):
     tenant = None
@@ -60,14 +58,18 @@ class TenantTestCase(TestCase):
 
     @classmethod
     def add_allowed_test_domain(cls):
+        tenant_domain = cls.get_test_tenant_domain()
+
         # ALLOWED_HOSTS is a special setting of Django setup_test_environment so we can't modify it with helpers
-        if ALLOWED_TEST_DOMAIN not in settings.ALLOWED_HOSTS:
-            settings.ALLOWED_HOSTS += [ALLOWED_TEST_DOMAIN]
+        if tenant_domain not in settings.ALLOWED_HOSTS:
+            settings.ALLOWED_HOSTS += [tenant_domain]
 
     @classmethod
     def remove_allowed_test_domain(cls):
-        if ALLOWED_TEST_DOMAIN in settings.ALLOWED_HOSTS:
-            settings.ALLOWED_HOSTS.remove(ALLOWED_TEST_DOMAIN)
+        tenant_domain = cls.get_test_tenant_domain()
+
+        if tenant_domain in settings.ALLOWED_HOSTS:
+            settings.ALLOWED_HOSTS.remove(tenant_domain)
 
     @classmethod
     def sync_shared(cls):
