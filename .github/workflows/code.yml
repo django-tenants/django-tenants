@@ -7,7 +7,7 @@ on:
 
 jobs:
   test_matrix:
-    name: ${{ matrix.postgres-version }}
+    name: Python ${{ matrix.python-version }} / Django ${{ matrix.django-version}} / Postgres ${{ matrix.postgres-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -15,7 +15,7 @@ jobs:
         python-version: [3.6, 3.7, 3.8]
         django-version: ["~=2.0.0", "~=2.1.0", "~=2.2.0", "~=3.0.0"]
         postgres-version: [10.12, 11.7, 12.2]
-  
+
     steps:
     - uses: actions/checkout@v2
 
