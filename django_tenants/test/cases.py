@@ -4,8 +4,6 @@ from django.db import connection
 from django.test import TestCase
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name
 
-ALLOWED_TEST_DOMAIN = '.test.com'
-
 
 class TenantTestCase(TestCase):
     tenant = None
@@ -60,14 +58,18 @@ class TenantTestCase(TestCase):
 
     @classmethod
     def add_allowed_test_domain(cls):
+        tenant_domain = cls.get_test_tenant_domain()
+
         # ALLOWED_HOSTS is a special setting of Django setup_test_environment so we can't modify it with helpers
-        if ALLOWED_TEST_DOMAIN not in settings.ALLOWED_HOSTS:
-            settings.ALLOWED_HOSTS += [ALLOWED_TEST_DOMAIN]
+        if tenant_domain not in settings.ALLOWED_HOSTS:
+            settings.ALLOWED_HOSTS += [tenant_domain]
 
     @classmethod
     def remove_allowed_test_domain(cls):
-        if ALLOWED_TEST_DOMAIN in settings.ALLOWED_HOSTS:
-            settings.ALLOWED_HOSTS.remove(ALLOWED_TEST_DOMAIN)
+        tenant_domain = cls.get_test_tenant_domain()
+
+        if tenant_domain in settings.ALLOWED_HOSTS:
+            settings.ALLOWED_HOSTS.remove(tenant_domain)
 
     @classmethod
     def sync_shared(cls):
@@ -86,6 +88,14 @@ class TenantTestCase(TestCase):
 
 
 class FastTenantTestCase(TenantTestCase):
+    """
+    A faster variant of `TenantTestCase`: the test schema and its migrations will only be created and ran once.
+
+    WARNING: although this does produce significant improvements in speed it also means that these type of tests
+             are not fully encapsulated and that some state will be shared between tests.
+
+    See: https://github.com/tomturner/django-tenants/issues/100
+    """
 
     @classmethod
     def flush_data(cls):
@@ -110,6 +120,14 @@ class FastTenantTestCase(TenantTestCase):
         pass
 
     @classmethod
+    def get_test_tenant_domain(cls):
+        return 'tenant.fast-test.com'
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return 'fast_test'
+
+    @classmethod
     def setup_test_tenant_and_domain(cls):
         cls.tenant = get_tenant_model()(schema_name=cls.get_test_schema_name())
         cls.setup_tenant(cls.tenant)
@@ -124,6 +142,7 @@ class FastTenantTestCase(TenantTestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.add_allowed_test_domain()
         tenant_model = get_tenant_model()
 
         test_schema_name = cls.get_test_schema_name()

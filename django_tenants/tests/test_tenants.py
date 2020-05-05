@@ -2,14 +2,14 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connection, transaction
 from django.test.utils import override_settings
-
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
+
+from django_tenants.clone import CloneSchema
+from django_tenants.migration_executors import get_executor
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.tests.testcases import BaseTestCase
-from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, get_public_schema_name, \
-    get_tenant_domain_model
-
-from django_tenants.migration_executors import get_executor
+from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, \
+    get_public_schema_name, get_tenant_domain_model, schema_rename
 
 
 class TenantDataAndSettingsTest(BaseTestCase):
@@ -275,6 +275,22 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
         self.created = [domain, tenant]
 
+    def test_tenant_schema_creation_with_sql_keyword_name(self):
+        tenant = get_tenant_model()(schema_name='select')
+        tenant.save()
+
+        self.assertTrue(schema_exists(tenant.schema_name))
+
+        self.created = [tenant]
+
+    def test_tenant_schema_creation_with_only_numbers_name(self):
+        tenant = get_tenant_model()(schema_name='123')
+        tenant.save()
+
+        self.assertTrue(schema_exists(tenant.schema_name))
+
+        self.created = [tenant]
+
 
 class BaseSyncTest(BaseTestCase):
     """
@@ -454,13 +470,24 @@ class SharedAuthTest(BaseTestCase):
         FROM
             information_schema.table_constraints AS tc
             JOIN information_schema.key_column_usage AS kcu
-              ON tc.constraint_name = kcu.constraint_name
+              ON tc.constraint_schema = kcu.constraint_schema AND tc.constraint_name = kcu.constraint_name
             JOIN information_schema.constraint_column_usage AS ccu
-              ON ccu.constraint_name = tc.constraint_name
-        WHERE constraint_type = 'FOREIGN KEY' AND tc.table_name=%s
+              ON tc.constraint_schema = ccu.constraint_schema AND ccu.constraint_name = tc.constraint_name
+        WHERE
+            constraint_type = 'FOREIGN KEY' AND 
+            tc.table_name=%s AND 
+            ccu.table_schema=%s AND 
+            ccu.constraint_schema=%s
         """
         cursor = connection.cursor()
-        cursor.execute(sql, (ModelWithFkToPublicUser._meta.db_table, ))
+        cursor.execute(
+            sql,
+            (
+                ModelWithFkToPublicUser._meta.db_table,
+                self.public_tenant.schema_name,
+                self.tenant.schema_name
+            )
+        )
         fk_constraints = cursor.fetchall()
         self.assertEqual(1, len(fk_constraints))
 
@@ -498,12 +525,16 @@ class TenantTestCaseTest(BaseTestCase, TenantTestCase):
     """
 
     def test_tenant_survives_after_method1(self):
-        # There is one tenant in the database, the one created by TenantTestCase
-        self.assertEqual(1, get_tenant_model().objects.all().count())
+        # There is one tenant with schema name 'test' in the database, the one created by TenantTestCase
+        self.assertEqual(1, get_tenant_model().objects.filter(
+            schema_name=TenantTestCase.get_test_schema_name()
+        ).count())
 
     def test_tenant_survives_after_method2(self):
         # The same tenant still exists even after the previous method call
-        self.assertEqual(1, get_tenant_model().objects.all().count())
+        self.assertEqual(1, get_tenant_model().objects.filter(
+            schema_name=TenantTestCase.get_test_schema_name()
+        ).count())
 
 
 class TenantManagerMethodsTestCaseTest(BaseTestCase):
@@ -522,3 +553,31 @@ class TenantManagerMethodsTestCaseTest(BaseTestCase):
 
         Client.objects.filter(pk=tenant.pk).delete()
         self.assertFalse(schema_exists(tenant.schema_name))
+
+
+class TenantRenameSchemaTest(BaseTestCase):
+
+    def test_rename_schema_ok(self):
+        Client = get_tenant_model()
+        tenant = Client(schema_name='test')
+        tenant.save()
+        self.assertTrue(schema_exists(tenant.schema_name))
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+        schema_rename(tenant=Client.objects.filter(pk=tenant.pk).first(), new_schema_name='new_name')
+        self.assertFalse(schema_exists('test'))
+        self.assertTrue(schema_exists('new_name'))
+
+    # def test_clone_schema(self):
+    #     Client = get_tenant_model()
+    #     tenant = Client(schema_name='test')
+    #     tenant.save()
+    #     self.assertTrue(schema_exists(tenant.schema_name))
+    #
+    #     domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+    #     domain.save()
+    #     clone_schema = CloneSchema()
+    #     clone_schema.clone_schema(base_schema_name='test', new_schema_name='new_name')
+    #
+    #     self.assertTrue(schema_exists('test'))
+    #     self.assertTrue(schema_exists('new_name'))

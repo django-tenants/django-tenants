@@ -6,8 +6,11 @@ django-tenants
 
 .. image:: https://badge.fury.io/py/django-tenants.svg
     :target: http://badge.fury.io/py/django-tenants
-.. image:: https://travis-ci.org/tomturner/django-tenants.svg?branch=master
-    :target: https://travis-ci.org/tomturner/django-tenants
+
+.. image:: https://github.com/tomturner/django-tenants/workflows/code/badge.svg
+    :alt: Build status
+    :target: https://github.com/tomturner/django-tenants/actions
+
 .. image:: https://readthedocs.org/projects/pip/badge/?version=latest
     :target: https://django-tenants.readthedocs.io/en/latest/
 
@@ -263,6 +266,10 @@ env variable) or use `docker-compose`_ like this:
 
 (note that upon first run the ``Dockerfile`` will be built).
 
+Video Tutorial
+--------------
+
+An online video tutorial is available on `youtube`_.
 
 Donation
 --------
@@ -273,11 +280,11 @@ If this project help you reduce time to develop, you can give me cake :)
   :target: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=QU8BGC7DWB9G6&source=ur
 
 
-
+.. _youtube: https://youtu.be/NsWlUMTfIFo
 .. _django: https://www.djangoproject.com/
 .. _PostgreSQL schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
 .. _PostgreSQL’s official documentation on schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
-.. _Multi-Tenant Data Architecture: http://msdn.microsoft.com/en-us/library/aa479086.aspx
+.. _Multi-Tenant Data Architecture: https://web.archive.org/web/20160311212239/https://msdn.microsoft.com/en-us/library/aa479086.aspx
 .. _setup: https://django-tenants.readthedocs.org/en/latest/install.html
 .. _examples: https://django-tenants.readthedocs.org/en/latest/examples.html
 .. _django-tenants.readthedocs.org: https://django-tenants.readthedocs.org/en/latest/

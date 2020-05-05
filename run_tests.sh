@@ -5,8 +5,8 @@ set -e
 DATABASE=${DATABASE_HOST:-localhost}
 echo "Database: $DATABASE"
 
-while ! nc "$DATABASE" "5432" >/dev/null 2>&1 < /dev/null; do
-  i=`expr $i + 1`
+while ! nc -v -w 1 "$DATABASE" "5432" > /dev/null 2>&1 < /dev/null; do
+    i=`expr $i + 1`
     if [ $i -ge 50 ]; then
         echo "$(date) - $DATABASE:5432 still not reachable, giving up"
         exit 1
@@ -21,5 +21,5 @@ pushd dts_test_project
 EXECUTORS=( standard multiprocessing )
 
 for executor in "${EXECUTORS[@]}"; do
-    EXECUTOR=$executor python3 -Wd manage.py test django_tenants.tests
+    EXECUTOR=$executor python -Wd manage.py test ../django_tenants/tests/
 done

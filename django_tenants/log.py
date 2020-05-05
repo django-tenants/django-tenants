@@ -10,5 +10,5 @@ class TenantContextFilter(logging.Filter):
     """
     def filter(self, record):
         record.schema_name = connection.tenant.schema_name
-        record.domain_url = getattr(connection.tenant, 'domain_url', '')
+        record.domain_url = getattr(connection.tenant, 'domain_url', None)
         return True

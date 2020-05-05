@@ -2,8 +2,9 @@ import os
 from contextlib import ContextDecorator
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import connections, DEFAULT_DB_ALIAS, connection
+
 
 try:
     from django.apps import apps
@@ -81,21 +82,9 @@ class schema_context(ContextDecorator):
             self.connection.set_tenant(self.previous_tenant)
 
 
-class tenant_context(ContextDecorator):
+class tenant_context(schema_context):
     def __init__(self, *args, **kwargs):
-        self.tenant = args[0]
-        super().__init__()
-
-    def __enter__(self):
-        self.connection = connections[get_tenant_database_alias()]
-        self.previous_tenant = connection.tenant
-        self.connection.set_tenant(self.tenant)
-
-    def __exit__(self, *exc):
-        if self.previous_tenant is None:
-            self.connection.set_schema_to_public()
-        else:
-            self.connection.set_tenant(self.previous_tenant)
+        super().__init__(args[0].schema_name, **kwargs)
 
 
 def clean_tenant_url(url_string):
@@ -136,8 +125,8 @@ def django_is_in_test_mode():
     return hasattr(mail, 'outbox')
 
 
-def schema_exists(schema_name):
-    _connection = connections[get_tenant_database_alias()]
+def schema_exists(schema_name, database=get_tenant_database_alias()):
+    _connection = connections[database]
     cursor = _connection.cursor()
 
     # check if this schema already exists in the db
@@ -153,6 +142,26 @@ def schema_exists(schema_name):
     cursor.close()
 
     return exists
+
+
+def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(), save=True):
+    """
+    This renames a schema to a new name. It checks to see if it exists first
+    """
+    from django_tenants.postgresql_backend.base import is_valid_schema_name
+    _connection = connections[database]
+    cursor = _connection.cursor()
+
+    if schema_exists(new_schema_name):
+        raise ValidationError("New schema name already exists")
+    if not is_valid_schema_name(new_schema_name):
+        raise ValidationError("Invalid string used for the schema name.")
+    sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(tenant.schema_name, new_schema_name)
+    cursor.execute(sql)
+    cursor.close()
+    tenant.schema_name = new_schema_name
+    if save:
+        tenant.save()
 
 
 def app_labels(apps_list):

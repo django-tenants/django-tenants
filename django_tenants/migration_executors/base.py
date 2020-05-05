@@ -24,7 +24,7 @@ def run_migrations(args, options, executor_codename, schema_name, allow_atomic=T
             msg
         )
 
-    connection = connections[get_tenant_database_alias()]
+    connection = connections[options.get('database', get_tenant_database_alias())]
     connection.set_schema(schema_name)
 
     stdout = OutputWrapper(sys.stdout)
@@ -49,7 +49,7 @@ def run_migrations(args, options, executor_codename, schema_name, allow_atomic=T
     connection.set_schema_to_public()
 
 
-class MigrationExecutor(object):
+class MigrationExecutor:
     codename = None
 
     def __init__(self, args, options):

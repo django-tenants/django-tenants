@@ -2,8 +2,8 @@
 import sys
 import os
 
-DEBUG = True
 
+DEBUG = True
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
@@ -21,11 +21,11 @@ sys.path.insert(0, TENANT_APPS_DIR)
 DATABASES = {
     'default': {
         'ENGINE': 'django_tenants.postgresql_backend',  # Add 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'tenant_tutorial',                      # Or path to database file if using sqlite3.
-        'USER': 'tenant_tutorial',
-        'PASSWORD': 'qwerty',
-        'HOST': 'localhost',   # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
-        'PORT': '',            # Set to empty string for default.
+        'NAME': os.environ.get('DATABASE_DB', 'tenant_tutorial'),
+        'USER': os.environ.get('DATABASE_USER', 'tenant_tutorial'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'qwerty'),
+        'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
+        'PORT': os.environ.get('DATABASE_PORT', '5432'),
     }
 }
 
@@ -100,7 +100,6 @@ DATABASE_ROUTERS = (
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
-
 MIDDLEWARE = (
     'tenant_tutorial.middleware.TenantTutorialMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -119,7 +118,7 @@ TEMPLATES = [
             os.path.join(BASE_DIR, 'templates')
 
         ],
-        'APP_DIRS': True,
+        # 'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 # Insert your TEMPLATE_CONTEXT_PROCESSORS here or use this
@@ -130,8 +129,14 @@ TEMPLATES = [
                 'django.template.context_processors.media',
                 'django.template.context_processors.static',
                 'django.template.context_processors.tz',
+                'django.template.context_processors.request',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'loaders': (
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',
+            ),
+
         },
     },
 ]
@@ -140,7 +145,6 @@ PUBLIC_SCHEMA_URLCONF = 'tenant_tutorial.urls_public'
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'tenant_tutorial.wsgi.application'
-
 
 SHARED_APPS = (
     'django_tenants',  # mandatory
@@ -169,7 +173,7 @@ TENANT_DOMAIN_MODEL = "customers.Domain"  # app.Model
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
-INSTALLED_APPS = list(set(TENANT_APPS + SHARED_APPS))
+INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
@@ -202,3 +206,6 @@ LOGGING = {
         },
     }
 }
+
+DEFAULT_FILE_STORAGE = "django_tenants.files.storage.TenantFileSystemStorage"
+MULTITENANT_RELATIVE_MEDIA_ROOT = "uploaded_files"

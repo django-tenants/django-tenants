@@ -8,7 +8,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-__version__ = "2.1.1"
+__version__ = "3.1.0"
 
 setup(
     name='django-tenants',
@@ -30,6 +30,7 @@ setup(
         'django_tenants.staticfiles',
         'django_tenants.middleware',
     ],
+    include_package_data=True,
     scripts=[],
     url='https://github.com/tomturner/django-tenants',
     license='MIT',
@@ -40,16 +41,18 @@ setup(
         'Environment :: Web Environment',
         'License :: OSI Approved :: MIT License',
         'Framework :: Django',
-        'Framework :: Django :: 2.0',
+        'Framework :: Django :: 2.1',
+        'Framework :: Django :: 2.2',
+        'Framework :: Django :: 3.0',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     install_requires=[
-        'Django >= 2.0,<2.2',
-        'psycopg2-binary',
+        'Django >= 2.1,<3.1',
     ],
     zip_safe=False,
 )

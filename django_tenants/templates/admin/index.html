@@ -1,5 +1,21 @@
 {% extends "admin/index.html" %}
-{% load i18n admin_static tenant %}
+{% load i18n static tenant %}
+
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+    {% colour_admin_apps as colour_admin_apps %}
+     {% if colour_admin_apps %}
+     .module caption.tenant-app {
+        background: #008000;
+    }{% endif %}
+    .module caption.public-disabled {
+        background: #c6c6c6;
+    }
+    </style>
+
+{% endblock %}
 
 {% block content %}
     <div id="content-main">
@@ -9,10 +25,10 @@
                 {% is_tenant_app app as is_tenant_app %}
                 {% is_shared_app app as is_shared_app %}
                 <div class="app-{{ app.app_label }} module">
-                    <table id="change-history">
+                    <table>
                         {% if is_public_schema and not is_shared_app %}
                             <div class="module">
-                                <caption {% if is_tenant_app %}style="background-color:#c6c6c6"{% endif %}>
+                                <caption {% if is_tenant_app %}class="public-disabled"{% endif %}>
                                     <div class="section" title="{% blocktrans with name=app.name %}Models in the {{ name }} application{% endblocktrans %}">{{ app.name }}</div>
                                     <tr>
                                         <td scope="row">{% trans "Not available for global schema" %}</td>
@@ -20,7 +36,7 @@
                                 </caption>
                             </div>
                         {% else %}
-                            <caption {% if not is_public_schema and is_tenant_app %}style="background-color:#008000"{% endif %} >
+                            <caption {% if not is_public_schema and is_tenant_app %}class="tenant-app"{% endif %} >
                                 <a href="{{ app.app_url }}" class="section" title="{% blocktrans with name=app.name %}Models in the {{ name }} application{% endblocktrans %}">{{ app.name }}</a>
                             </caption>
                             {% for model in app.models %}

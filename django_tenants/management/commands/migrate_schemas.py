@@ -30,6 +30,9 @@ class MigrateSchemasCommand(SyncCommon):
                                  'flag. Django will only check for an existing table name.')
         parser.add_argument('--list', '-l', action='store_true', dest='list', default=False,
                             help='Show a list of all known migrations and which are applied')
+        parser.add_argument('--plan', action='store_true',
+                            help='Shows a list of the migration actions that will be performed.',
+        )
         parser.add_argument('--run-syncdb', action='store_true', dest='run_syncdb',
                             help='Creates tables for apps without migrations.')
 
@@ -46,7 +49,7 @@ class MigrateSchemasCommand(SyncCommon):
             executor.run_migrations(tenants=[self.PUBLIC_SCHEMA_NAME])
         if self.sync_tenant:
             if self.schema_name and self.schema_name != self.PUBLIC_SCHEMA_NAME:
-                if not schema_exists(self.schema_name):
+                if not schema_exists(self.schema_name, self.options.get('database', None)):
                     raise RuntimeError('Schema "{}" does not exist'.format(
                         self.schema_name))
                 else:

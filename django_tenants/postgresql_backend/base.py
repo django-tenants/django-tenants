@@ -21,7 +21,7 @@ original_backend = import_module(ORIGINAL_BACKEND + '.base')
 EXTRA_SEARCH_PATHS = getattr(settings, 'PG_EXTRA_SEARCH_PATHS', [])
 
 # from the postgresql doc
-SQL_IDENTIFIER_RE = re.compile(r'^[_a-zA-Z][_a-zA-Z0-9]{,62}$')
+SQL_IDENTIFIER_RE = re.compile(r'^[_a-zA-Z0-9]{1,63}$')
 SQL_SCHEMA_NAME_RESERVED_RE = re.compile(r'^pg_', re.IGNORECASE)
 
 
@@ -34,12 +34,12 @@ def _check_identifier(identifier):
         raise ValidationError("Invalid string used for the identifier.")
 
 
-def _is_valid_schema_name(name):
+def is_valid_schema_name(name):
     return _is_valid_identifier(name) and not SQL_SCHEMA_NAME_RESERVED_RE.match(name)
 
 
 def _check_schema_name(name):
-    if not _is_valid_schema_name(name):
+    if not is_valid_schema_name(name):
         raise ValidationError("Invalid string used for the schema name.")
 
 
@@ -74,17 +74,6 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         self.include_public_schema = include_public
         self.set_settings_schema(self.schema_name)
         self.search_path_set = False
-
-    def set_schema(self, schema_name, include_public=True):
-        """
-        Main API method to current database schema,
-        but it does not actually modify the db connection.
-        """
-        self.tenant = FakeTenant(schema_name=schema_name)
-        self.schema_name = schema_name
-        self.include_public_schema = include_public
-        self.set_settings_schema(schema_name)
-        self.search_path_set = False
         # Content type can no longer be cached as public and tenant schemas
         # have different models. If someone wants to change this, the cache
         # needs to be separated between public and shared schemas. If this
@@ -94,14 +83,18 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         # wrong model will be fetched.
         ContentType.objects.clear_cache()
 
+    def set_schema(self, schema_name, include_public=True):
+        """
+        Main API method to current database schema,
+        but it does not actually modify the db connection.
+        """
+        self.set_tenant(FakeTenant(schema_name=schema_name), include_public)
+
     def set_schema_to_public(self):
         """
         Instructs to stay in the common 'public' schema.
         """
-        self.tenant = FakeTenant(schema_name=get_public_schema_name())
-        self.schema_name = get_public_schema_name()
-        self.set_settings_schema(self.schema_name)
-        self.search_path_set = False
+        self.set_tenant(FakeTenant(schema_name=get_public_schema_name()))
 
     def set_settings_schema(self, schema_name):
         self.settings_dict['SCHEMA'] = schema_name
@@ -161,6 +154,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             # if the next instruction is not a rollback it will just fail also, so
             # we do not have to worry that it's not the good one
             try:
+                search_paths = ['\'{}\''.format(s) for s in search_paths]
                 cursor_for_search_path.execute('SET search_path = {0}'.format(','.join(search_paths)))
             except (django.db.utils.DatabaseError, psycopg2.InternalError):
                 self.search_path_set = False

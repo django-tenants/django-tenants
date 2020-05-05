@@ -14,10 +14,6 @@ import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-TENANT_APPS_DIR = os.path.join(BASE_DIR, os.pardir)
-sys.path.insert(0, TENANT_APPS_DIR)
-sys.path.insert(0, BASE_DIR)
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
@@ -30,7 +26,6 @@ DEBUG = True
 TEMPLATE_DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -48,6 +43,25 @@ SHARED_APPS = (
 TENANT_APPS = (
     'dts_test_app',
 )
+
+TENANT_APPS_DIR = os.path.join(BASE_DIR, TENANT_APPS[0])
+sys.path.insert(0, TENANT_APPS_DIR)
+sys.path.insert(0, BASE_DIR)
+
+STATICFILES_DIRS = [
+    os.path.join(TENANT_APPS_DIR, "static")
+]
+
+MULTITENANT_STATICFILES_DIRS = [
+    os.path.join(TENANT_APPS_DIR, "tenants/%s/static")
+]
+
+STATICFILES_STORAGE = "django_tenants.staticfiles.storage.TenantStaticFilesStorage"
+DEFAULT_FILE_STORAGE = "django_tenants.files.storage.TenantFileSystemStorage"
+
+MULTITENANT_TEMPLATE_DIRS = [
+    os.path.join(TENANT_APPS_DIR, "tenants/%s/templates")
+]
 
 TENANT_MODEL = "customers.Client"  # app.Model
 
@@ -68,8 +82,8 @@ WSGI_APPLICATION = 'dts_test_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django_tenants.postgresql_backend',
-        'NAME': 'dts_test_project',
-        'USER': 'postgres',
+        'NAME': os.environ.get('DATABASE_DB', 'dts_test_project'),
+        'USER': os.environ.get('DATABASE_USER', 'postgres'),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'root'),
         'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
         'PORT': '',

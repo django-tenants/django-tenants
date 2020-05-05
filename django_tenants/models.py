@@ -29,13 +29,16 @@ class TenantMixin(models.Model):
     to be automatically created upon save.
     """
 
-    schema_name = models.CharField(max_length=63, unique=True,
+    schema_name = models.CharField(max_length=63, unique=True, db_index=True,
                                    validators=[_check_schema_name])
 
     domain_url = None
     """
     Leave this as None. Stores the current domain url so it can be used in the logs
     """
+
+
+    _previous_tenant = []
 
     class Meta:
         abstract = True
@@ -50,13 +53,13 @@ class TenantMixin(models.Model):
             # run some code in previous tenant (public probably)
         """
         connection = connections[get_tenant_database_alias()]
-        self._previous_tenant = connection.tenant
+        self._previous_tenant.append(connection.tenant)
         self.activate()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         connection = connections[get_tenant_database_alias()]
 
-        connection.set_tenant(self._previous_tenant)
+        connection.set_tenant(self._previous_tenant.pop())
 
     def activate(self):
         """
@@ -134,7 +137,7 @@ class TenantMixin(models.Model):
         if has_schema and schema_exists(self.schema_name) and (self.auto_drop_schema or force_drop):
             self.pre_drop()
             cursor = connection.cursor()
-            cursor.execute('DROP SCHEMA %s CASCADE' % self.schema_name)
+            cursor.execute('DROP SCHEMA "%s" CASCADE' % self.schema_name)
 
     def pre_drop(self):
         """
@@ -183,7 +186,7 @@ class TenantMixin(models.Model):
                              verbosity=verbosity)
             else:
                 # create the schema
-                cursor.execute('CREATE SCHEMA %s' % self.schema_name)
+                cursor.execute('CREATE SCHEMA "%s"' % self.schema_name)
                 call_command('migrate_schemas',
                              tenant=True,
                              schema_name=self.schema_name,
@@ -224,7 +227,7 @@ class DomainMixin(models.Model):
                                on_delete=models.CASCADE)
 
     # Set this to true if this is the primary domain
-    is_primary = models.BooleanField(default=True)
+    is_primary = models.BooleanField(default=True, db_index=True)
 
     @transaction.atomic
     def save(self, *args, **kwargs):
