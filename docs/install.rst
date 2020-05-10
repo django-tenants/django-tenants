@@ -87,7 +87,6 @@ The mixin disables save and delete buttons when not in current or public tenant 
 
 .. code-block:: python
 
-    from django.db import models
     from django.contrib import admin
     from django_tenants.admin import TenantAdminMixin
 
