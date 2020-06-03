@@ -288,6 +288,23 @@ There are some options to that can be set. You can view all the options by runni
 
 Credits to `pg-clone-schema <https://github.com/denishpatel/pg-clone-schema>`_.
 
+rename_schema
+~~~~~~~~~~~~~
+
+The command ``rename_schema`` renames a schema in the db and updates the Client associated with it.
+
+.. code-block:: bash
+
+    ./manage.py rename_schema
+
+It will prompt you for the current name of the schema, and what it should be renamed to.
+
+You can provide them with these arguments:
+
+.. code-block:: bash
+
+    ./manage.py rename_schema --rename_from old_name --rename_to new_name
+
 
 PostGIS
 -------
