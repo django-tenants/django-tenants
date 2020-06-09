@@ -8,7 +8,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-__version__ = "3.1.0"
+__version__ = "3.2.0"
 
 setup(
     name='django-tenants',
@@ -32,7 +32,7 @@ setup(
     ],
     include_package_data=True,
     scripts=[],
-    url='https://github.com/tomturner/django-tenants',
+    url='https://github.com/django-tenants/django-tenants',
     license='MIT',
     description='Tenant support for Django using PostgreSQL schemas.',
     long_description=io.open('README.rst', encoding='utf-8').read() if exists("README.rst") else "",
