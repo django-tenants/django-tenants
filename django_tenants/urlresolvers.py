@@ -30,12 +30,12 @@ class TenantPrefixPattern:
         try:
             domain = DomainModel.objects.get(
                 tenant__schema_name=connection.schema_name,
-                domain=connection.tenant.domain_url,
+                domain=connection.tenant.domain_subfolder,
             )
             return (
-                "{}/{}/".format(subfolder_prefix, subfolder)
+                "{}/{}/".format(subfolder_prefix, domain.domain)
                 if subfolder_prefix
-                else "{}/".format(subfolder)
+                else "{}/".format(domain.domain)
             )
         except DomainModel.DoesNotExist:
             return "/"

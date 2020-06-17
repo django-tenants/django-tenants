@@ -36,6 +36,10 @@ class TenantMixin(models.Model):
     """
     Leave this as None. Stores the current domain url so it can be used in the logs
     """
+    domain_subfolder = None
+    """
+    Leave this as None. Stores the subfolder in subfolder routing was used
+    """
 
 
     _previous_tenant = []

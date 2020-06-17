@@ -78,6 +78,7 @@ class TenantSubfolderMiddleware(MiddlewareMixin):
                     'No tenant for subfolder "%s"' % (tenant_subfolder or "")
                 )
 
+            tenant.domain_subfolder = tenant_subfolder
             urlconf = get_subfolder_urlconf(tenant)
 
         tenant.domain_url = hostname
