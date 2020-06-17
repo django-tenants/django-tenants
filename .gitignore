@@ -2,8 +2,12 @@
 *.pyc
 *.swp
 .DS_Store
+.env
+.venv/
+.vscode/
 VERSION
 _build/
+build/
 dist/
 django_tenants.egg-info
 .idea/
