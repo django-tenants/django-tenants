@@ -35,6 +35,10 @@ def get_limit_set_calls():
     return getattr(settings, 'TENANT_LIMIT_SET_CALLS', False)
 
 
+def get_subfolder_prefix():
+    return getattr(settings, 'TENANT_SUBFOLDER_PREFIX', '').strip('/') or ''
+
+
 def get_creation_fakes_migrations():
     """
     If TENANT_CREATION_FAKES_MIGRATIONS, tenants will be created by cloning an
