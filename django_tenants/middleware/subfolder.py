@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.http import Http404
 from django.urls import set_urlconf, clear_url_caches
@@ -21,6 +22,13 @@ class TenantSubfolderMiddleware(MiddlewareMixin):
     """
 
     TENANT_NOT_FOUND_EXCEPTION = Http404
+
+    def __init__(self):
+        if not get_subfolder_prefix():
+            raise ImproperlyConfigured(
+                '"TenantSubfolderMiddleware" requires "TENANT_SUBFOLDER_PREFIX" '
+                "present and non-empty in settings"
+            )
 
     @staticmethod
     def hostname_from_request(request):

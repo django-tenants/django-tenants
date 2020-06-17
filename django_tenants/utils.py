@@ -36,7 +36,8 @@ def get_limit_set_calls():
 
 
 def get_subfolder_prefix():
-    return getattr(settings, 'TENANT_SUBFOLDER_PREFIX', '').strip('/') or ''
+    subfolder_prefix = getattr(settings, 'TENANT_SUBFOLDER_PREFIX', '') or ''
+    return subfolder_prefix.strip('/ ')
 
 
 def get_creation_fakes_migrations():

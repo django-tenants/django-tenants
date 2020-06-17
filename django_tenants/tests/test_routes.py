@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.test.client import RequestFactory
 
 from django_tenants.middleware import TenantMainMiddleware, TenantSubfolderMiddleware
@@ -164,3 +165,17 @@ class SubfolderRoutesTestCase(BaseTestCase):
 
         with self.assertRaises(self.tsf.TENANT_NOT_FOUND_EXCEPTION):
             self.tsf.process_request(request)
+
+
+class SubfolderRoutesWithoutPrefixTestCase(BaseTestCase):
+    def test_subfolder_routing_without_prefix(self):
+        """
+        Should raise ImproperlyConfigured if no sensible TENANT_SUBFOLDER_PREFIX
+        is found in settings.
+        """
+        settings.TENANT_SUBFOLDER_PREFIX = None
+        with self.assertRaises(ImproperlyConfigured):
+            TenantSubfolderMiddleware()
+        settings.TENANT_SUBFOLDER_PREFIX = '  '
+        with self.assertRaises(ImproperlyConfigured):
+            TenantSubfolderMiddleware()
