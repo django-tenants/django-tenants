@@ -23,7 +23,8 @@ class TenantSubfolderMiddleware(MiddlewareMixin):
 
     TENANT_NOT_FOUND_EXCEPTION = Http404
 
-    def __init__(self):
+    def __init__(self, get_response=None):
+        self.get_response = get_response
         if not get_subfolder_prefix():
             raise ImproperlyConfigured(
                 '"TenantSubfolderMiddleware" requires "TENANT_SUBFOLDER_PREFIX" '
@@ -62,7 +63,7 @@ class TenantSubfolderMiddleware(MiddlewareMixin):
             # Do we have a public-specific urlconf?
             if (
                 hasattr(settings, "PUBLIC_SCHEMA_URLCONF")
-                and request.tenant.schema_name == get_public_schema_name()
+                and tenant.schema_name == get_public_schema_name()
             ):
                 urlconf = settings.PUBLIC_SCHEMA_URLCONF
 
