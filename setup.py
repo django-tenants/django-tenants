@@ -52,7 +52,7 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     install_requires=[
-        'Django >= 2.1,<3.1',
+        'Django >= 2.1,<3.2',
     ],
     zip_safe=False,
 )
