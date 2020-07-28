@@ -35,8 +35,6 @@ class MigrateSchemasCommand(SyncCommon):
         )
         parser.add_argument('--run-syncdb', action='store_true', dest='run_syncdb',
                             help='Creates tables for apps without migrations.')
-        parser.add_argument('--check', action='store_true', dest='check_unapplied',
-                            help='Exits with a non-zero status if unapplied migrations exist.')
 
     def handle(self, *args, **options):
         super().handle(*args, **options)
