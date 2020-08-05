@@ -1,15 +1,31 @@
+from contextlib import contextmanager
+from unittest import mock
+
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.management import call_command
 from django.db import connection, transaction
 from django.test.utils import override_settings
+
+from django_tenants.signals import schema_migrated
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 
-from django_tenants.clone import CloneSchema
 from django_tenants.migration_executors import get_executor
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, \
     get_public_schema_name, get_tenant_domain_model, schema_rename
+
+
+@contextmanager
+def catch_signal(signal):
+    """
+    Catch django signal and return the mocked call.
+    """
+    handler = mock.Mock()
+    signal.connect(handler)
+    yield handler
+    signal.disconnect(handler)
 
 
 class TenantDataAndSettingsTest(BaseTestCase):
@@ -581,3 +597,98 @@ class TenantRenameSchemaTest(BaseTestCase):
     #
     #     self.assertTrue(schema_exists('test'))
     #     self.assertTrue(schema_exists('new_name'))
+
+
+class SchemaMigratedSignalTest(BaseTestCase):
+
+    def setUp(self):
+        self.created = []
+        super().setUp()
+        self.sync_shared()
+
+    def tearDown(self):
+        from django_tenants.models import TenantMixin
+
+        connection.set_schema_to_public()
+
+        for c in self.created:
+            if isinstance(c, TenantMixin):
+                c.delete(force_drop=True)
+            else:
+                c.delete()
+
+        super().tearDown()
+
+    def test_signal_on_sync_shared(self):
+        """
+        Public schema always gets migrated in the current process,
+        even with executor multiprocessing.
+        """
+        with catch_signal(schema_migrated) as handler:
+            self.sync_shared()
+
+        handler.assert_called_once_with(
+            schema_name=get_public_schema_name(),
+            sender=mock.ANY,
+            signal=schema_migrated,
+        )
+
+    def test_signal_on_tenant_create(self):
+        """
+        Since migrate gets called on creating of a tenant, check
+        the signal gets sent.
+        """
+        executor = get_executor()
+
+        tenant = get_tenant_model()(schema_name='test')
+        with catch_signal(schema_migrated) as handler:
+            tenant.save()
+
+        if executor == 'simple':
+            handler.assert_called_once_with(
+                schema_name='test',
+                sender=mock.ANY,
+                signal=schema_migrated
+            )
+        elif executor == 'multiprocessing':
+            # migrations run in a different process, therefore signal
+            # will get sent in a different process as well
+            handler.assert_not_called()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+        self.created = [domain, tenant]
+
+    def test_signal_on_migrate_schemas(self):
+        """
+        Check signals are sent on running of migrate_schemas.
+        """
+        executor = get_executor()
+        tenant = get_tenant_model()(schema_name='test')
+        tenant.save()
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+
+        # test the signal gets called when running migrate
+        with catch_signal(schema_migrated) as handler:
+            call_command('migrate_schemas', interactive=False, verbosity=0)
+
+        if executor == 'simple':
+            handler.assert_has_calls([
+                mock.call(
+                    schema_name=get_public_schema_name(),
+                    sender=mock.ANY,
+                    signal=schema_migrated,
+                ),
+                mock.call(
+                    schema_name='test',
+                    sender=mock.ANY,
+                    signal=schema_migrated)
+            ])
+        elif executor == 'multiprocessing':
+            # public schema gets migrated in the current process, always
+            handler.assert_called_once_with(
+                schema_name=get_public_schema_name(),
+                sender=mock.ANY,
+                signal=schema_migrated,
+            )

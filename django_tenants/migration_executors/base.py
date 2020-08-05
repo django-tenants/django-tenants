@@ -3,6 +3,8 @@ import sys
 from django.db import transaction
 
 from django.core.management.commands.migrate import Command as MigrateCommand
+
+from django_tenants.signals import schema_migrated
 from django_tenants.utils import get_public_schema_name, get_tenant_database_alias
 
 
@@ -47,6 +49,7 @@ def run_migrations(args, options, executor_codename, schema_name, allow_atomic=T
         pass
 
     connection.set_schema_to_public()
+    schema_migrated.send(run_migrations, schema_name=schema_name)
 
 
 class MigrationExecutor:

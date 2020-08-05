@@ -12,6 +12,11 @@ schema_needs_to_be_sync.__doc__ = """
 Schema needs to be synced
 """
 
+schema_migrated = Signal(providing_args=['schema_name'])
+schema_migrated.__doc__ = """
+Sent after migration has finished on a schema
+"""
+
 
 @receiver(post_delete)
 def tenant_delete_callback(sender, instance, **kwargs):

@@ -111,11 +111,13 @@ Signals
 -------
 
 
-There are two signal one called ```post_schema_sync``` and the other called ```schema_needs_to_be_sync```
+There are three signal, ```post_schema_sync```, ```schema_needs_to_be_sync``` and ```schema_migrated```.
 
-```post_schema_sync``` will get called after the schema been migrated.
+```post_schema_sync``` will get called after a schema gets created from the save method on the tenant class.
 
 ```schema_needs_to_be_sync``` will get called if the schema needs to be migrated. ```auto_create_schema``` (on the tenant model) has to be set to False for this signal to get called. This signal is very useful when tenants are created via a background process such as celery.
+
+```schema_migrated``` will get called once migrations finish running for a schema.
 
 Example
 
@@ -134,6 +136,13 @@ Example
         client = kwargs['tenant']
 
         # send email to client to as tenant is ready to use
+
+    @receiver(schema_migrated, sender=run_migrations)
+    def handle_schema_migrated(sender, **kwargs):
+        schema_name = kwargs['schema_name']
+
+        # recreate materialized views in the schema
+
 
 Other settings
 ~~~~~~~~~~~~~~
