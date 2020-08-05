@@ -25,7 +25,7 @@
                 {% is_tenant_app app as is_tenant_app %}
                 {% is_shared_app app as is_shared_app %}
                 <div class="app-{{ app.app_label }} module">
-                    <table>
+                    <table style="width: 100%">
                         {% if is_public_schema and not is_shared_app %}
                             <div class="module">
                                 <caption {% if is_tenant_app %}class="public-disabled"{% endif %}>
