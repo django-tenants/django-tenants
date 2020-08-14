@@ -156,6 +156,17 @@ Management commands
 -------------------
 Every command except tenant_command runs by default on all tenants. You can also create your own commands that run on every tenant by inheriting ``BaseTenantCommand``. To run only a particular schema, there is an optional argument called ``--schema``.
 
+Custom command example:
+
+.. code-block:: python
+
+    from django_tenants.management.commands import BaseTenantCommand
+    # rest of your imports
+    
+    class Command(BaseTenantCommand):
+        COMMAND_NAME = 'awesome command'
+        # rest of your command
+
 .. code-block:: bash
 
     ./manage.py migrate_schemas --schema=customer1
