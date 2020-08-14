@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}{{ tenant.name }}{% endblock %}
+
+{% block summary %}
+    <h1>{{ request.tenant.name }}</h1>
+  <h2>{{ request.tenant.description }}</h2>
+{% endblock %}
+
+{% block instructions %}
+    <h2>This allows you to create random data for this tenant.</h2>
+
+
+{% if users %}
+    <ul>
+    {% for user in users %}
+        <li>{{ user.first_name }} {{ user.last_name }}</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>You don't have any users!</p>
+{% endif %}
+    <h3>Generate Random Users</h3>
+    <p>Click the button below to generate five random users.</p><br>
+    <form action="{% url 'random_form' %}" method="post">{% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Generate Users" />
+    </form>
+
+    <p style="padding-top: 20px"></p>
+
+    <a href="{% url 'index' %}">Back to tenant index</a>
+{% endblock %}
