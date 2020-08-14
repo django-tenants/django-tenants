@@ -60,6 +60,8 @@ class TenantMixin(models.Model):
         self._previous_tenant.append(connection.tenant)
         self.activate()
 
+        return self
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         connection = connections[get_tenant_database_alias()]
 
