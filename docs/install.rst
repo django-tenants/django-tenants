@@ -168,6 +168,36 @@ globally.
    available globally. This helps avoid issues caused by hiding the public
    schema from queries.
 
+Sub-folder Support
+==================
+
+Currently in beta.
+
+There is a option that allows you to run Django-Tenants with sub-folder instead of sub-domains.
+
+.. note::
+
+    ie http://www.mydomain.local/r/schemaname/ instead of http://schemaname.mydomain.local/
+
+
+``TENANT_SUBFOLDER_PREFIX`` needs to be added to the settings file. This is the url prefix for the tenant this can't be left blank.
+
+.. code-block:: python
+
+    TENANT_SUBFOLDER_PREFIX = "clients"
+
+
+The middleware is different to the standard middleware. The middleware required is
+.. code-block:: python
+
+    MIDDLEWARE = (
+        'django_tenants.middleware.TenantSubfolderMiddleware',
+
+
+.. tip::
+
+    There is an example project for this in the examples folder
+
 Optional Settings
 =================
 
