@@ -57,12 +57,13 @@ If you have there are two routines to look at ``setup_tenant`` and ``setup_domai
             tenant.required_value = "Value"
             return tenant
 
-        def setup_domain(self, tenant):
+        def setup_domain(self, domain):
             """
             Add any additional setting to the domain before it get saved. This is required if you have
             required fields.
             """
             domain.ssl = True
+            return domain
 
         def setUp(self):
             super().setUp()
