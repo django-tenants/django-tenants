@@ -5,7 +5,7 @@ services:
     image: postgres
     container_name: django_tenants_db
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      - ./postgres-data:/var/lib/postgresql/data:z
     environment:
       - POSTGRES_USER=django_tenants
       - POSTGRES_PASSWORD=django_tenants
@@ -18,7 +18,7 @@ services:
     command: gunicorn dts_test_project.wsgi:application --bind 0.0.0.0:8088
     container_name: django_tenants_web
     volumes:
-      - .:/code
+      - .:/code:z
     ports:
       - "8088:8088"
     depends_on:
