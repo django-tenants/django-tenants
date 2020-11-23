@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}Tenant Tutorial{% endblock %}
+
+{% block summary %}
+  <h1>Welcome to the Tenant Tutorial!</h1>
+  <h2>This interactive tutorial will teach you how to use <a href="https://github.com/tomturner/django-tenants">django-tenants</a>.</h2>
+{% endblock %}
+
+{% block instructions %}
+{% if need_sync %}
+    <h2>First Step: Sync your database</h2>
+    <p>Your database is empty, so the first step is to sync it. We only want to sync the <code>SHARED_APPS</code>.
+        For your convenience, here's the contents of <code>SHARED_APPS</code>:</p>
+    <ul>
+    {% for app in shared_apps %}
+        <li>{{ app }}</li>
+    {% endfor %}
+    </ul><br>
+    <p>Just run the command below on your shell to sync <code>SHARED_APPS</code>. Make sure your environment
+    has <code>Django</code> and <code>django-tenants</code> available.</p>
+
+    <pre>$ python manage.py migrate_schemas --shared</pre>
+    <p>When you're done refresh this page.</p>
+{% elif no_public_tenant %}
+    <h2>Second Step: Create a public tenant</h2>
+    <h3>So how does django-tenants work?</h3>
+    <p><code>django-tenants</code> uses the request's hostname to try to find a tenant.
+        When a match is found,
+        <a href="http://www.postgresql.org/docs/8.1/static/ddl-schemas.html">PostgreSQL's search path</a>
+        is automatically set to be this tenant.</p>
+    <br>
+    <p>For this request, <code>django-tenants</code> couldn't find any tenant for the current address (<code>{{ hostname }}</code>).
+        When no tenant is found, <code>django-tenants</code> normally returns a <code>404</code>, but since
+        this is a tutorial and no tenant exists yet, we let it proceed.
+    <h3>Recommended Tenant's URLs Structure</h3>
+    <p>Let's assume you have your main website at <code>trendy-sass.com</code>. The recommended structure is
+        to put your tenants at subdomains, like <code>tenant1.trendy-sass.com</code>,
+        <code>tenant2.trendy-sass.com</code> and so forth.</p>
+    <h3>Creating the public tenant</h3>
+    <p><code>django-tenants</code> requires a tenant for all addresses you use, including your main website,
+        which we will from now on refer to as the public tenant.</p>
+    <br>
+    <p>Our model is called <code>Customer</code> and looks like this (taken from <code>models.py</code>):</p>
+    <pre>
+class Client(TenantMixin):
+    name = models.CharField(max_length=100)
+    description = models.TextField(max_length=200)
+    created_on = models.DateField(auto_now_add=True)</pre>
+    <p>Let's create a tenant for our main website, located at <code>{{ hostname }}</code>. Open up a shell and enter the <code>django</code> shell:</p>
+    <pre>$ ./manage.py shell</pre>
+    <p>To create a tenant run the following commands:</p>
+<pre>from customers.models import Client</pre>
+<pre>
+Client(schema_name='public',
+    name='Trendy SaSS',
+    description='Public Tenant').save()</pre>
+    <p>Done! <code>django-tenants</code> will now be able to locate our public tenant and won't return 404. Refresh this page to see the next step.</p>
+{% elif only_public_tenant %}
+    <h2>Third Step: Create Tenants</h2>
+    <p>We've already created the public tenant, now it's time to create some tenants for subdomains. I assume you're running this on your local machine,
+        so the easiest way to simulate domains is to edit your <a href="http://en.wikipedia.org/wiki/Hosts_(file)"><code>hosts</code> file</a>.
+        <a href="http://www.rackspace.com/knowledge_center/article/how-do-i-modify-my-hosts-file">Here are instructions for all platforms</a>.
+        I'll assume you're on Linux.</p>
+<pre>$ sudo nano /etc/hosts </pre>
+    <p>Add the following lines:</p>
+<pre>
+127.0.0.1	tenant1.trendy-sass.com
+127.0.0.1	tenant2.trendy-sass.com</pre>
+    <p>We're basically tricking our computer to think both <code>tenant1.trendy-sass.com</code> and <code>tenant2.trendy-sass.com</code> point to <code>127.0.0.1</code>.
+        Once you're done, try visiting <a href="http://tenant1.trendy-sass.com:8000">tenant1.trendy-sass.com</a>,
+        you should get a django <code>404</code>. As we have previously mentioned, we don't have a tenant there yet, so a <code>404</code> will be thrown.<br></p>
+    <br>
+    <p>We can now add tenants using these URLs and our project will be able to find them and identify them as our tenants. Back to the django shell:</p>
+
+<pre>$ ./manage.py shell</pre>
+<pre>from customers.models import Client, Domain</pre>
+<pre>
+tenant = Client(schema_name='tenant1',
+    name='Tenant1 - Awesome',
+    description='Our first real tenant, awesome!')
+
+tenant.save()
+</pre>
+    <p>Saving a tenant that didn't exist before will create their schema and sync <code>TENANT_APPS</code> automatically. You should see
+    the following lines as the result.</p>
+  <pre>Operations to perform:
+  Synchronize unmigrated apps: customers, django_tenants
+  Apply all migrations: contenttypes, auth, sessions
+Synchronizing apps without migrations:
+  Creating tables...
+  Installing custom SQL...
+  Installing indexes...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying auth.0001_initial... OK
+  Applying sessions.0001_initial... OK</pre>
+
+Now add one domain to your tenant.
+
+<pre>
+domain = Domain()
+domain.domain = 'tenant1.trendy-sass.com'
+domain.tenant = tenant
+domain.is_primary = True
+domain.save()
+</pre>
+
+    <p>This means your tenant was installed successfully. Now create the second tenant.</p>
+<pre>
+tenant = Client(schema_name='tenant2',
+    name='Tenant2 - Even Awesome-r',
+    description='A second tenant, even more awesome!')
+
+tenant.save()
+
+domain = Domain()
+domain.domain = 'tenant2.trendy-sass.com'
+domain.tenant = tenant
+domain.is_primary = True
+domain.save()
+</pre>
+
+    <p>Now try visiting <a href="http://tenant1.trendy-sass.com:8000">tenant1.trendy-sass.com</a> and
+        <a href="http://tenant2.trendy-sass.com:8000">tenant2.trendy-sass.com</a> or refresh this page.</p>
+{% else %}
+    <h2>Tutorial Complete!</h2>
+    <p>Well done, you have completed the tutorial! Use the bottom menu to see your tenants.</p>
+    <h3>Where to go from here</h3>
+    <p>There are some interesting features that we did not cover.</p>
+    <ul>
+        <li><a href="https://django-tenants.readthedocs.org/en/latest/install.html#south-migrations">South Migrations</a>. This app supports <code>South</code> migrations.</li>
+        <li><a href="https://django-tenants.readthedocs.org/en/latest/install.html#tenant-view-routing">Tenant View-Routing</a>. Serve different views for the same path. (this tutorial makes use of this feature)</li>
+        <li><a href="https://django-tenants.readthedocs.org/en/latest/use.html#management-commands">Management Commands</a>. Run a command for a particular tenant.</li>
+    </ul>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>{% block title %}{% endblock %}</title>
+  <style type="text/css">
+    html * { padding:0; margin:0; }
+    body * { padding:10px 20px; }
+    body * * { padding:0; }
+    body { font:small sans-serif; }
+    body>div { border-bottom:1px solid #ddd; }
+    h1 { font-weight:normal; }
+    h2 { margin-bottom:.8em; }
+    h2 span { font-size:80%; color:#666; font-weight:normal; }
+    h3 { margin:1em 0 .5em 0; }
+    h4 { margin:0 0 .5em 0; font-weight: normal; }
+    table { border:1px solid #ccc; border-collapse: collapse; width:100%; background:white; }
+    tbody td, tbody th { vertical-align:top; padding:2px 3px; }
+    thead th { padding:1px 6px 1px 3px; background:#fefefe; text-align:left; font-weight:normal; font-size:11px; border:1px solid #ddd; }
+    tbody th { width:12em; text-align:right; color:#666; padding-right:.5em; }
+    ul { margin-left: 2em; margin-top: 1em; }
+    pre { background: white; padding: 10px; margin: 15px; border-left: 3px solid #006600; }
+    #summary { background: #EFFFE0; }
+    #summary h2 { font-weight: normal; color: #666; }
+    #footer { background:#eee; overflow: auto; }
+    #instructions { background:#f6f6f6; }
+    #summary table { border:none; background:transparent; }
+  </style>
+</head>
+
+<body>
+<div id="summary">
+{% block summary %}
+{% endblock %}
+</div>
+
+<div id="instructions">
+{% block instructions %}
+{% endblock %}
+</div>
+
+<div id="footer">
+  <p style="float: left;">Current Tenant:
+      {% if request.tenant %}
+        {% if request.tenant.schema_name == "public" %}
+          <a href="http://{{ request.tenant.get_primary_domain.domain }}:8088">{{ request.tenant.name }}</a>
+        {% else %}
+          <a href="http://{{ request.get_host }}/{{ settings.TENANT_SUBFOLDER_PREFIX }}/{{ request.tenant.get_primary_domain.domain }}/">{{ request.tenant.name }}</a> &middot;
+        {% endif %}
+      (<code>{{ request.tenant.schema_name }}</code>).
+
+      Available Tenants:
+      {% else %}
+      None.
+      {% endif %}
+  {% for tenant in tenants_list %}
+    {% if tenant.schema_name == "public" %}
+      <a href="http://{{ tenant.get_primary_domain.domain }}:8088/">{{ tenant.name }}</a> &middot;
+    {% else %}
+      <a href="http://{{ request.get_host }}/{{ settings.TENANT_SUBFOLDER_PREFIX }}/{{ tenant.get_primary_domain.domain }}/">{{ tenant.name }}</a> &middot;
+    {% endif %}
+  {% endfor %}</p>
+  <p style="float: right;">
+    <a href="https://github.com/tomturner/django-tenants">django-tenants</a> &middot; <a href="https://django-tenants.readthedocs.org/en/latest/">Documentation</a>
+  </p>
+</div>
+</body></html>

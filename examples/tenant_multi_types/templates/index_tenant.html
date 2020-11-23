@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}{{ tenant.name }}{% endblock %}
+
+{% block summary %}
+  <h1>{{ request.tenant.name }}</h1>
+  <h2>{{ request.tenant.description }}</h2>
+{% endblock %}
+
+{% block instructions %}
+    <p>Each tenant is on a separate schema and contains different data. Take a look at the users list of this tenant.</p>
+    <h3>Users List</h3>
+
+
+    <ul>
+    <li><a href="{% url 'random_form' %}">Sample page that allow you to create random data for this tenant only</a></li>
+    <li><a href="{% url 'upload_file' %}">Upload file just for this tenant</a></li>
+    </ul>
+
+{% endblock %}
