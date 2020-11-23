@@ -31,6 +31,14 @@ def get_public_schema_name():
     return getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
 
 
+def get_tenants_type():
+    return getattr(settings, 'TENANTS_TYPE', {})
+
+
+def has_multi_type_tenants():
+    return getattr(settings, 'HAS_MULTI_TYPE_TENANTS', False)
+
+
 def get_limit_set_calls():
     return getattr(settings, 'TENANT_LIMIT_SET_CALLS', False)
 

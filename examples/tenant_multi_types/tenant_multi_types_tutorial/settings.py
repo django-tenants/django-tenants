@@ -101,7 +101,7 @@ DATABASE_ROUTERS = (
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
 MIDDLEWARE = (
-    'tenant_multi_types_tutorial.middleware.TenantTutorialMiddleware',
+    'django_tenants.middleware.default.DefaultTenantMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -141,40 +141,48 @@ TEMPLATES = [
         },
     },
 ]
-ROOT_URLCONF = 'tenant_multi_types_tutorial.urls_tenants'
-PUBLIC_SCHEMA_URLCONF = 'tenant_multi_types_tutorial.urls_public'
+# ROOT_URLCONF = 'tenant_multi_types_tutorial.urls_tenants'
+# PUBLIC_SCHEMA_URLCONF = 'tenant_multi_types_tutorial.urls_public'
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'tenant_multi_types_tutorial.wsgi.application'
 
-SHARED_APPS = (
-    'django_tenants',  # mandatory
-    'customers',  # you must list the app where your tenant model resides in
+HAS_MULTI_TYPE_TENANTS = True
+MULTI_TYPE_DATABASE_FIELD = 'type'  # needs to be a char field length depends of the max type value
 
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-)
+TENANTS_TYPE = {
+    "public": {  # this is the name of the public schema from get_public_schema_name
+        "APPS": ['customers',
+                 'django.contrib.admin',
+                 'django.contrib.auth',
+                 'django.contrib.contenttypes',
+                 'django.contrib.sessions',
+                 'django.contrib.messages',
+                 'django.contrib.staticfiles', ],
+        "URLCONF": "tenant_multi_types_tutorial.urls_public",
+        # "WS_URLCONF": "app_main.ws_urls",
+    },
+    "type1": {
+        "APPS": ['django.contrib.contenttypes',
+                 'django.contrib.auth',
+                 'django.contrib.admin',
+                 'django.contrib.sessions',
+                 'django.contrib.messages',
+                 'tenant_only'],
+        "URLCONF": "tenant_multi_types_tutorial.urls_type1",
+    }
+}
 
-TENANT_APPS = (
-    'django.contrib.contenttypes',
-    'django.contrib.auth',
-    'django.contrib.admin',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'tenant_only',
-)
-
+ROOT_URLCONF = ''  # need to be in the settings file however can be blank
 TENANT_MODEL = "customers.Client"  # app.Model
 
 TENANT_DOMAIN_MODEL = "customers.Domain"  # app.Model
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
-INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
+INSTALLED_APPS = ['django_tenants']
+for schema in TENANTS_TYPE:
+    INSTALLED_APPS += [app for app in TENANTS_TYPE[schema]["APPS"] if app not in INSTALLED_APPS]
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 
