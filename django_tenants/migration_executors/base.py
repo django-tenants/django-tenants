@@ -8,7 +8,8 @@ from django_tenants.signals import schema_migrated, schema_migrate_message
 from django_tenants.utils import get_public_schema_name, get_tenant_database_alias
 
 
-def run_migrations(args, options, executor_codename, schema_name, allow_atomic=True, idx=None, count=None):
+def run_migrations(args, options, executor_codename, schema_name, tenant_type='',
+                   allow_atomic=True, idx=None, count=None):
     from django.core.management import color
     from django.core.management.base import OutputWrapper
     from django.db import connections
@@ -71,4 +72,7 @@ class MigrationExecutor:
         self.TENANT_DB_ALIAS = get_tenant_database_alias()
 
     def run_migrations(self, tenants=None):
+        raise NotImplementedError
+
+    def run_multi_type_migrations(self, tenants):
         raise NotImplementedError

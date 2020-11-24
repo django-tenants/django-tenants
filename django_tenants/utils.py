@@ -39,6 +39,10 @@ def has_multi_type_tenants():
     return getattr(settings, 'HAS_MULTI_TYPE_TENANTS', False)
 
 
+def get_multi_type_database_field_name():
+    return getattr(settings, 'MULTI_TYPE_DATABASE_FIELD', '')
+
+
 def get_tenant_type_choices():
     """This is to allow a choice field for the type of tenant"""
     if not has_multi_type_tenants():
