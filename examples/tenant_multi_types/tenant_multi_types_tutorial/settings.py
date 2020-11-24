@@ -168,8 +168,19 @@ TENANT_TYPES = {
                  'django.contrib.admin',
                  'django.contrib.sessions',
                  'django.contrib.messages',
-                 'tenant_only'],
+                 'tenant_type_one_only',
+                 'tenant_type_both'],
         "URLCONF": "tenant_multi_types_tutorial.urls_type1",
+    },
+    "type2": {
+        "APPS": ['django.contrib.contenttypes',
+                 'django.contrib.auth',
+                 'django.contrib.admin',
+                 'django.contrib.sessions',
+                 'django.contrib.messages',
+                 'tenant_type_two_only',
+                 'tenant_type_both'],
+        "URLCONF": "tenant_multi_types_tutorial.urls_type2",
     }
 }
 

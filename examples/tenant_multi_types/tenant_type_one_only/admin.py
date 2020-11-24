@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from tenant_only.models import TableOne, TableTwo
+from tenant_type_one_only.models import TableOne, TableTwo
 
 
 @admin.register(TableOne)
