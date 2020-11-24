@@ -30,8 +30,7 @@ class Command(BaseCommand):
                 else:
                     break
         if tenant_model.objects.filter(schema_name=rename_from).count() == 0:
-            print("Tenant does not exist")
-            retur
+            self.stdout.write(self.style.ERROR("Tenant does not exist"))
         rename_to = options.get("rename_to")
         while rename_to == '' or rename_to is None:
             rename_to = self._input("Rename to: ")
