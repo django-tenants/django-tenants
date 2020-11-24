@@ -393,8 +393,9 @@ This will result in logging output that looks similar to:
 Running in Development
 ----------------------
 
-If you want to use django-tenant in development you will have to fake a domain name. You can do this by editing the hosts file or using a program such as ``Acrylic DNS Proxy (Windows)``.
-
+If you want to use django-tenant in development you need to use a fake a domain
+name. All domains under the TLD ``.localhost`` will be routed to your local
+machine, so you can use things like ``tenant1.localhost`` and ``tenant2.localhost``.
 
 Migrating Single-Tenant to Multi-Tenant
 ---------------------------------------
