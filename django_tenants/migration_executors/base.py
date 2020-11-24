@@ -36,7 +36,7 @@ def run_migrations(args, options, executor_codename, schema_name, tenant_type=''
         return message
 
     connection = connections[options.get('database', get_tenant_database_alias())]
-    connection.set_schema(schema_name)
+    connection.set_schema(schema_name, tenant_type=tenant_type)
 
     stdout = OutputWrapper(sys.stdout)
     stdout.style_func = style_func
