@@ -41,7 +41,6 @@ class TenantMixin(models.Model):
     Leave this as None. Stores the subfolder in subfolder routing was used
     """
 
-
     _previous_tenant = []
 
     class Meta:
@@ -222,6 +221,13 @@ class TenantMixin(models.Model):
         url = ''.join((http_type, self.schema_name, '.', domain, reverse(view_name)))
 
         return url
+
+    def get_tenant_type(self):
+        """
+        Get the type of tenant. Will only work for multi type tenants
+        :return: str
+        """
+        return getattr(self, settings.MULTI_TYPE_DATABASE_FIELD)
 
 
 class DomainMixin(models.Model):

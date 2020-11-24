@@ -1,5 +1,5 @@
 """
-WSGI config for tenant_subfolder_tutorial project.
+WSGI config for tenant_multi_types_tutorial project.
 
 This module contains the WSGI application used by Django's development server
 and any production WSGI deployments. It should expose a module-level variable

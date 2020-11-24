@@ -150,7 +150,7 @@ WSGI_APPLICATION = 'tenant_multi_types_tutorial.wsgi.application'
 HAS_MULTI_TYPE_TENANTS = True
 MULTI_TYPE_DATABASE_FIELD = 'type'  # needs to be a char field length depends of the max type value
 
-TENANTS_TYPE = {
+TENANT_TYPES = {
     "public": {  # this is the name of the public schema from get_public_schema_name
         "APPS": ['customers',
                  'django.contrib.admin',
@@ -181,8 +181,8 @@ TENANT_DOMAIN_MODEL = "customers.Domain"  # app.Model
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
 INSTALLED_APPS = ['django_tenants']
-for schema in TENANTS_TYPE:
-    INSTALLED_APPS += [app for app in TENANTS_TYPE[schema]["APPS"] if app not in INSTALLED_APPS]
+for schema in TENANT_TYPES:
+    INSTALLED_APPS += [app for app in TENANT_TYPES[schema]["APPS"] if app not in INSTALLED_APPS]
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 

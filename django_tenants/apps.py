@@ -23,9 +23,9 @@ class DjangoTenantsConfig(AppConfig):
         # they avoid hard to find bugs and unexpected behaviour.
 
         if hasattr(settings, 'HAS_MULTI_TYPE_TENANTS') and settings.HAS_MULTI_TYPE_TENANTS:
-            if not hasattr(settings, 'TENANTS_TYPE'):
-                raise ImproperlyConfigured('Using multi type you must setup TENANTS_TYPE setting')
-            if get_public_schema_name() not in settings.TENANTS_TYPE:
+            if not hasattr(settings, 'TENANT_TYPES'):
+                raise ImproperlyConfigured('Using multi type you must setup TENANT_TYPES setting')
+            if get_public_schema_name() not in settings.TENANT_TYPES:
                 raise ImproperlyConfigured('get_public_schema_name() value not found as a key in TENANTS')
             if not hasattr(settings, 'MULTI_TYPE_DATABASE_FIELD'):
                 raise ImproperlyConfigured('Using multi type you must setup MULTI_TYPE_DATABASE_FIELD setting')
