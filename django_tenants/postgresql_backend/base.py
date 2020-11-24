@@ -25,17 +25,8 @@ SQL_IDENTIFIER_RE = re.compile(r'^[_a-zA-Z0-9]{1,63}$')
 SQL_SCHEMA_NAME_RESERVED_RE = re.compile(r'^pg_', re.IGNORECASE)
 
 
-def _is_valid_identifier(identifier):
-    return bool(SQL_IDENTIFIER_RE.match(identifier))
-
-
-def _check_identifier(identifier):
-    if not _is_valid_identifier(identifier):
-        raise ValidationError("Invalid string used for the identifier.")
-
-
 def is_valid_schema_name(name):
-    return _is_valid_identifier(name) and not SQL_SCHEMA_NAME_RESERVED_RE.match(name)
+    return SQL_IDENTIFIER_RE.match(name) and not SQL_SCHEMA_NAME_RESERVED_RE.match(name)
 
 
 def _check_schema_name(name):
