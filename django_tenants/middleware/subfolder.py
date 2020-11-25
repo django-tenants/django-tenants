@@ -59,7 +59,7 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
             path_chunks = request.path[len(subfolder_prefix_path):].split("/")
             tenant_subfolder = path_chunks[0]
             try:
-                tenant = self.get_tenant(domain_model, hostname)
+                tenant = self.get_tenant(domain_model=domain_model, hostname=tenant_subfolder)
             except tenant_model.DoesNotExist:
                 self.no_tenant_found(request, hostname)
                 return
