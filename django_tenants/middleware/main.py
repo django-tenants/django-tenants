@@ -4,8 +4,8 @@ from django.http import Http404
 from django.urls import set_urlconf
 from django.utils.deprecation import MiddlewareMixin
 
-from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_domain_model, get_tenant_types, \
-    has_multi_type_tenants
+from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_types, \
+    has_multi_type_tenants, get_tenant_domain_model
 
 
 class TenantMainMiddleware(MiddlewareMixin):
