@@ -28,3 +28,24 @@ services:
       - DATABASE_PASSWORD=django_tenants
       - DATABASE_DB=django_tenants
       - DATABASE_HOST=db
+  django-tenants-test:
+    build: .
+    links:
+      - db
+    depends_on:
+      - db
+    volumes:
+      - .:/code:z
+    command: ./run_tests_in_docker.sh
+    environment:
+      - POSTGRES_USER=django_tenants
+      - POSTGRES_PASSWORD=django_tenants
+      - DATABASE_USER=django_tenants
+      - DATABASE_PASSWORD=django_tenants
+      - DATABASE_DB=django_tenants
+      - DATABASE_HOST=db
+    ports:
+      - "8080:8080"
+    stdin_open: true
+    tty: true
+    restart: "no"
