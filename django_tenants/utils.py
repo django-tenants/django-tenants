@@ -31,6 +31,7 @@ def get_public_schema_name():
     return getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
 
 
+
 def get_tenant_types():
     return getattr(settings, 'TENANT_TYPES', {})
 
@@ -41,6 +42,13 @@ def has_multi_type_tenants():
 
 def get_multi_type_database_field_name():
     return getattr(settings, 'MULTI_TYPE_DATABASE_FIELD', '')
+
+
+def get_public_schema_urlconf():
+    if has_multi_type_tenants():
+        return get_tenant_types()[get_public_schema_name()]['URLCONF']
+    else:
+        return getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
 
 
 def get_tenant_type_choices():

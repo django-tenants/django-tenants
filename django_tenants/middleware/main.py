@@ -38,12 +38,18 @@ class TenantMainMiddleware(MiddlewareMixin):
         try:
             tenant = self.get_tenant(domain_model, hostname)
         except domain_model.DoesNotExist:
-            raise self.TENANT_NOT_FOUND_EXCEPTION('No tenant for hostname "%s"' % hostname)
+            self.no_tenant_found(request, hostname)
+            return
 
         tenant.domain_url = hostname
         request.tenant = tenant
         connection.set_tenant(request.tenant)
         self.setup_url_routing(request)
+
+    def no_tenant_found(self, request, hostname):
+        """ What should happen if no tenant is found.
+        This makes it easier if you want to override the default behavior """
+        raise self.TENANT_NOT_FOUND_EXCEPTION('No tenant for hostname "%s"' % hostname)
 
     @staticmethod
     def setup_url_routing(request):
