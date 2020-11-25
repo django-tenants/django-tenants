@@ -1,6 +1,6 @@
 import unittest
 
-from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.core.exceptions import ValidationError
 
 from django_tenants.postgresql_backend import base
 
