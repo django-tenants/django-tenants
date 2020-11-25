@@ -1,33 +1,15 @@
-from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
-from django.db import connection
 from django.http import Http404
-from django.utils.deprecation import MiddlewareMixin  # todo change
 
-from django_tenants.utils import remove_www_and_dev, get_public_schema_name, get_tenant_domain_model
-from django.db import utils
+from django_tenants.middleware import TenantMainMiddleware
+from django_tenants.utils import remove_www_and_dev, get_public_schema_urlconf
 
 
-class TenantTutorialMiddleware(MiddlewareMixin):
-    def process_request(self, request):
-        connection.set_schema_to_public()
+class TenantTutorialMiddleware(TenantMainMiddleware):
+    def no_tenant_found(self, request, hostname):
         hostname_without_port = remove_www_and_dev(request.get_host().split(':')[0])
-
-        try:
-            domain = get_tenant_domain_model().objects.select_related('tenant').get(domain=hostname_without_port)
-            request.tenant = domain.tenant
-        except utils.DatabaseError:
-            request.urlconf = settings.PUBLIC_SCHEMA_URLCONF
+        if hostname_without_port in ("127.0.0.1", "localhost"):
+            request.urlconf = get_public_schema_urlconf()
             return
-        except get_tenant_domain_model().DoesNotExist:
-            if hostname_without_port in ("127.0.0.1", "localhost"):
-                request.urlconf = settings.PUBLIC_SCHEMA_URLCONF
-                return
-            else:
-                raise Http404
+        else:
+            raise Http404
 
-        connection.set_tenant(request.tenant)
-        ContentType.objects.clear_cache()
-
-        if hasattr(settings, 'PUBLIC_SCHEMA_URLCONF') and request.tenant.schema_name == get_public_schema_name():
-            request.urlconf = settings.PUBLIC_SCHEMA_URLCONF
