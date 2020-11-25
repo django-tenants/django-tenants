@@ -31,7 +31,6 @@ def get_public_schema_name():
     return getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
 
 
-
 def get_tenant_types():
     return getattr(settings, 'TENANT_TYPES', {})
 

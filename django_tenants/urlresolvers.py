@@ -8,7 +8,7 @@ from django.utils.functional import lazy
 from django_tenants.utils import (
     get_tenant_domain_model,
     get_subfolder_prefix,
-    clean_tenant_url,
+    clean_tenant_url, has_multi_type_tenants, get_tenant_types,
 )
 
 
@@ -25,10 +25,10 @@ class TenantPrefixPattern:
 
     @property
     def tenant_prefix(self):
-        DomainModel = get_tenant_domain_model()
+        _DomainModel = get_tenant_domain_model()
         subfolder_prefix = get_subfolder_prefix()
         try:
-            domain = DomainModel.objects.get(
+            domain = _DomainModel.objects.get(
                 tenant__schema_name=connection.schema_name,
                 domain=connection.tenant.domain_subfolder,
             )
@@ -37,7 +37,7 @@ class TenantPrefixPattern:
                 if subfolder_prefix
                 else "{}/".format(domain.domain)
             )
-        except DomainModel.DoesNotExist:
+        except _DomainModel.DoesNotExist:
             return "/"
 
     @property
@@ -49,7 +49,7 @@ class TenantPrefixPattern:
     def match(self, path):
         tenant_prefix = self.tenant_prefix
         if path.startswith(tenant_prefix):
-            return path[len(tenant_prefix) :], (), {}
+            return path[len(tenant_prefix):], (), {}
         return None
 
     def check(self):
@@ -91,10 +91,11 @@ def get_subfolder_urlconf(tenant):
     """
     Creates and returns a subfolder URLConf for tenant.
     """
-    urlconf = settings.ROOT_URLCONF
+    if has_multi_type_tenants():
+        urlconf = get_tenant_types()[tenant.get_tenant_type()]['URLCONF']
+    else:
+        urlconf = settings.ROOT_URLCONF
     dynamic_path = urlconf + "_dynamically_tenant_prefixed"
     if not sys.modules.get(dynamic_path):
-        sys.modules[dynamic_path] = get_dynamic_tenant_prefixed_urlconf(
-            urlconf, dynamic_path
-        )
+        sys.modules[dynamic_path] = get_dynamic_tenant_prefixed_urlconf(urlconf, dynamic_path)
     return dynamic_path
