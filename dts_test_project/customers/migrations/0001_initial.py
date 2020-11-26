@@ -16,6 +16,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=100, null=True, blank=True)),
                 ('description', models.TextField(max_length=200, null=True, blank=True)),
                 ('created_on', models.DateField(auto_now_add=True)),
+                ('type', models.CharField(max_length=100, default='type1')),
             ],
             options={
                 'abstract': False,

@@ -5,7 +5,7 @@ from django.urls import set_urlconf
 from django.utils.deprecation import MiddlewareMixin
 
 from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_types, \
-    has_multi_type_tenants, get_tenant_domain_model
+    has_multi_type_tenants, get_tenant_domain_model, get_public_schema_urlconf
 
 
 class TenantMainMiddleware(MiddlewareMixin):
@@ -60,15 +60,15 @@ class TenantMainMiddleware(MiddlewareMixin):
         public_schema_name = get_public_schema_name()
         if has_multi_type_tenants():
             tenant_types = get_tenant_types()
-
-            # Do we have a public-specific urlconf?
-            if request.tenant.schema_name == get_public_schema_name() and 'URLCONF' in tenant_types[public_schema_name]:
-                request.urlconf = settings.PUBLIC_SCHEMA_URLCONF
+            if (not hasattr(request, 'tenant') or (request.tenant.schema_name == get_public_schema_name() and
+                                                   'URLCONF' in tenant_types[public_schema_name])):
+                request.urlconf = get_public_schema_urlconf()
             else:
                 tenant_type = request.tenant.get_tenant_type()
                 request.urlconf = tenant_types[tenant_type]['URLCONF']
             set_urlconf(request.urlconf)
 
         else:
+            # Do we have a public-specific urlconf?
             if hasattr(settings, 'PUBLIC_SCHEMA_URLCONF') and request.tenant.schema_name == get_public_schema_name():
                 request.urlconf = settings.PUBLIC_SCHEMA_URLCONF
