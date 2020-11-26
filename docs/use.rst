@@ -230,6 +230,9 @@ There is an example project called ```tenant_multi_types```
 Other settings
 --------------
 
+Admin
+~~~~~
+
 By default if you look at the admin all the tenant apps will be colored dark green you can disable this by doing.
 
 .. code-block:: python
@@ -237,9 +240,8 @@ By default if you look at the admin all the tenant apps will be colored dark gre
     TENANT_COLOR_ADMIN_APPS = False
 
 
-
 Reverse
--------
+~~~~~~~
 
 You can get the tenant domain name by calling a method on the tenant model called ``reverse``.
 
