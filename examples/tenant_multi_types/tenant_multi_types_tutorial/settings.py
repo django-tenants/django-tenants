@@ -160,7 +160,6 @@ TENANT_TYPES = {
                  'django.contrib.messages',
                  'django.contrib.staticfiles', ],
         "URLCONF": "tenant_multi_types_tutorial.urls_public",
-        # "WS_URLCONF": "app_main.ws_urls",
     },
     "type1": {
         "APPS": ['django.contrib.contenttypes',

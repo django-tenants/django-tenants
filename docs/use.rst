@@ -151,6 +151,82 @@ Example
         # recreate materialized views in the schema
 
 
+Multi-types tenants
+~~~~~~~~~~~~~~~~~~~
+
+It is also possible to have different types of tenants. This is usefully if you have two different types of users for instance you might want customers to use one style of tenant and suppliers to use another style. There is no limit to the amount of types however once the tenant has been set to a type it can't easily be convert to another type.
+To enable multi types you need to change the setting file and add an extra field onto the tenant table.
+
+In the setting file ```SHARED_APPS```, ```TENANT_APPS``` and ```PUBLIC_SCHEMA_URLCONF``` needs to be removed.
+
+The following needs to be added to the setting file
+
+.. code-block:: python
+
+    HAS_MULTI_TYPE_TENANTS = True
+    MULTI_TYPE_DATABASE_FIELD = 'type'  # or whatever the name you call the database field
+
+    TENANT_TYPES = {
+        "public": {  # this is the name of the public schema from get_public_schema_name
+            "APPS": ['django_tenants',
+                     'django.contrib.admin',
+                     'django.contrib.auth',
+                     'django.contrib.contenttypes',
+                     'django.contrib.sessions',
+                     'django.contrib.messages',
+                     'django.contrib.staticfiles',
+                      # shared apps here
+                      ],
+            "URLCONF": "tenant_multi_types_tutorial.urls_public", # url for the public type here
+        },
+        "type1": {
+            "APPS": ['django.contrib.contenttypes',
+                     'django.contrib.auth',
+                     'django.contrib.admin',
+                     'django.contrib.sessions',
+                     'django.contrib.messages',
+                     # type1 apps here
+                     ],
+            "URLCONF": "tenant_multi_types_tutorial.urls_type1",
+        },
+        "type2": {
+            "APPS": ['django.contrib.contenttypes',
+                     'django.contrib.auth',
+                     'django.contrib.admin',
+                     'django.contrib.sessions',
+                     'django.contrib.messages',
+                     # type1 apps here
+                     ],
+            "URLCONF": "tenant_multi_types_tutorial.urls_type2",
+        }
+    }
+
+Now you need to change the install app line in the settings file
+
+.. code-block:: python
+
+    INSTALLED_APPS = []
+    for schema in TENANT_TYPES:
+        INSTALLED_APPS += [app for app in TENANT_TYPES[schema]["APPS"] if app not in INSTALLED_APPS]
+
+You also need to make sure that ```ROOT_URLCONF`` is blank
+
+.. code-block:: python
+    ROOT_URLCONF = ''
+
+The tenant tables needs to have the following field added to the model
+
+    .. code-block:: python
+    from django_tenants.utils import get_tenant_type_choices
+
+    class Client(TenantMixin):
+        type = models.CharField(max_length=100, choices=get_tenant_type_choices())
+
+
+That's all you need to add the multiple types.
+
+There is an example project called ```tenant_multi_types```
+
 Other settings
 ~~~~~~~~~~~~~~
 
@@ -408,19 +484,27 @@ Migrating Single-Tenant to Multi-Tenant
 - Create a backup of your existing single-tenant database,
   presumably non PostgreSQL::
 
+.. code-block:: bash
+
     ./manage.py dumpdata --all --indent 2 > database.json
 
 - Edit ``settings.py`` to connect to your new PostrgeSQL database
 - Execute ``manage.py migrate`` to create all tables in the PostgreSQL database
 - Ensure newly created tables are empty::
 
+.. code-block:: bash
+
     ./manage.py sqlflush | ./manage.py dbshell
 
 - Load previously exported data into the database::
 
+.. code-block:: bash
+
     ./manage.py loaddata --format json database.json
 
 - Create the ``public`` tenant::
+
+.. code-block:: bash
 
     ./manage.py create_tenant
 
