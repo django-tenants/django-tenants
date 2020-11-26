@@ -216,7 +216,7 @@ You also need to make sure that ```ROOT_URLCONF`` is blank
 
 The tenant tables needs to have the following field added to the model
 
-    .. code-block:: python
+.. code-block:: python
     from django_tenants.utils import get_tenant_type_choices
 
     class Client(TenantMixin):
