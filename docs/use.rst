@@ -209,7 +209,7 @@ Now you need to change the install app line in the settings file
     for schema in TENANT_TYPES:
         INSTALLED_APPS += [app for app in TENANT_TYPES[schema]["APPS"] if app not in INSTALLED_APPS]
 
-You also need to make sure that ```ROOT_URLCONF`` is blank
+You also need to make sure that ```ROOT_URLCONF``` is blank
 
 .. code-block:: python
     ROOT_URLCONF = ''
