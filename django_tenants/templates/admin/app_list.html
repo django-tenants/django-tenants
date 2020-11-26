@@ -19,11 +19,11 @@
        {% is_shared_app app as is_shared_app %}
     <div class="app-{{ app.app_label }} module{% if app.app_url in request.path %} current-app{% endif %}">
       <table style="width: 100%">
-      {% if is_public_schema and not is_shared_app %}
-            <caption {% if is_tenant_app %}class="public-disabled"{% endif %}>
+      {% if is_public_schema and not is_shared_app or not is_tenant_app and not is_shared_app %}
+            <caption {% if is_tenant_app %}class="public-disabled"{% elif not is_tenant_app and not is_shared_app %}class="public-disabled"{% endif %}>
                 <div class="section" title="{% blocktrans with name=app.name %}Models in the {{ name }} application{% endblocktrans %}">{{ app.name }}</div>
                 <tr>
-                    <td scope="row">{% trans "Not available for global schema" %}</td>
+                    <td scope="row">{% if not is_tenant_app and not is_shared_app %}{% trans "Not available for this type of schema" %}{% else %}{% trans "Not available for global schema" %}{% endif %}</td>
 
                 </tr>
             </caption>

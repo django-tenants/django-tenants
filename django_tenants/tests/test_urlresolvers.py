@@ -6,11 +6,7 @@ from django.urls import reverse
 
 from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.urlresolvers import TenantPrefixPattern, get_subfolder_urlconf
-from django_tenants.utils import (
-    get_tenant_model,
-    get_tenant_domain_model,
-    get_public_schema_name,
-)
+from django_tenants.utils import get_tenant_model, get_tenant_domain_model
 
 
 class URLResolversTestCase(BaseTestCase):

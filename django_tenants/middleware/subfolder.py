@@ -3,18 +3,16 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.http import Http404
 from django.urls import set_urlconf, clear_url_caches
-from django.utils.deprecation import MiddlewareMixin
-
+from django_tenants.middleware import TenantMainMiddleware
 from django_tenants.urlresolvers import get_subfolder_urlconf
 from django_tenants.utils import (
-    remove_www,
     get_public_schema_name,
     get_tenant_model,
-    get_subfolder_prefix,
+    get_subfolder_prefix, get_tenant_domain_model,
 )
 
 
-class TenantSubfolderMiddleware(MiddlewareMixin):
+class TenantSubfolderMiddleware(TenantMainMiddleware):
     """
     This middleware should be placed at the very top of the middleware stack.
     Selects the proper tenant using the path subfolder prefix. Can fail in
@@ -24,19 +22,13 @@ class TenantSubfolderMiddleware(MiddlewareMixin):
     TENANT_NOT_FOUND_EXCEPTION = Http404
 
     def __init__(self, get_response=None):
+        super().__init__(get_response)
         self.get_response = get_response
         if not get_subfolder_prefix():
             raise ImproperlyConfigured(
                 '"TenantSubfolderMiddleware" requires "TENANT_SUBFOLDER_PREFIX" '
                 "present and non-empty in settings"
             )
-
-    @staticmethod
-    def hostname_from_request(request):
-        """ Extracts hostname from request. Used for custom requests filtering.
-            By default removes the request's port and common prefixes.
-        """
-        return remove_www(request.get_host().split(":")[0])
 
     def process_request(self, request):
         # Short circuit if tenant is already set by another middleware.
@@ -46,38 +38,31 @@ class TenantSubfolderMiddleware(MiddlewareMixin):
 
         connection.set_schema_to_public()
 
-        tenant = None
         urlconf = None
 
-        TenantModel = get_tenant_model()
+        tenant_model = get_tenant_model()
+        domain_model = get_tenant_domain_model()
         hostname = self.hostname_from_request(request)
         subfolder_prefix_path = "/{}/".format(get_subfolder_prefix())
 
         # We are in the public tenant
         if not request.path.startswith(subfolder_prefix_path):
             try:
-                tenant = TenantModel.objects.get(schema_name=get_public_schema_name())
-            except TenantModel.DoesNotExist:
+                tenant = tenant_model.objects.get(schema_name=get_public_schema_name())
+            except tenant_model.DoesNotExist:
                 raise self.TENANT_NOT_FOUND_EXCEPTION("Unable to find public tenant")
 
-            # Do we have a public-specific urlconf?
-            if (
-                hasattr(settings, "PUBLIC_SCHEMA_URLCONF")
-                and tenant.schema_name == get_public_schema_name()
-            ):
-                urlconf = settings.PUBLIC_SCHEMA_URLCONF
+            self.setup_url_routing(request)
 
         # We are in a specific tenant
         else:
-            path_chunks = request.path[len(subfolder_prefix_path) :].split("/")
+            path_chunks = request.path[len(subfolder_prefix_path):].split("/")
             tenant_subfolder = path_chunks[0]
-
             try:
-                tenant = TenantModel.objects.get(domains__domain=tenant_subfolder)
-            except TenantModel.DoesNotExist:
-                raise self.TENANT_NOT_FOUND_EXCEPTION(
-                    'No tenant for subfolder "%s"' % (tenant_subfolder or "")
-                )
+                tenant = self.get_tenant(domain_model=domain_model, hostname=tenant_subfolder)
+            except domain_model.DoesNotExist:
+                self.no_tenant_found(request, hostname)
+                return
 
             tenant.domain_subfolder = tenant_subfolder
             urlconf = get_subfolder_urlconf(tenant)
@@ -91,3 +76,8 @@ class TenantSubfolderMiddleware(MiddlewareMixin):
         if urlconf:
             request.urlconf = urlconf
             set_urlconf(urlconf)
+
+    def no_tenant_found(self, request, hostname):
+        """ What should happen if no tenant is found.
+        This makes it easier if you want to override the default behavior """
+        raise self.TENANT_NOT_FOUND_EXCEPTION('No tenant for subfolder "%s"' % hostname)

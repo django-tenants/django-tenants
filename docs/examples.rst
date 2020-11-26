@@ -13,32 +13,28 @@ This app comes with an interactive tutorial to teach you how to use ``django-ten
 All other steps will be explained by following the tutorial, just open ``http://127.0.0.1:8000`` on your browser.
 
 
-Running the example project with Vagrant
-----------------------------------------
+Running the example projects with Docker Compose
+------------------------------------------------
 
-You can run the example project with vagrant. You will need.
+To run the example projects with docker-compose. You will need.
 
-1. VirtualBox
+1. Docker
 
-2. Vagrant
-
-3. Fabric  (pip install fabric)
-
-4. Fabtools (pip install fabtools)
+2. Docker Compose
 
 Then you can run
 
 .. code-block:: bash
 
-    fab vagrant provision_vagrant
+    docker-compose run web bash
 
-    fab vagrant reset_database
+    cd examples/tenant_tutorial
 
-    fab vagrant create_tenant
+    python manage.py migrate
 
-    fab vagrant runserver
+    python manage.py create_tenant
+
+    python manage.py runserver 0.0.0.0:8088
 
 
-Now port 8080 is open and ready to use
-
-Make sure you add and entry in you host file
+All other steps will be explained by following the tutorial, just open ``http://127.0.0.1:8088`` on your browser.

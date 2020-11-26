@@ -6,6 +6,7 @@ class Client(TenantMixin):
     name = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(max_length=200, blank=True, null=True)
     created_on = models.DateField(auto_now_add=True)
+    type = models.CharField(max_length=100, default='type1')
 
     def reverse(self, request, view_name):
         """
