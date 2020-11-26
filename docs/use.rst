@@ -152,9 +152,9 @@ Example
 
 
 Multi-types tenants
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
-It is also possible to have different types of tenants. This is usefully if you have two different types of users for instance you might want customers to use one style of tenant and suppliers to use another style. There is no limit to the amount of types however once the tenant has been set to a type it can't easily be convert to another type.
+It is also possible to have different types of tenants. This is useful if you have two different types of users for instance you might want customers to use one style of tenant and suppliers to use another style. There is no limit to the amount of types however once the tenant has been set to a type it can't easily be convert to another type.
 To enable multi types you need to change the setting file and add an extra field onto the tenant table.
 
 In the setting file ```SHARED_APPS```, ```TENANT_APPS``` and ```PUBLIC_SCHEMA_URLCONF``` needs to be removed.
@@ -228,7 +228,7 @@ That's all you need to add the multiple types.
 There is an example project called ```tenant_multi_types```
 
 Other settings
-~~~~~~~~~~~~~~
+--------------
 
 By default if you look at the admin all the tenant apps will be colored dark green you can disable this by doing.
 
@@ -239,7 +239,7 @@ By default if you look at the admin all the tenant apps will be colored dark gre
 
 
 Reverse
-~~~~~~~
+-------
 
 You can get the tenant domain name by calling a method on the tenant model called ``reverse``.
 
