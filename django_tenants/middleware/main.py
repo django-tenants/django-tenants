@@ -38,13 +38,13 @@ class TenantMainMiddleware(MiddlewareMixin):
         try:
             tenant = self.get_tenant(domain_model, hostname)
         except domain_model.DoesNotExist:
-            self.no_tenant_found(request, hostname)
-            return
+            return self.no_tenant_found(request, hostname)
 
         tenant.domain_url = hostname
         request.tenant = tenant
         connection.set_tenant(request.tenant)
         self.setup_url_routing(request)
+        return request
 
     def no_tenant_found(self, request, hostname):
         """ What should happen if no tenant is found.
