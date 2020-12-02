@@ -23,14 +23,13 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
 
     def __init__(self, get_response=None):
         super().__init__(get_response)
-        self.get_response = get_response
         if not get_subfolder_prefix():
             raise ImproperlyConfigured(
                 '"TenantSubfolderMiddleware" requires "TENANT_SUBFOLDER_PREFIX" '
                 "present and non-empty in settings"
             )
 
-    def process_request(self, request):
+    def __call__(self, request):
         # Short circuit if tenant is already set by another middleware.
         # This allows for multiple tenant-resolving middleware chained together.
         if hasattr(request, "tenant"):
@@ -75,7 +74,7 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
         if urlconf:
             request.urlconf = urlconf
             set_urlconf(urlconf)
-        return request
+        return self.get_response(request)
 
     def no_tenant_found(self, request, hostname):
         """ What should happen if no tenant is found.
