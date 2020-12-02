@@ -63,7 +63,7 @@ class RoutesTestCase(BaseTestCase):
         request_url = '/any/request/'
         request = self.factory.get('/any/request/',
                                    HTTP_HOST=self.tenant_domain)
-        self.tm.process_request(request)
+        self.tm(request)
 
         self.assertEqual(request.path_info, request_url)
 
@@ -77,7 +77,7 @@ class RoutesTestCase(BaseTestCase):
         request_url = '/any/request/'
         request = self.factory.get('/any/request/',
                                    HTTP_HOST=self.public_domain.domain)
-        self.tm.process_request(request)
+        self.tm(request)
 
         self.assertEqual(request.path_info, request_url)
 
@@ -135,7 +135,7 @@ class SubfolderRoutesTestCase(BaseTestCase):
         request_url = '/clients/tenant.test.com/any/request/'
         request = self.factory.get('/clients/tenant.test.com/any/request/',
                                    HTTP_HOST=self.public_domain.domain)
-        self.tsf.process_request(request)
+        self.tsf(request)
 
         self.assertEqual(request.path_info, request_url)
 
@@ -149,7 +149,7 @@ class SubfolderRoutesTestCase(BaseTestCase):
         request_url = '/any/request/'
         request = self.factory.get('/any/request/',
                                    HTTP_HOST=self.public_domain.domain)
-        self.tsf.process_request(request)
+        self.tsf(request)
 
         self.assertEqual(request.path_info, request_url)
 
@@ -164,7 +164,7 @@ class SubfolderRoutesTestCase(BaseTestCase):
                                    HTTP_HOST=self.public_domain.domain)
 
         with self.assertRaises(self.tsf.TENANT_NOT_FOUND_EXCEPTION):
-            self.tsf.process_request(request)
+            self.tsf(request)
 
 
 class SubfolderRoutesWithoutPrefixTestCase(BaseTestCase):

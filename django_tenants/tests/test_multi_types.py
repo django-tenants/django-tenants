@@ -103,7 +103,7 @@ class MultiTypeTestCase(BaseTestCase):
         request_url = '/any/request/'
         request = self.factory.get('/any/request/',
                                    HTTP_HOST=self.tenant_domain)
-        self.tm.process_request(request)
+        self.tm(request)
 
         self.assertEqual(request.path_info, request_url)
 
@@ -117,7 +117,7 @@ class MultiTypeTestCase(BaseTestCase):
         request_url = '/any/request/'
         request = self.factory.get('/any/request/',
                                    HTTP_HOST=self.tenant_domain)
-        self.tm.process_request(request)
+        self.tm(request)
 
         self.assertEqual(request.path_info, request_url)
 
@@ -131,7 +131,7 @@ class MultiTypeTestCase(BaseTestCase):
         request_url = '/any/request/'
         request = self.factory.get('/any/request/',
                                    HTTP_HOST=self.public_domain.domain)
-        self.tm.process_request(request)
+        self.tm(request)
 
         self.assertEqual(request.path_info, request_url)
 
