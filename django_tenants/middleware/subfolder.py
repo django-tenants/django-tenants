@@ -61,8 +61,7 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
             try:
                 tenant = self.get_tenant(domain_model=domain_model, hostname=tenant_subfolder)
             except domain_model.DoesNotExist:
-                self.no_tenant_found(request, hostname)
-                return
+                return self.no_tenant_found(request, hostname)
 
             tenant.domain_subfolder = tenant_subfolder
             urlconf = get_subfolder_urlconf(tenant)
@@ -76,6 +75,7 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
         if urlconf:
             request.urlconf = urlconf
             set_urlconf(urlconf)
+        return request
 
     def no_tenant_found(self, request, hostname):
         """ What should happen if no tenant is found.
