@@ -2,7 +2,6 @@ from django.conf import settings
 from django.db import connection
 from django.http import Http404
 from django.urls import set_urlconf
-from django.utils.deprecation import MiddlewareMixin
 
 from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_types, \
     has_multi_type_tenants, get_tenant_domain_model, get_public_schema_urlconf
@@ -15,6 +14,7 @@ class TenantMainMiddleware(object):
     Selects the proper database schema using the request host. Can fail in
     various ways which is better than corrupting or revealing data.
     """
+
     def __init__(self, get_response):
         self.get_response = get_response
 
