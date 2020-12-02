@@ -100,6 +100,7 @@ def get_tenant_base_schema():
 
 
 class schema_context(ContextDecorator):
+    # Please do not try and merge this with tenant_context as they are not the same. As pointed out in #501
     def __init__(self, *args, **kwargs):
         self.schema_name = args[0]
         super().__init__()
@@ -116,9 +117,22 @@ class schema_context(ContextDecorator):
             self.connection.set_tenant(self.previous_tenant)
 
 
-class tenant_context(schema_context):
+class tenant_context(ContextDecorator):
+    # Please do not try and merge this with schema_context as they are not the same. As pointed out in #501
     def __init__(self, *args, **kwargs):
-        super().__init__(args[0].schema_name, **kwargs)
+        self.tenant = args[0]
+        super().__init__()
+
+    def __enter__(self):
+        self.connection = connections[get_tenant_database_alias()]
+        self.previous_tenant = connection.tenant
+        self.connection.set_tenant(self.tenant)
+
+    def __exit__(self, *exc):
+        if self.previous_tenant is None:
+            self.connection.set_schema_to_public()
+        else:
+            self.connection.set_tenant(self.previous_tenant)
 
 
 def clean_tenant_url(url_string):
