@@ -2,7 +2,7 @@ from django.conf import settings
 from django.test.client import RequestFactory
 
 from django_tenants.middleware import TenantMainMiddleware
-from django_tenants.tests.testcases import BaseTestCase
+from django_tenants.tests.testcases import BaseTestCase, noop_middleware
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name, tenant_context
 from dts_multi_type2.models import TypeTwoOnly
 
@@ -61,7 +61,7 @@ class MultiTypeTestCase(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.factory = RequestFactory()
-        self.tm = TenantMainMiddleware()
+        self.tm = TenantMainMiddleware(noop_middleware)
         print(settings.INSTALLED_APPS)
         self.public_tenant = get_tenant_model()(schema_name=get_public_schema_name(),
                                                 type='public')
