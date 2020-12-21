@@ -2,19 +2,21 @@ from django.conf import settings
 from django.db import connection
 from django.http import Http404
 from django.urls import set_urlconf
-from django.utils.deprecation import MiddlewareMixin
 
 from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_types, \
     has_multi_type_tenants, get_tenant_domain_model, get_public_schema_urlconf
 
 
-class TenantMainMiddleware(MiddlewareMixin):
+class TenantMainMiddleware:
     TENANT_NOT_FOUND_EXCEPTION = Http404
     """
     This middleware should be placed at the very top of the middleware stack.
     Selects the proper database schema using the request host. Can fail in
     various ways which is better than corrupting or revealing data.
     """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
 
     @staticmethod
     def hostname_from_request(request):
@@ -27,7 +29,7 @@ class TenantMainMiddleware(MiddlewareMixin):
         domain = domain_model.objects.select_related('tenant').get(domain=hostname)
         return domain.tenant
 
-    def process_request(self, request):
+    def __call__(self, request):
         # Connection needs first to be at the public schema, as this is where
         # the tenant metadata is stored.
 
@@ -44,7 +46,7 @@ class TenantMainMiddleware(MiddlewareMixin):
         request.tenant = tenant
         connection.set_tenant(request.tenant)
         self.setup_url_routing(request)
-        return request
+        return self.get_response(request)
 
     def no_tenant_found(self, request, hostname):
         """ What should happen if no tenant is found.

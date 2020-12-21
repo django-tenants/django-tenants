@@ -3,7 +3,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test.client import RequestFactory
 
 from django_tenants.middleware import TenantMainMiddleware, TenantSubfolderMiddleware
-from django_tenants.tests.testcases import BaseTestCase
+from django_tenants.tests.testcases import BaseTestCase, noop_middleware
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name
 
 
@@ -38,7 +38,7 @@ class RoutesTestCase(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.factory = RequestFactory()
-        self.tm = TenantMainMiddleware()
+        self.tm = TenantMainMiddleware(noop_middleware)
 
         self.tenant_domain = 'tenant.test.com'
         self.tenant = get_tenant_model()(schema_name='test')
@@ -63,7 +63,7 @@ class RoutesTestCase(BaseTestCase):
         request_url = '/any/request/'
         request = self.factory.get('/any/request/',
                                    HTTP_HOST=self.tenant_domain)
-        self.tm.process_request(request)
+        self.tm(request)
 
         self.assertEqual(request.path_info, request_url)
 
@@ -77,7 +77,7 @@ class RoutesTestCase(BaseTestCase):
         request_url = '/any/request/'
         request = self.factory.get('/any/request/',
                                    HTTP_HOST=self.public_domain.domain)
-        self.tm.process_request(request)
+        self.tm(request)
 
         self.assertEqual(request.path_info, request_url)
 
@@ -101,7 +101,7 @@ class SubfolderRoutesTestCase(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.factory = RequestFactory()
-        self.tsf = TenantSubfolderMiddleware()
+        self.tsf = TenantSubfolderMiddleware(noop_middleware)
 
         self.sync_shared()
         self.public_tenant = get_tenant_model()(schema_name=get_public_schema_name())
@@ -135,7 +135,7 @@ class SubfolderRoutesTestCase(BaseTestCase):
         request_url = '/clients/tenant.test.com/any/request/'
         request = self.factory.get('/clients/tenant.test.com/any/request/',
                                    HTTP_HOST=self.public_domain.domain)
-        self.tsf.process_request(request)
+        self.tsf(request)
 
         self.assertEqual(request.path_info, request_url)
 
@@ -149,7 +149,7 @@ class SubfolderRoutesTestCase(BaseTestCase):
         request_url = '/any/request/'
         request = self.factory.get('/any/request/',
                                    HTTP_HOST=self.public_domain.domain)
-        self.tsf.process_request(request)
+        self.tsf(request)
 
         self.assertEqual(request.path_info, request_url)
 
@@ -164,7 +164,7 @@ class SubfolderRoutesTestCase(BaseTestCase):
                                    HTTP_HOST=self.public_domain.domain)
 
         with self.assertRaises(self.tsf.TENANT_NOT_FOUND_EXCEPTION):
-            self.tsf.process_request(request)
+            self.tsf(request)
 
 
 class SubfolderRoutesWithoutPrefixTestCase(BaseTestCase):
@@ -175,7 +175,7 @@ class SubfolderRoutesWithoutPrefixTestCase(BaseTestCase):
         """
         settings.TENANT_SUBFOLDER_PREFIX = None
         with self.assertRaises(ImproperlyConfigured):
-            TenantSubfolderMiddleware()
+            TenantSubfolderMiddleware(noop_middleware)
         settings.TENANT_SUBFOLDER_PREFIX = '  '
         with self.assertRaises(ImproperlyConfigured):
-            TenantSubfolderMiddleware()
+            TenantSubfolderMiddleware(noop_middleware)
