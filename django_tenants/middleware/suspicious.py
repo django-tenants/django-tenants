@@ -1,5 +1,4 @@
 from django.core.exceptions import DisallowedHost
-
 from django_tenants.middleware import TenantMainMiddleware
 
 

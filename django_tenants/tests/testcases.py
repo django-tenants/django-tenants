@@ -1,13 +1,10 @@
 from django.db import connection
 from django.conf import settings
-from django.http import HttpResponse
 from django.core.management import call_command
 from django.test import TransactionTestCase
 
 from django_tenants.utils import get_public_schema_name
 
-def noop_middleware(request):
-    return HttpResponse("Just a test.")
 
 class BaseTestCase(TransactionTestCase):
     """
