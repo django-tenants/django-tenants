@@ -7,7 +7,7 @@ from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_
     has_multi_type_tenants, get_tenant_domain_model, get_public_schema_urlconf
 
 
-class TenantMainMiddleware(object):
+class TenantMainMiddleware:
     TENANT_NOT_FOUND_EXCEPTION = Http404
     """
     This middleware should be placed at the very top of the middleware stack.
