@@ -40,9 +40,10 @@ class DjangoTenantsConfig(AppConfig):
         if not hasattr(settings, 'TENANT_MODEL'):
             raise ImproperlyConfigured('TENANT_MODEL setting not set')
 
-        if 'django_tenants.routers.TenantSyncRouter' not in settings.DATABASE_ROUTERS:
+        tenant_sync_router = getattr(settings, 'TENANT_SYNC_ROUTER', 'django_tenants.routers.TenantSyncRouter')
+        if tenant_sync_router not in settings.DATABASE_ROUTERS:
             raise ImproperlyConfigured("DATABASE_ROUTERS setting must contain "
-                                       "'django_tenants.routers.TenantSyncRouter'.")
+                                       "'%s'." % tenant_sync_router)
 
         if hasattr(settings, 'PG_EXTRA_SEARCH_PATHS'):
             if get_public_schema_name() in settings.PG_EXTRA_SEARCH_PATHS:

@@ -224,6 +224,22 @@ Optional Settings
     The name of the schema to use as a template for creating new tenants. Only used when ``TENANT_CREATION_FAKES_MIGRATIONS`` is enabled.
 
 
+.. attribute:: TENANT_SYNC_ROUTER
+
+    :Default: ``django_tenants.routers.TenantSyncRouter``
+
+    The name of the database router that ``ready()`` checks for when the django_tenant app checks for.  If set then place this in ``DATABASE_ROUTERS``.
+
+
+.. code-block:: python
+
+    DATABASE_ROUTERS = [
+        # ..
+        TENANT_SYNC_ROUTER
+        # ..
+    ]
+
+
 Tenant View-Routing
 -------------------
 
