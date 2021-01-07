@@ -242,27 +242,28 @@ def parse_tenant_config_path(config_path):
 def validate_extra_extensions():
     extra_extensions = getattr(settings, 'PG_EXTRA_SEARCH_PATHS', [])
 
-    if get_public_schema_name() in extra_extensions:
-        raise ImproperlyConfigured(
-            "%s can not be included on PG_EXTRA_SEARCH_PATHS."
-            % get_public_schema_name())
+    if extra_extensions:
+        if get_public_schema_name() in extra_extensions:
+            raise ImproperlyConfigured(
+                "%s can not be included on PG_EXTRA_SEARCH_PATHS."
+                % get_public_schema_name())
 
-    # make sure no tenant schema is in settings.PG_EXTRA_SEARCH_PATHS
+        # make sure no tenant schema is in settings.PG_EXTRA_SEARCH_PATHS
 
-    # first check that the model table is created
-    model = get_tenant_model()
-    with connection.cursor() as cursor:
-        cursor.execute(
-            'SELECT 1 FROM information_schema.tables WHERE table_name = %s;',
-            [model._meta.db_table]
-        )
-        if cursor.fetchone():
-            invalid_schemas = set(extra_extensions).intersection(
-                model.objects.all().values_list('schema_name', flat=True))
-            if invalid_schemas:
-                raise ImproperlyConfigured(
-                    "Do not include tenant schemas (%s) on PG_EXTRA_SEARCH_PATHS."
-                    % list(invalid_schemas))
+        # first check that the model table is created
+        model = get_tenant_model()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'SELECT 1 FROM information_schema.tables WHERE table_name = %s;',
+                [model._meta.db_table]
+            )
+            if cursor.fetchone():
+                invalid_schemas = set(extra_extensions).intersection(
+                    model.objects.all().values_list('schema_name', flat=True))
+                if invalid_schemas:
+                    raise ImproperlyConfigured(
+                        "Do not include tenant schemas (%s) on PG_EXTRA_SEARCH_PATHS."
+                        % list(invalid_schemas))
 
-    # Make sure the connection used for the check is not reused and doesn't stay idle.
-    connection.close()
+        # Make sure the connection used for the check is not reused and doesn't stay idle.
+        connection.close()
