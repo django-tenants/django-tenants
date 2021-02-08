@@ -48,6 +48,7 @@ jobs:
   django_compatibility:
     name:  Django compatibility ${{ matrix.django-version}} / Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: true
       matrix:
@@ -55,6 +56,12 @@ jobs:
         django-version: ["==2.0.*", "==2.1.*", "==2.2.*", "==3.0.*", "==3.1.*"]
         # always use latest Postgres b/c the point here is to test Django compatibility
         postgres-version: [13.1]
+        experimental: [false]
+        include:
+          - django-version: "==3.2a1"
+            python-version: 3.9
+            postgres-version: 13.1
+            experimental: true
 
     steps:
     - uses: actions/checkout@v2
