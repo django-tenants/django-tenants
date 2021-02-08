@@ -74,8 +74,8 @@ jobs:
     - name: Install Python dependencies
       run: |
         pip install psycopg2
-        pip install Django${{ matrix.django-version }}
         python setup.py develop
+        pip install Django${{ matrix.django-version }}
 
     - name: Create database
       run: |
