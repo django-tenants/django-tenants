@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.apps import AppConfig
 from django.core.exceptions import ImproperlyConfigured
-from django_tenants.utils import get_public_schema_name, get_tenant_model
+from django_tenants.utils import get_public_schema_name, validate_extra_extensions
 
 
 recommended_config = """
@@ -44,25 +44,4 @@ class DjangoTenantsConfig(AppConfig):
             raise ImproperlyConfigured("DATABASE_ROUTERS setting must contain "
                                        "'django_tenants.routers.TenantSyncRouter'.")
 
-        if hasattr(settings, 'PG_EXTRA_SEARCH_PATHS'):
-            if get_public_schema_name() in settings.PG_EXTRA_SEARCH_PATHS:
-                raise ImproperlyConfigured(
-                    "%s can not be included on PG_EXTRA_SEARCH_PATHS."
-                    % get_public_schema_name())
-
-            # make sure no tenant schema is in settings.PG_EXTRA_SEARCH_PATHS
-
-            # first check that the model table is created
-            model = get_tenant_model()
-            c = connection.cursor()
-            c.execute(
-                'SELECT 1 FROM information_schema.tables WHERE table_name = %s;',
-                [model._meta.db_table]
-            )
-            if c.fetchone():
-                invalid_schemas = set(settings.PG_EXTRA_SEARCH_PATHS).intersection(
-                    model.objects.all().values_list('schema_name', flat=True))
-                if invalid_schemas:
-                    raise ImproperlyConfigured(
-                        "Do not include tenant schemas (%s) on PG_EXTRA_SEARCH_PATHS."
-                        % list(invalid_schemas))
+        validate_extra_extensions()
