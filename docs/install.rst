@@ -243,7 +243,7 @@ Separate projects for the main website and tenants (optional)
 -------------------------------------------------------------
 In some cases using the ``PUBLIC_SCHEMA_URLCONF`` can be difficult. For example, `Django CMS <https://www.django-cms.org/>`_ takes some control over the default Django URL routing by using middlewares that do not play well with the tenants. Another example would be when some apps on the main website need different settings than the tenants website. In these cases it is much simpler if you just run the main website `example.com` as a separate application. 
 
-If your projects are ran using a WSGI configuration, this can be done by creating a filed called ``wsgi_main_website.py`` in the same folder as ``wsgi.py``.
+If your projects are ran using a WSGI configuration, this can be done by creating a file called ``wsgi_main_website.py`` in the same folder as ``wsgi.py``.
 
 .. code-block:: python
 
