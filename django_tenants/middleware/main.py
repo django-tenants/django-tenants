@@ -44,7 +44,6 @@ class TenantMainMiddleware(MiddlewareMixin):
         request.tenant = tenant
         connection.set_tenant(request.tenant)
         self.setup_url_routing(request)
-        return request
 
     def no_tenant_found(self, request, hostname):
         """ What should happen if no tenant is found.
