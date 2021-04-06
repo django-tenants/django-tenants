@@ -209,3 +209,4 @@ LOGGING = {
 
 DEFAULT_FILE_STORAGE = "django_tenants.files.storage.TenantFileSystemStorage"
 MULTITENANT_RELATIVE_MEDIA_ROOT = "uploaded_files"
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
