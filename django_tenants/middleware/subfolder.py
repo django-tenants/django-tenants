@@ -75,7 +75,6 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
         if urlconf:
             request.urlconf = urlconf
             set_urlconf(urlconf)
-        return request
 
     def no_tenant_found(self, request, hostname):
         """ What should happen if no tenant is found.
