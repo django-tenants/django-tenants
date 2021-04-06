@@ -148,7 +148,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'tenant_multi_types_tutorial.wsgi.application'
 
 HAS_MULTI_TYPE_TENANTS = True
-MULTI_TYPE_DATABASE_FIELD = 'type'  # needs to be a char field length depends of the max type value
+MULTI_TYPE_DATABASE_FIELD = 'type'  # needs to be a char field length depends on the max size of the type value
 
 TENANT_TYPES = {
     "public": {  # this is the name of the public schema from get_public_schema_name
