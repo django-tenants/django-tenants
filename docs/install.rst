@@ -29,16 +29,16 @@ Add `django_tenants.routers.TenantSyncRouter` to your `DATABASE_ROUTERS` setting
     DATABASE_ROUTERS = (
         'django_tenants.routers.TenantSyncRouter',
     )
-    
+
 Add the middleware ``django_tenants.middleware.main.TenantMainMiddleware`` to the top of ``MIDDLEWARE``, so that each request can be set to use the correct schema.
 
 .. code-block:: python
-    
+
     MIDDLEWARE = (
         'django_tenants.middleware.main.TenantMainMiddleware',
         #...
     )
-    
+
 Make sure you have ``django.template.context_processors.request`` listed under the ``context_processors`` option of ``TEMPLATES`` otherwise the tenant will not be available on ``request``.
 
 .. code-block:: python
@@ -66,13 +66,13 @@ Here's an example, suppose we have an app named ``customers`` and we want to cre
 
     from django.db import models
     from django_tenants.models import TenantMixin, DomainMixin
-    
+
     class Client(TenantMixin):
         name = models.CharField(max_length=100)
         paid_until =  models.DateField()
         on_trial = models.BooleanField()
         created_on = models.DateField(auto_now_add=True)
-        
+
         # default true, schema will be automatically created and synced when it is saved
         auto_create_schema = True
 
@@ -106,24 +106,24 @@ To make use of shared and tenant-specific applications, there are two settings c
     SHARED_APPS = (
         'django_tenants',  # mandatory
         'customers', # you must list the app where your tenant model resides in
-        
+
         'django.contrib.contenttypes',
-         
+
         # everything below here is optional
-        'django.contrib.auth', 
-        'django.contrib.sessions', 
-        'django.contrib.sites', 
-        'django.contrib.messages', 
-        'django.contrib.admin', 
+        'django.contrib.auth',
+        'django.contrib.sessions',
+        'django.contrib.sites',
+        'django.contrib.messages',
+        'django.contrib.admin',
     )
-    
+
     TENANT_APPS = (
         # The following Django contrib apps must be in TENANT_APPS
         'django.contrib.contenttypes',
 
         # your tenant-specific apps
         'myapp.hotels',
-        'myapp.houses', 
+        'myapp.houses',
     )
 
     INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
@@ -141,15 +141,15 @@ Now run ``migrate_schemas --shared``, this will create the shared apps on the ``
 .. code-block:: bash
 
     python manage.py migrate_schemas --shared
-    
+
 .. note::
 
    If you use ``migrate`` migrations will be applied to both shared and tenant schemas!
-    
+
 .. warning::
 
    You might need to run ``makemigrations`` and then ``migrate_schemas --shared`` again for your ``app.Models`` to be created in the database.
-    
+
 Lastly, you need to create a tenant whose schema is ``public`` and it's address is your domain URL. Please see the section on :doc:`use <use>`.
 
 You can also specify extra schemas that should be visible to all queries using
@@ -167,6 +167,11 @@ globally.
    You can create a dedicated schema to hold postgresql extensions and make it
    available globally. This helps avoid issues caused by hiding the public
    schema from queries.
+
+.. warning::
+    By default, a check is performed to validate that the additional extension schemas do not conflict with the tenant schemas.
+    If you want to ignore this check, you can set ``SKIP_PG_EXTRA_VALIDATION`` to ``True``.
+    We do not recommend disabling this validation, **it is at your own risk**.
 
 Sub-folder Support
 ==================
@@ -204,7 +209,7 @@ Optional Settings
 .. attribute:: PUBLIC_SCHEMA_NAME
 
     :Default: ``'public'``
-    
+
     The schema name that will be treated as ``public``, that is, where the ``SHARED_APPS`` will be created.
 
 
@@ -236,12 +241,12 @@ Tenant View-Routing
     .. code-block:: python
 
         PUBLIC_SCHEMA_URLCONF = 'myproject.urls_public'
-    
-    When requesting the view ``/login/`` from the public tenant (your main website), it will search for this path on ``PUBLIC_SCHEMA_URLCONF`` instead of ``ROOT_URLCONF``. 
+
+    When requesting the view ``/login/`` from the public tenant (your main website), it will search for this path on ``PUBLIC_SCHEMA_URLCONF`` instead of ``ROOT_URLCONF``.
 
 Separate projects for the main website and tenants (optional)
 -------------------------------------------------------------
-In some cases using the ``PUBLIC_SCHEMA_URLCONF`` can be difficult. For example, `Django CMS <https://www.django-cms.org/>`_ takes some control over the default Django URL routing by using middlewares that do not play well with the tenants. Another example would be when some apps on the main website need different settings than the tenants website. In these cases it is much simpler if you just run the main website `example.com` as a separate application. 
+In some cases using the ``PUBLIC_SCHEMA_URLCONF`` can be difficult. For example, `Django CMS <https://www.django-cms.org/>`_ takes some control over the default Django URL routing by using middlewares that do not play well with the tenants. Another example would be when some apps on the main website need different settings than the tenants website. In these cases it is much simpler if you just run the main website `example.com` as a separate application.
 
 If your projects are ran using a WSGI configuration, this can be done by creating a file called ``wsgi_main_website.py`` in the same folder as ``wsgi.py``.
 
@@ -294,7 +299,7 @@ Here's how you can configure your Apache server to route all subdomains to your 
 
 Building Documentation
 ======================
-Documentation is available in ``docs`` and can be built into a number of 
+Documentation is available in ``docs`` and can be built into a number of
 formats using `Sphinx <http://pypi.python.org/pypi/Sphinx>`_. To get started
 
 .. code-block:: bash
