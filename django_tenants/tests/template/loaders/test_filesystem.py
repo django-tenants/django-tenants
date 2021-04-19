@@ -118,7 +118,7 @@ class TenantCachedLoaderTestCase(TenantTestCase):
     def test_cache_key(self):
         loader = self.engine.template_loaders[0]
         self.assertEqual(
-            loader.cache_key("index.html"), "index.html-{}".format(self.tenant.pk)
+            loader.cache_key("index.html"), "{}-index.html".format(self.tenant.schema_name)
         )
 
     def test_get_template(self):
@@ -132,7 +132,7 @@ class TenantCachedLoaderTestCase(TenantTestCase):
         )
 
         cache = self.engine.template_loaders[0].get_template_cache
-        self.assertEqual(cache["index.html-{}".format(self.tenant.pk)], template)
+        self.assertEqual(cache["{}-index.html".format(self.tenant.schema_name)], template)
 
         # Run a second time from cache
         template = self.engine.get_template("index.html")

@@ -7,32 +7,15 @@ from django.db import connection
 
 from django.template.loaders.cached import Loader as BaseLoader
 
+from django_tenants.postgresql_backend.base import FakeTenant
+
 
 class Loader(BaseLoader):
 
     def cache_key(self, template_name, skip=None):
-        """
-        Generate a cache key for the template name, dirs, and skip.
+        key = super().cache_key(template_name, skip)
 
-        If skip is provided, only origins that match template_name are included
-        in the cache key. This ensures each template is only parsed and cached
-        once if contained in different extend chains like:
+        if not connection.tenant or isinstance(connection.tenant, FakeTenant):
+            return key
 
-            x -> a -> a
-            y -> a -> a
-            z -> a -> a
-        """
-        dirs_prefix = ''
-        skip_prefix = ''
-        tenant_prefix = ''
-
-        if skip:
-            matching = [origin.name for origin in skip if origin.template_name == template_name]
-
-            if matching:
-                skip_prefix = self.generate_hash(matching)
-
-        if connection.tenant:
-            tenant_prefix = str(connection.tenant.pk)
-
-        return '-'.join(s for s in (str(template_name), tenant_prefix, skip_prefix, dirs_prefix) if s)
+        return "-".join([connection.tenant.schema_name, key])
