@@ -240,9 +240,10 @@ def parse_tenant_config_path(config_path):
 
 
 def validate_extra_extensions():
+    skip_validation = getattr(settings, 'SKIP_PG_EXTRA_VALIDATION', False)
     extra_extensions = getattr(settings, 'PG_EXTRA_SEARCH_PATHS', [])
 
-    if extra_extensions:
+    if not skip_validation and extra_extensions:
         if get_public_schema_name() in extra_extensions:
             raise ImproperlyConfigured(
                 "%s can not be included on PG_EXTRA_SEARCH_PATHS."
