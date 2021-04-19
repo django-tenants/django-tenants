@@ -40,8 +40,9 @@ class DjangoTenantsConfig(AppConfig):
         if not hasattr(settings, 'TENANT_MODEL'):
             raise ImproperlyConfigured('TENANT_MODEL setting not set')
 
-        if 'django_tenants.routers.TenantSyncRouter' not in settings.DATABASE_ROUTERS:
+        tenant_sync_router = getattr(settings, 'TENANT_SYNC_ROUTER', 'django_tenants.routers.TenantSyncRouter')
+        if tenant_sync_router not in settings.DATABASE_ROUTERS:
             raise ImproperlyConfigured("DATABASE_ROUTERS setting must contain "
-                                       "'django_tenants.routers.TenantSyncRouter'.")
+                                       "'%s'." % tenant_sync_router)
 
         validate_extra_extensions()
