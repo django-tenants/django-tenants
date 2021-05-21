@@ -230,6 +230,10 @@ There is an example project called ```tenant_multi_types```
 Other settings
 --------------
 
+By default if no tenant is found it will raise an error Http404 however you add ```SHOW_PUBLIC_IF_NO_TENANT_FOUND``` to
+the setting it will display the the public tenant. This will not work for subfolders.
+
+
 Admin
 ~~~~~
 

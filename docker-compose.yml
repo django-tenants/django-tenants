@@ -49,3 +49,19 @@ services:
     stdin_open: true
     tty: true
     restart: "no"
+  django-tenants-pgadmin:
+    container_name: django_tenants_pgadmin_container
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    volumes:
+      - ./pgadmin:/root/.pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    restart: unless-stopped
+
+  redis:
+    image: redis:6.0.10
+    ports:
+      - "6379:6379"
