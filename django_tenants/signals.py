@@ -41,4 +41,3 @@ def tenant_delete_callback(sender, instance, **kwargs):
 
     if instance.auto_drop_schema and schema_exists(instance.schema_name):
         instance._drop_schema(True)
-

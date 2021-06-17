@@ -414,6 +414,15 @@ You can provide them with these arguments:
 
     ./manage.py rename_schema --rename_from old_name --rename_to new_name
 
+create_missing_schemas
+~~~~~~~~~~~~~~~~~~~~~~
+
+The command ``create_missing_schemas`` checks the tenant table against the list of schemas.
+If it find a schema that doesn't exist it will create it.
+
+.. code-block:: bash
+
+    ./manage.py create_missing_schemas
 
 PostGIS
 -------
