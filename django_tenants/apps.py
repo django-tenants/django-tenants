@@ -5,10 +5,8 @@ from django_tenants.utils import get_public_schema_name, validate_extra_extensio
 
 
 recommended_config = """
-Warning: You should put 'django_tenants' at the end of INSTALLED_APPS:
-INSTALLED_APPS = TENANT_APPS + SHARED_APPS + ('django_tenants',)
-This is necessary to overwrite built-in django management commands with
-their schema-aware implementations.
+Warning: The recommend way of setting django tenants up is shown in the documentation.
+Please see https://django-tenants.readthedocs.io/en/latest/install.html?highlight=#configure-tenant-and-shared-applications
 """
 
 
