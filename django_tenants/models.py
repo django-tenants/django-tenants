@@ -91,7 +91,7 @@ class TenantMixin(models.Model):
 
     def save(self, verbosity=1, *args, **kwargs):
         connection = connections[get_tenant_database_alias()]
-        is_new = self.pk is None
+        is_new = self._state.adding
         has_schema = hasattr(connection, 'schema_name')
         if has_schema and is_new and connection.schema_name != get_public_schema_name():
             raise Exception("Can't create tenant outside the public schema. "
