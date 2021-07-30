@@ -193,10 +193,13 @@ There is a option that allows you to run Django-Tenants with sub-folder instead 
 
 
 The middleware is different to the standard middleware. The middleware required is
+
 .. code-block:: python
 
     MIDDLEWARE = (
         'django_tenants.middleware.TenantSubfolderMiddleware',
+        #...
+    )
 
 
 .. tip::
