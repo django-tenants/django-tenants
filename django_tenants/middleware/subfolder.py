@@ -52,7 +52,7 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
             except tenant_model.DoesNotExist:
                 raise self.TENANT_NOT_FOUND_EXCEPTION("Unable to find public tenant")
 
-            self.setup_url_routing(request)
+            self.setup_url_routing(request, force_public=True)
 
         # We are in a specific tenant
         else:
