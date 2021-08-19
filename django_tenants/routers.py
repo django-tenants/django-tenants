@@ -42,7 +42,8 @@ class TenantSyncRouter(object):
             if connection.schema_name == public_schema_name:
                 installed_apps = tenant_types[public_schema_name]['APPS']
             else:
-                installed_apps = tenant_types[connection.tenant.tenant_type]['APPS']
+                tenant_type = connection.tenant.get_tenant_type()
+                installed_apps = tenant_types[tenant_type]['APPS']
         else:
             if connection.schema_name == public_schema_name:
                 installed_apps = settings.SHARED_APPS
