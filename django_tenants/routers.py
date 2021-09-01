@@ -42,10 +42,7 @@ class TenantSyncRouter(object):
             if connection.schema_name == public_schema_name:
                 installed_apps = tenant_types[public_schema_name]['APPS']
             else:
-                if hasattr(connection.tenant, 'tenant_type'):
-                    tenant_type = connection.tenant.tenant_type
-                else:
-                    tenant_type = connection.tenant.get_tenant_type()
+                tenant_type = connection.tenant.get_tenant_type()
                 installed_apps = tenant_types[tenant_type]['APPS']
         else:
             if connection.schema_name == public_schema_name:
