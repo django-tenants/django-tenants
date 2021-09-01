@@ -560,6 +560,7 @@ Useful information
 If you want to run some code on every tenant you can do the following
 
 .. code-block:: python
+
     #import tenant model
     from django_tenants.utils import tenant_context
 
