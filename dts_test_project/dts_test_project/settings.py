@@ -72,6 +72,8 @@ TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
+print("***** DEBUG, INSTALLED_APPS=", INSTALLED_APPS)
+
 ROOT_URLCONF = 'dts_test_project.urls'
 
 WSGI_APPLICATION = 'dts_test_project.wsgi.application'
