@@ -699,7 +699,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION public.clone_schema(text, text, boolean, boolean) OWNER TO {db_user};
+ALTER FUNCTION public.clone_schema(text, text, boolean, boolean) OWNER TO "{db_user}";
 """
 
 
