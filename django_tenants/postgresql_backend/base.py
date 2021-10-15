@@ -165,3 +165,6 @@ class FakeTenant:
     def __init__(self, schema_name, tenant_type=None):
         self.schema_name = schema_name
         self.tenant_type = tenant_type
+
+    def get_tenant_type(self):
+        return self.tenant_type
