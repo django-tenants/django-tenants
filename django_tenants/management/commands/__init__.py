@@ -89,7 +89,7 @@ https://django-tenants.readthedocs.org/en/latest/use.html#creating-a-tenant""")
             while True:
                 tenant_schema = input("Enter Tenant Schema ('?' to list schemas): ")
                 if tenant_schema == '?':
-                    print('\n'.join(["%s - %s" % (t.schema_name, t.get_primary_domain().domain) for t in all_tenants]))
+                    print('\n'.join(["%s - %s" % (t.schema_name, t.get_primary_domain()) for t in all_tenants]))
                 else:
                     break
 

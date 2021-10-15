@@ -46,6 +46,9 @@ class TenantMixin(models.Model):
     class Meta:
         abstract = True
 
+    def __str__(self):
+        return self.schema_name
+
     def __enter__(self):
         """
         Syntax sugar which helps in celery tasks, cron jobs, and other scripts
@@ -254,3 +257,6 @@ class DomainMixin(models.Model):
 
     class Meta:
         abstract = True
+
+    def __str__(self):
+        return self.domain
