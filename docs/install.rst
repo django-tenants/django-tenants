@@ -118,9 +118,6 @@ To make use of shared and tenant-specific applications, there are two settings c
     )
 
     TENANT_APPS = (
-        # The following Django contrib apps must be in TENANT_APPS
-        'django.contrib.contenttypes',
-
         # your tenant-specific apps
         'myapp.hotels',
         'myapp.houses',
