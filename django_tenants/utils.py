@@ -99,6 +99,10 @@ def get_tenant_base_schema():
     return schema
 
 
+def get_tenant_migration_order():
+    return getattr(settings, 'TENANT_MIGRATION_ORDER', None)
+
+
 class schema_context(ContextDecorator):
     # Please do not try and merge this with tenant_context as they are not the same. As pointed out in #501
     def __init__(self, *args, **kwargs):
