@@ -107,11 +107,11 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
             self.created = [t]
 
-        if executor == 'simple':
+        if executor.codename == 'standard':
             atomically_create_tenant()
 
             self.assertTrue(schema_exists(schema_name))
-        elif executor == 'multiprocessing':
+        elif executor.codename == 'multiprocessing':
             # Unfortunately, it's impossible for the multiprocessing executor
             # to assert atomic transactions when creating a tenant
             with self.assertRaises(transaction.TransactionManagementError):
@@ -701,13 +701,13 @@ class SchemaMigratedSignalTest(BaseTestCase):
         with catch_signal(schema_migrated) as handler:
             tenant.save()
 
-        if executor == 'simple':
+        if executor.codename == 'standard':
             handler.assert_called_once_with(
                 schema_name='test',
                 sender=mock.ANY,
                 signal=schema_migrated
             )
-        elif executor == 'multiprocessing':
+        elif executor.codename == 'multiprocessing':
             # migrations run in a different process, therefore signal
             # will get sent in a different process as well
             handler.assert_not_called()
@@ -730,7 +730,7 @@ class SchemaMigratedSignalTest(BaseTestCase):
         with catch_signal(schema_migrated) as handler:
             call_command('migrate_schemas', interactive=False, verbosity=0)
 
-        if executor == 'simple':
+        if executor.codename == 'standard':
             handler.assert_has_calls([
                 mock.call(
                     schema_name=get_public_schema_name(),
@@ -742,7 +742,7 @@ class SchemaMigratedSignalTest(BaseTestCase):
                     sender=mock.ANY,
                     signal=schema_migrated)
             ])
-        elif executor == 'multiprocessing':
+        elif executor.codename == 'multiprocessing':
             # public schema gets migrated in the current process, always
             handler.assert_called_once_with(
                 schema_name=get_public_schema_name(),
