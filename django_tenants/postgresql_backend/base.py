@@ -39,16 +39,15 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
     Adds the capability to manipulate the search_path using set_tenant and set_schema_name
     """
     include_public_schema = True
+    # Use a patched version of the DatabaseIntrospection that only returns the table list for the
+    # currently selected schema.
+    introspection_class = DatabaseSchemaIntrospection
 
     def __init__(self, *args, **kwargs):
         self.search_path_set = None
         self.tenant = None
         self.schema_name = None
         super().__init__(*args, **kwargs)
-
-        # Use a patched version of the DatabaseIntrospection that only returns the table list for the
-        # currently selected schema.
-        self.introspection = DatabaseSchemaIntrospection(self)
         self.set_schema_to_public()
 
     def close(self):
