@@ -13,6 +13,9 @@ django-tenants
 
 .. image:: https://readthedocs.org/projects/pip/badge/?version=latest
     :target: https://django-tenants.readthedocs.io/en/latest/
+    
+.. image:: https://img.shields.io/pypi/dm/django-tenants.svg?maxAge=180
+   :targets: https://pypi.org/project/django-tenants/
 
 This application enables `django`_ powered websites to have multiple
 tenants via `PostgreSQL schemas`_. A vital feature for every
