@@ -41,7 +41,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
     include_public_schema = True
 
     def __init__(self, *args, **kwargs):
-        self.search_path_set = None
+        self.search_path_set_schemas = None
         self.tenant = None
         self.schema_name = None
         super().__init__(*args, **kwargs)
@@ -52,7 +52,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         self.set_schema_to_public()
 
     def close(self):
-        self.search_path_set = False
+        self.search_path_set_schemas = None
         super().close()
 
     def set_tenant(self, tenant, include_public=True):
@@ -64,7 +64,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         self.schema_name = tenant.schema_name
         self.include_public_schema = include_public
         self.set_settings_schema(self.schema_name)
-        self.search_path_set = False
+        self.search_path_set_schemas = None
         # Content type can no longer be cached as public and tenant schemas
         # have different models. If someone wants to change this, the cache
         # needs to be separated between public and shared schemas. If this
@@ -114,25 +114,15 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
         # optionally limit the number of executions - under load, the execution
         # of `set search_path` can be quite time consuming
-        if (not get_limit_set_calls()) or not self.search_path_set:
+        if (not get_limit_set_calls()) or not self.search_path_set_schemas:
             # Actual search_path modification for the cursor. Database will
             # search schemata from left to right when looking for the object
             # (table, index, sequence, etc.).
             if not self.schema_name:
                 raise ImproperlyConfigured("Database schema not set. Did you forget "
                                            "to call set_schema() or set_tenant()?")
-            _check_schema_name(self.schema_name)
-            public_schema_name = get_public_schema_name()
-            search_paths = []
 
-            if self.schema_name == public_schema_name:
-                search_paths = [public_schema_name]
-            elif self.include_public_schema:
-                search_paths = [self.schema_name, public_schema_name]
-            else:
-                search_paths = [self.schema_name]
-
-            search_paths.extend(EXTRA_SEARCH_PATHS)
+            search_paths = self._get_cursor_search_paths()
 
             if name:
                 # Named cursor can only be used once
@@ -146,15 +136,30 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             # if the next instruction is not a rollback it will just fail also, so
             # we do not have to worry that it's not the good one
             try:
-                search_paths = ['\'{}\''.format(s) for s in search_paths]
-                cursor_for_search_path.execute('SET search_path = {0}'.format(','.join(search_paths)))
+                formatted_search_paths = ['\'{}\''.format(s) for s in search_paths]
+                cursor_for_search_path.execute('SET search_path = {0}'.format(','.join(formatted_search_paths)))
             except (django.db.utils.DatabaseError, psycopg2.InternalError):
-                self.search_path_set = False
+                self.search_path_set_schemas = None
             else:
-                self.search_path_set = True
+                self.search_path_set_schemas = search_paths
             if name:
                 cursor_for_search_path.close()
         return cursor
+
+    def _get_cursor_search_paths(self):
+        _check_schema_name(self.schema_name)
+        public_schema_name = get_public_schema_name()
+
+        if self.schema_name == public_schema_name:
+            search_paths = [public_schema_name]
+        elif self.include_public_schema:
+            search_paths = [self.schema_name, public_schema_name]
+        else:
+            search_paths = [self.schema_name]
+
+        search_paths.extend(EXTRA_SEARCH_PATHS)
+
+        return search_paths
 
 
 class FakeTenant:
