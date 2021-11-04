@@ -244,6 +244,12 @@ Optional Settings
         # ..
     ]
 
+.. attribute:: TENANT_MIGRATION_ORDER
+
+    :Default: ``None``
+
+    A list of fields to order the tenant queryset by when migrating schemas.
+
 
 Tenant View-Routing
 -------------------

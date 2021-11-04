@@ -692,3 +692,61 @@ class SchemaMigratedSignalTest(BaseTestCase):
                 sender=mock.ANY,
                 signal=schema_migrated,
             )
+
+
+class MigrationOrderTestTest(BaseTestCase):
+    def setUp(self):
+        self.created = []
+        super().setUp()
+
+        settings.TENANT_MIGRATION_ORDER = ["-schema_name"]
+
+        self.sync_shared()
+
+    def tearDown(self):
+        from django_tenants.models import TenantMixin
+
+        connection.set_schema_to_public()
+
+        for c in self.created:
+            if isinstance(c, TenantMixin):
+                c.delete(force_drop=True)
+            else:
+                c.delete()
+
+        settings.TENANT_MIGRATION_ORDER = None
+
+        super().tearDown()
+
+    def test_migrate_schemas_order(self):
+        """
+        Test the migrate schemas is determined by TENANT_MIGRATION_ORDER.
+        """
+        executor = get_executor()
+        if executor.codename != "standard":  # can only test in standard executor
+            return
+
+        tenant1 = get_tenant_model().objects.create(schema_name="test")
+        tenant2 = get_tenant_model().objects.create(schema_name="xtest")
+        get_tenant_domain_model().objects.create(
+            tenant=tenant1, domain="something1.test.com"
+        )
+        get_tenant_domain_model().objects.create(
+            tenant=tenant2, domain="something2.test.com"
+        )
+
+        # test the signal gets called when running migrate
+        with catch_signal(schema_migrated) as handler:
+            call_command("migrate_schemas", interactive=False, verbosity=0)
+
+        handler.assert_has_calls(
+            [
+                mock.call(
+                    schema_name=get_public_schema_name(),
+                    sender=mock.ANY,
+                    signal=schema_migrated,
+                ),
+                mock.call(schema_name="xtest", sender=mock.ANY, signal=schema_migrated),
+                mock.call(schema_name="test", sender=mock.ANY, signal=schema_migrated),
+            ]
+        )
