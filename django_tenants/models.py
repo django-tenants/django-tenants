@@ -1,14 +1,18 @@
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.management import call_command
-from django.db import models, connections, transaction
+from django.core.exceptions import ValidationError
+from django.db import models, connections, transaction, connection
+from django.forms import MultipleChoiceField
+from django.contrib.postgres.fields import ArrayField
 from django.urls import reverse
 
 from django_tenants.clone import CloneSchema
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
 from .utils import get_creation_fakes_migrations, get_tenant_base_schema
-from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias
+from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias, \
+    get_tenant_model, get_optional_tenant_apps_choices, get_optional_tenant_apps
 
 
 class TenantMixin(models.Model):
@@ -231,6 +235,95 @@ class TenantMixin(models.Model):
         :return: str
         """
         return getattr(self, settings.MULTI_TYPE_DATABASE_FIELD)
+
+
+class ChoiceArrayField(ArrayField):
+    """
+    A field that allows us to store an array of choices.
+    Uses Django's Postgres ArrayField
+    and a MultipleChoiceField for its formfield.
+    """
+
+    def formfield(self, **kwargs):
+        defaults = {
+            'form_class': MultipleChoiceField,
+            'choices': self.base_field.choices,
+        }
+        defaults.update(kwargs)
+        # Skip our parent's formfield implementation completely as we don't
+        # care for it.
+        # pylint:disable=bad-super-call
+        return super(ArrayField, self).formfield(**defaults)
+
+
+class TenantWithCustomAppsMixin(TenantMixin):
+    """
+    When using Custom Tenant Apps, the tenant model shall inherit TenantWithCustomAppsMixin
+    """
+
+    apps = ChoiceArrayField(
+        base_field=models.CharField(max_length=256, choices=get_optional_tenant_apps_choices()),
+        default=list, blank=True, null=True)
+
+    auto_migrations_on_apps_change = True
+    """
+    Set this flag to false on a parent class if you don't want the tables and migrations
+    corresponding to newly added apps and removed apps to be synchronised upon save.
+    """
+
+    class Meta:
+        abstract = True
+
+    def get_tenant_custom_apps(self):
+        return self.apps
+
+    def clean(self):
+        apps = self.apps
+        for app in apps:
+            app_config = [x for x in get_optional_tenant_apps() if x['app'] == app][0]
+            if not hasattr(app_config, 'dependencies'):
+                return
+            for dependency in app_config['dependencies']:
+                if dependency not in apps:
+                    raise ValidationError('Optional app dependencies not satisfied')
+
+    def save(self, verbosity=1, *args, **kwargs):
+        if not self.auto_migrations_on_apps_change:
+            super().save(*args, **kwargs)
+            return
+
+        is_new = self._state.adding
+        old_instance = None
+
+        if not is_new:
+            try:
+                old_instance = get_tenant_model().objects.get(pk=self.pk)
+            except get_tenant_model().DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
+
+        if old_instance:
+            new_apps = self.apps
+            old_apps = old_instance.apps
+
+            added_apps = [app for app in new_apps if app not in old_apps]
+            removed_apps = [app for app in old_apps if app not in new_apps]
+
+            for app in added_apps + removed_apps:
+                call_command('migrate_schemas', '--schema=' + self.schema_name, app, 'zero')
+
+            for app in added_apps:
+                call_command('migrate_schemas', '--schema=' + self.schema_name, app)
+
+            if len(removed_apps) > 0:
+                with connection.cursor() as cursor:
+                    query = "SELECT table_name FROM information_schema.tables WHERE table_name " \
+                            "SIMILAR TO '({apps})\_%' AND table_schema='{schema}';"\
+                        .format(apps='|'.join(removed_apps), schema=self.schema_name)
+                    cursor.execute(query)
+                    tables = [self.schema_name + '.' + x[0] for x in cursor.fetchall()]
+                    query = "DROP TABLE {};".format(', '.join(tables))
+                    cursor.execute(query)
 
 
 class DomainMixin(models.Model):

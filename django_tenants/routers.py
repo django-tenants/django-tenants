@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.apps import apps as django_apps
 
-from django_tenants.utils import has_multi_type_tenants, get_tenant_types
+from django_tenants.utils import has_multi_type_tenants, get_tenant_types, has_custom_tenant_apps
 
 
 class TenantSyncRouter(object):
@@ -44,6 +44,11 @@ class TenantSyncRouter(object):
             else:
                 tenant_type = connection.tenant.get_tenant_type()
                 installed_apps = tenant_types[tenant_type]['APPS']
+        elif has_custom_tenant_apps():
+            if connection.schema_name == public_schema_name:
+                installed_apps = settings.SHARED_APPS
+            else:
+                installed_apps = settings.MANDATORY_TENANT_APPS + connection.tenant.get_tenant_custom_apps()
         else:
             if connection.schema_name == public_schema_name:
                 installed_apps = settings.SHARED_APPS

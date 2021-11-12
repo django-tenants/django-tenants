@@ -3,7 +3,8 @@ from django.conf import settings
 from django.template import Library
 from django.template.defaulttags import URLNode
 from django.template.defaulttags import url as default_url
-from django_tenants.utils import clean_tenant_url, get_public_schema_name, has_multi_type_tenants, get_tenant_types
+from django_tenants.utils import clean_tenant_url, get_public_schema_name, has_multi_type_tenants, get_tenant_types, \
+    has_custom_tenant_apps
 
 register = Library()
 
@@ -32,6 +33,11 @@ def is_tenant_app(context, app):
     if has_multi_type_tenants():
         if hasattr(context.request, 'tenant') and context.request.tenant is not None:
             _apps = get_tenant_types()[context.request.tenant.get_tenant_type()]['APPS']
+        else:
+            return True
+    elif has_custom_tenant_apps():
+        if hasattr(context.request, 'tenant') and context.request.tenant is not None:
+            _apps = settings.MANDATORY_TENANT_APPS + context.request.tenant.get_tenant_custom_apps()
         else:
             return True
     else:
