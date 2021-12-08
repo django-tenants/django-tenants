@@ -1,6 +1,6 @@
 from django.db.backends.postgresql.introspection import DatabaseIntrospection
 from django.db.backends.base.introspection import TableInfo, FieldInfo
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from . import _constraints
 
@@ -46,8 +46,8 @@ class DatabaseSchemaIntrospection(DatabaseIntrospection):
             WHERE table_schema = %s and table_name = %s""", [self.connection.schema_name, table_name])
         field_map = {line[0]: line[1:] for line in cursor.fetchall()}
         cursor.execute("SELECT * FROM %s LIMIT 1" % self.connection.ops.quote_name(table_name))
-        return [FieldInfo(*((force_text(line[0]),) + line[1:6] +
-                            (field_map[force_text(line[0])][0] == 'YES', field_map[force_text(line[0])][1])))
+        return [FieldInfo(*((force_str(line[0]),) + line[1:6] +
+                            (field_map[force_str(line[0])][0] == 'YES', field_map[force_str(line[0])][1])))
                 for line in cursor.description]
 
     def get_indexes(self, cursor, table_name):
