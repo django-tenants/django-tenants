@@ -38,7 +38,7 @@ class RoutesTestCase(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.factory = RequestFactory()
-        self.tm = TenantMainMiddleware()
+        self.tm = TenantMainMiddleware(lambda r: r)
 
         self.tenant_domain = 'tenant.test.com'
         self.tenant = get_tenant_model()(schema_name='test')
@@ -101,7 +101,7 @@ class SubfolderRoutesTestCase(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.factory = RequestFactory()
-        self.tsf = TenantSubfolderMiddleware()
+        self.tsf = TenantSubfolderMiddleware(lambda r: r)
 
         self.sync_shared()
         self.public_tenant = get_tenant_model()(schema_name=get_public_schema_name())
@@ -175,7 +175,7 @@ class SubfolderRoutesWithoutPrefixTestCase(BaseTestCase):
         """
         settings.TENANT_SUBFOLDER_PREFIX = None
         with self.assertRaises(ImproperlyConfigured):
-            TenantSubfolderMiddleware()
+            TenantSubfolderMiddleware(lambda r: r)
         settings.TENANT_SUBFOLDER_PREFIX = '  '
         with self.assertRaises(ImproperlyConfigured):
-            TenantSubfolderMiddleware()
+            TenantSubfolderMiddleware(lambda r: r)

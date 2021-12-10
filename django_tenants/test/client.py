@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate
 
 
 class TenantRequestFactory(RequestFactory):
-    tm = TenantMainMiddleware()
+    tm = TenantMainMiddleware(lambda r: r)
 
     def __init__(self, tenant, **defaults):
         super().__init__(**defaults)
