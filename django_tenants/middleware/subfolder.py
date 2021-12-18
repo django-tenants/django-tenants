@@ -21,7 +21,7 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
 
     TENANT_NOT_FOUND_EXCEPTION = Http404
 
-    def __init__(self, get_response=None):
+    def __init__(self, get_response):
         super().__init__(get_response)
         self.get_response = get_response
         if not get_subfolder_prefix():

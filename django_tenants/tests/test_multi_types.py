@@ -61,7 +61,7 @@ class MultiTypeTestCase(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.factory = RequestFactory()
-        self.tm = TenantMainMiddleware()
+        self.tm = TenantMainMiddleware(lambda r: r)
         print(settings.INSTALLED_APPS)
         self.public_tenant = get_tenant_model()(schema_name=get_public_schema_name(),
                                                 type='public')
