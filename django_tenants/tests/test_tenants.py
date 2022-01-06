@@ -307,6 +307,16 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
         self.created = [tenant]
 
+    def test_tenant_schema_creation_with_special_chars(self):
+        """Tests using special characters in schema name."""
+        schema_names = ('test-hyphen', 'test@at', 'test`backtick')
+
+        Client = get_tenant_model()
+        for schema_name in schema_names:
+            tenant = Client(schema_name=schema_name)
+            tenant.save()
+            self.assertTrue(schema_exists(tenant.schema_name))
+
 
 class BaseSyncTest(BaseTestCase):
     """
@@ -490,9 +500,9 @@ class SharedAuthTest(BaseTestCase):
             JOIN information_schema.constraint_column_usage AS ccu
               ON tc.constraint_schema = ccu.constraint_schema AND ccu.constraint_name = tc.constraint_name
         WHERE
-            constraint_type = 'FOREIGN KEY' AND 
-            tc.table_name=%s AND 
-            ccu.table_schema=%s AND 
+            constraint_type = 'FOREIGN KEY' AND
+            tc.table_name=%s AND
+            ccu.table_schema=%s AND
             ccu.constraint_schema=%s
         """
         cursor = connection.cursor()
