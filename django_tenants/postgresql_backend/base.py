@@ -41,13 +41,17 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
     include_public_schema = True
     # Use a patched version of the DatabaseIntrospection that only returns the table list for the
     # currently selected schema.
-    introspection_class = DatabaseSchemaIntrospection
 
     def __init__(self, *args, **kwargs):
         self.search_path_set_schemas = None
         self.tenant = None
         self.schema_name = None
         super().__init__(*args, **kwargs)
+
+        # Use a patched version of the DatabaseIntrospection that only returns the table list for the
+        # currently selected schema.
+        self.introspection = DatabaseSchemaIntrospection(self)
+
         self.set_schema_to_public()
 
     def close(self):
