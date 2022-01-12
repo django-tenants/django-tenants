@@ -15,6 +15,9 @@ class TestValidationUtils(unittest.TestCase):
     def test_check_schema_name_upper_case_is_valid(self):
         self.assertIsNone(base._check_schema_name('Tenant1'))
 
+    def test_check_schema_name_hyphen_is_valid(self):
+        self.assertIsNone(base._check_schema_name('my-tenant'))
+
     def test_check_schema_name_64_is_invalid(self):
         schema_name = 'aaatenant7890tenant7890tenant7890tenant7890tenant7890tenant7890z'
         self.assertGreater(len(schema_name), 63)
@@ -27,21 +30,3 @@ class TestValidationUtils(unittest.TestCase):
         with self.assertRaisesRegex(ValidationError,
                                     'Invalid string used for the schema name.'):
             base._check_schema_name('pg_tenant1')
-
-    def test_check_schema_name_dash_is_invalid(self):
-        with self.assertRaisesRegex(ValidationError,
-                                    'Invalid string used for the schema name.'):
-            base._check_schema_name('my-tenant')
-
-    def test_check_schema_name_special_chars_are_invalid(self):
-        with self.assertRaisesRegex(ValidationError,
-                                    'Invalid string used for the schema name.'):
-            base._check_schema_name('my,tenant')
-
-        with self.assertRaisesRegex(ValidationError,
-                                    'Invalid string used for the schema name.'):
-            base._check_schema_name('my@tenant')
-
-        with self.assertRaisesRegex(ValidationError,
-                                    'Invalid string used for the schema name.'):
-            base._check_schema_name('my`tenant')

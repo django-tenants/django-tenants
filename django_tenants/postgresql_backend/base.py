@@ -20,13 +20,19 @@ original_backend = import_module(ORIGINAL_BACKEND + '.base')
 
 EXTRA_SEARCH_PATHS = getattr(settings, 'PG_EXTRA_SEARCH_PATHS', [])
 
-# from the postgresql doc
-SQL_IDENTIFIER_RE = re.compile(r'^[_a-zA-Z0-9]{1,63}$')
-SQL_SCHEMA_NAME_RESERVED_RE = re.compile(r'^pg_', re.IGNORECASE)
+# Valid PostgreSQL schema name regex
+# Criteria:
+#  1. Cannot start with 'pg_'
+#  2. Can be any valid character, if quoted
+#  3. Must be between 1 and 63 characters long
+#
+# Reference:
+# https://www.postgresql.org/docs/13/sql-createschema.html
+PGSQL_VALID_SCHEMA_NAME = re.compile(r'^(?!pg_).{1,63}$', re.IGNORECASE)
 
 
 def is_valid_schema_name(name):
-    return SQL_IDENTIFIER_RE.match(name) and not SQL_SCHEMA_NAME_RESERVED_RE.match(name)
+    return PGSQL_VALID_SCHEMA_NAME.match(name)
 
 
 def _check_schema_name(name):
@@ -41,13 +47,17 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
     include_public_schema = True
     # Use a patched version of the DatabaseIntrospection that only returns the table list for the
     # currently selected schema.
-    introspection_class = DatabaseSchemaIntrospection
 
     def __init__(self, *args, **kwargs):
         self.search_path_set_schemas = None
         self.tenant = None
         self.schema_name = None
         super().__init__(*args, **kwargs)
+
+        # Use a patched version of the DatabaseIntrospection that only returns the table list for the
+        # currently selected schema.
+        self.introspection = DatabaseSchemaIntrospection(self)
+
         self.set_schema_to_public()
 
     def close(self):
