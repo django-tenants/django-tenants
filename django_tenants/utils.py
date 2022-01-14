@@ -47,7 +47,7 @@ def get_public_schema_urlconf():
     if has_multi_type_tenants():
         return get_tenant_types()[get_public_schema_name()]['URLCONF']
     else:
-        return getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
+        return getattr(settings, 'PUBLIC_SCHEMA_URLCONF', 'urls_public')
 
 
 def get_tenant_type_choices():
