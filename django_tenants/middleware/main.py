@@ -24,7 +24,9 @@ class TenantMainMiddleware(MiddlewareMixin):
         return remove_www(request.get_host().split(':')[0])
 
     def get_tenant(self, domain_model, hostname):
-        domain = domain_model.objects.select_related('tenant').get(domain=hostname)
+        domain = domain_model.objects.select_related('tenant').only(
+            'tenant__id', 'tenant__schema_name'
+        ).get(domain=hostname)
         return domain.tenant
 
     def process_request(self, request):
