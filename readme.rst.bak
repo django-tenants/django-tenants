@@ -34,7 +34,7 @@ What are schemas
 ----------------
 
 A schema can be seen as a directory in an operating system, each
-directory (schema) with its own set of files (tables and objects). This
+directory (schema) with it’s own set of files (tables and objects). This
 allows the same table name and objects to be used in different schemas
 without conflict. For an accurate description on schemas, see
 `PostgreSQL’s official documentation on schemas`_.
@@ -45,7 +45,7 @@ Why schemas
 There are typically three solutions for solving the multitenancy
 problem.
 
-1. Isolated Approach: Separate Databases. Each tenant has its own
+1. Isolated Approach: Separate Databases. Each tenant has it’s own
    database.
 
 2. Semi Isolated Approach: Shared Database, Separate Schemas. One
@@ -62,7 +62,7 @@ represents the ideal compromise between simplicity and performance.
    multitenancy. Plus, you only manage one database.
 -  Performance: make use of shared connections, buffers and memory.
 
-Each solution has its up and down sides, for a more in-depth
+Each solution has it’s up and down sides, for a more in-depth
 discussion, see Microsoft’s excellent article on `Multi-Tenant Data
 Architecture`_.
 
