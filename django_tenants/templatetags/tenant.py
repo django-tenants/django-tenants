@@ -1,12 +1,22 @@
-from django.apps import apps
+from functools import lru_cache
 from django.conf import settings
 from django.template import Library
 from django.template.defaulttags import URLNode
 from django.template.defaulttags import url as default_url
+from django.utils.module_loading import import_string
 from django_tenants.utils import clean_tenant_url, get_public_schema_name, has_multi_type_tenants, get_tenant_types, \
     has_custom_tenant_apps
 
 register = Library()
+
+
+@lru_cache
+def get_app_label(string):
+    candidate = string.split(".")[-1]
+    try:
+        return getattr(import_string(string), "name", candidate)  # AppConfig
+    except ImportError:
+        return candidate
 
 
 class SchemaURLNode(URLNode):
@@ -43,8 +53,7 @@ def is_tenant_app(context, app):
     else:
         _apps = settings.TENANT_APPS
 
-    cfg = apps.get_app_config(app['app_label'])
-    return cfg.module.__name__ in _apps
+    return app["app_label"] in [get_app_label(_app) for _app in _apps]
 
 
 @register.simple_tag()
@@ -54,8 +63,7 @@ def is_shared_app(app):
     else:
         _apps = settings.SHARED_APPS
 
-    cfg = apps.get_app_config(app['app_label'])
-    return cfg.module.__name__ in _apps
+    return app["app_label"] in [get_app_label(_app) for _app in _apps]
 
 
 @register.simple_tag()
