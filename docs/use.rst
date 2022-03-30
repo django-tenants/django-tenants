@@ -555,7 +555,10 @@ django-debug-toolbar
         )
 
 Useful information
-~~~~~~~~~~~~~~~~~~
+------------------
+
+Running code across every tenant
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you want to run some code on every tenant you can do the following
 
