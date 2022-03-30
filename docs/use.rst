@@ -561,9 +561,9 @@ If you want to run some code on every tenant you can do the following
 
 .. code-block:: python
 
-    #import tenant model
-    from django_tenants.utils import tenant_context
+    from django_tenants.utils import tenant_context, get_tenant_model
 
-    for tenant in Tenant.objects.all():
+    for tenant in get_tenant_model().objects.all():
         with tenant_context(tenant):
-            #do whatever you want in that tenant
+            pass
+            # do whatever you want in that tenant
