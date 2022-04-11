@@ -218,7 +218,7 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
         tenant.save()
 
 
-@lru_cache
+@lru_cache(maxsize=128)
 def get_app_label(string):
     candidate = string.split(".")[-1]
     try:
