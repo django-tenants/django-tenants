@@ -554,6 +554,75 @@ django-debug-toolbar
             url(r'^__debug__/', include(debug_toolbar.urls)),
         )
 
+
+Using Multiple Databases
+------------------------
+
+Read Replicas
+~~~~~~~~~~~~~
+
+Support for read replicas and multiple databases are now available with relatively minor code changes needed.
+
+First, create a custom database router containing your routing logic. Below is a simple example: 
+
+.. code-block:: python
+    # <your_app>.database_routers.py
+    class CustomDatabaseRouter:
+    def db_for_read(self, model, **hints):
+        """
+        Reads go to the read replica.
+        """
+        return 'replica'
+
+    def db_for_write(self, model, **hints):
+        """
+        Writes always go to primary.
+        """
+        return 'default
+
+    def allow_relation(self, obj1, obj2, **hints):
+        """
+        Relations between objects are allowed if both objects are
+        in the primary/replica pool.
+        """
+        db_list = ('default', 'replica')
+        if obj1._state.db in db_list and obj2._state.db in db_list:
+            return True
+        return None
+
+Next, register your custom database router after the `TenantSyncRouter`. 
+Update the settings to include both `DEFAULT_DB` and `REPLICA_DB`.
+In addition, you will need to setup your database configuration to include the key `DATABASE` for both your default and the read replica databases 
+as well as setting `ENGINE` to `django_tenants.postgresql_backend`.
+
+.. code-block:: python
+    # settings.py
+    DATABASE_ROUTERS = ("django_tenants.routers.TenantSyncRouter","settings.database_router.CustomDatabaseRouter")
+
+    DEFAULT_DB = 'default'
+    REPLICA_DB = 'replica'
+    
+    DATABASES = {
+        DEFAULT_DB: {
+            'ENGINE': 'django_tenants.postgresql_backend',
+            'NAME': os.environ.get('DATABASE_DB', 'dts_test_project'),
+            'USER': os.environ.get('DATABASE_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'root'),
+            'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
+            'PORT': os.environ.get('DATABASE_PORT', 5432),
+            'DATABASE': DEFAULT_DB,  # required for read replica setup
+        },
+        REPLICA_DB: {
+            'ENGINE': 'django_tenants.postgresql_backend',
+            'NAME': os.environ.get('DATABASE_DB', 'dts_test_project'),
+            'USER': os.environ.get('DATABASE_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'root'),
+            'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
+            'PORT': os.environ.get('DATABASE_PORT', 5432),
+            'DATABASE': REPLICA_DB,  # required for read replica setup
+        }
+    }
+
 Useful information
 ------------------
 
