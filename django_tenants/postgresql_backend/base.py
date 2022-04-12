@@ -7,6 +7,7 @@ from django_tenants.postgresql_backend.introspection import DatabaseSchemaIntros
 from django_tenants.utils import get_public_schema_name, get_limit_set_calls
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.db import connections
 import django.db.utils
 import psycopg2
 
@@ -19,6 +20,8 @@ ORIGINAL_BACKEND = getattr(settings, 'ORIGINAL_BACKEND', 'django.db.backends.pos
 original_backend = import_module(ORIGINAL_BACKEND + '.base')
 
 EXTRA_SEARCH_PATHS = getattr(settings, 'PG_EXTRA_SEARCH_PATHS', [])
+READ_REPLICA_DB = getattr(settings, 'READ_REPLICA_DB', None)
+DEFAULT_DB = getattr(settings, 'DEFAULT_DB', None)
 
 # Valid PostgreSQL schema name regex
 # Criteria:
@@ -73,6 +76,11 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         self.schema_name = tenant.schema_name
         self.include_public_schema = include_public
         self.set_settings_schema(self.schema_name)
+
+        if READ_REPLICA_DB and DEFAULT_DB:
+            if self.settings_dict["DATABASE"] == DEFAULT_DB and connections[READ_REPLICA_DB].schema_name != self.schema_name:
+                connections[READ_REPLICA_DB].set_schema(self.schema_name)
+
         self.search_path_set_schemas = None
         # Content type can no longer be cached as public and tenant schemas
         # have different models. If someone wants to change this, the cache
