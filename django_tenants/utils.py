@@ -35,8 +35,24 @@ def get_tenant_types():
     return getattr(settings, 'TENANT_TYPES', {})
 
 
+def get_optional_tenant_apps():
+    return getattr(settings, 'OPTIONAL_TENANT_APPS', {})
+
+
+def get_optional_tenant_apps_list():
+    return [app['app'] for app in get_optional_tenant_apps()]
+
+
+def get_optional_tenant_apps_choices():
+    return [(app, app) for app in get_optional_tenant_apps_list()]
+
+
 def has_multi_type_tenants():
     return getattr(settings, 'HAS_MULTI_TYPE_TENANTS', False)
+
+
+def has_custom_tenant_apps():
+    return getattr(settings, 'HAS_CUSTOM_TENANT_APPS', False)
 
 
 def get_multi_type_database_field_name():

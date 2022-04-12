@@ -10,7 +10,7 @@ from django_tenants.utils import get_public_schema_name, get_tenant_database_ali
 
 
 def run_migrations(args, options, executor_codename, schema_name, tenant_type='',
-                   allow_atomic=True, idx=None, count=None):
+                   allow_atomic=True, idx=None, count=None, custom_tenant_apps=[]):
     from django.core.management import color
     from django.core.management.base import OutputWrapper
     from django.db import connections
@@ -37,7 +37,7 @@ def run_migrations(args, options, executor_codename, schema_name, tenant_type=''
         return message
 
     connection = connections[options.get('database', get_tenant_database_alias())]
-    connection.set_schema(schema_name, tenant_type=tenant_type)
+    connection.set_schema(schema_name, tenant_type=tenant_type, custom_tenant_apps=custom_tenant_apps)
 
     # ensure that django_migrations table is created in the schema before migrations run, otherwise the migration
     # table in the public schema gets picked and no migrations are applied
@@ -81,4 +81,7 @@ class MigrationExecutor:
         raise NotImplementedError
 
     def run_multi_type_migrations(self, tenants):
+        raise NotImplementedError
+
+    def run_custom_apps_migrations(self, tenants):
         raise NotImplementedError

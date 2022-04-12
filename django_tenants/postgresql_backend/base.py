@@ -83,13 +83,14 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         # wrong model will be fetched.
         ContentType.objects.clear_cache()
 
-    def set_schema(self, schema_name, include_public=True, tenant_type=None):
+    def set_schema(self, schema_name, include_public=True, tenant_type=None, custom_tenant_apps=None):
         """
         Main API method to current database schema,
         but it does not actually modify the db connection.
         """
         self.set_tenant(FakeTenant(schema_name=schema_name,
-                                   tenant_type=tenant_type), include_public)
+                                   tenant_type=tenant_type,
+                                   tenant_apps=custom_tenant_apps), include_public)
 
     def set_schema_to_public(self):
         """
@@ -176,9 +177,13 @@ class FakeTenant:
     We can't import any db model in a backend (apparently?), so this class is used
     for wrapping schema names in a tenant-like structure.
     """
-    def __init__(self, schema_name, tenant_type=None):
+    def __init__(self, schema_name, tenant_type=None, tenant_apps=None):
         self.schema_name = schema_name
         self.tenant_type = tenant_type
+        self.tenant_apps = tenant_apps
 
     def get_tenant_type(self):
         return self.tenant_type
+
+    def get_tenant_custom_apps(self):
+        return self.tenant_apps

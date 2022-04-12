@@ -24,3 +24,15 @@ class StandardExecutor(MigrationExecutor):
                            tenant_type=tenant[1],
                            idx=idx,
                            count=len(tenants))
+
+    def run_custom_apps_migrations(self, tenants):
+        tenants = tenants or []
+
+        for idx, tenant in enumerate(tenants):
+            run_migrations(self.args,
+                           self.options,
+                           self.codename,
+                           schema_name=tenant[0],
+                           custom_tenant_apps=tenant[1],
+                           idx=idx,
+                           count=len(tenants))

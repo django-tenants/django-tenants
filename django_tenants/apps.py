@@ -3,7 +3,6 @@ from django.apps import AppConfig
 from django.core.exceptions import ImproperlyConfigured
 from django_tenants.utils import get_public_schema_name, validate_extra_extensions
 
-
 recommended_config = """
 Warning: The recommend way of setting django tenants up is shown in the documentation.
 Please see https://django-tenants.readthedocs.io/en/latest/install.html?highlight=#configure-tenant-and-shared-applications
@@ -27,6 +26,19 @@ class DjangoTenantsConfig(AppConfig):
                 raise ImproperlyConfigured('get_public_schema_name() value not found as a key in TENANTS')
             if not hasattr(settings, 'MULTI_TYPE_DATABASE_FIELD'):
                 raise ImproperlyConfigured('Using multi type you must setup MULTI_TYPE_DATABASE_FIELD setting')
+        elif hasattr(settings, 'HAS_CUSTOM_TENANT_APPS') and settings.HAS_CUSTOM_TENANT_APPS:
+            if not hasattr(settings, 'MANDATORY_TENANT_APPS'):
+                raise ImproperlyConfigured('Using custom tenant apps you must set up MANDATORY_TENANT_APPS')
+            if not hasattr(settings, 'OPTIONAL_TENANT_APPS'):
+                raise ImproperlyConfigured('Using custom tenant apps you must set up OPTIONAL_TENANT_APPS')
+            if not hasattr(settings, 'TENANT_APPS'):
+                raise ImproperlyConfigured('TENANT_APPS setting not set')
+
+            from .utils import get_tenant_model
+            from .models import TenantWithCustomAppsMixin
+            if not issubclass(get_tenant_model(), TenantWithCustomAppsMixin):
+                raise ImproperlyConfigured('The tenant model must inherit TenantWithCustomAppsMixin when '
+                                           'HAS_CUSTOM_TENANT_APPS is True')
         else:
             if not hasattr(settings, 'TENANT_APPS'):
                 raise ImproperlyConfigured('TENANT_APPS setting not set')
