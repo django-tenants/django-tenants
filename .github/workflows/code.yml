@@ -13,16 +13,15 @@ jobs:
       fail-fast: true
       matrix:
         # always use latest Python b/c the point here is to test PostgreSQL compatibility
-        python-version: [3.9]
+        python-version: ["3.10"]
         postgres-version: [10.15, 11.10, 12.5, 13.1, 14.0]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v3
       with:
-
         python-version: ${{ matrix.python-version }}
 
     - name: Install Python dependencies
@@ -51,7 +50,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
         django-version: ["==3.1.*", "==3.2.*", "==4.0.*"]
         # always use latest Postgres b/c the point here is to test Django compatibility
         postgres-version: [13.1]
@@ -61,10 +60,10 @@ jobs:
           django-version: "==4.0.*"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -86,4 +85,3 @@ jobs:
       run: |
         export DATABASE_PASSWORD="testing"
         ./run_tests.sh
-
