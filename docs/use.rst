@@ -447,6 +447,27 @@ The hook for ensuring the ``search_path`` is set properly happens inside the ``D
 When set, ``django-tenants`` will set the search path only once per request. The default is ``False``.
 
 
+Extra Set Tenant Method
+-----------------------
+
+Sometime you might want to do something special the you switch to another schema / tenant such as read replica.
+To use this add ``EXTRA_SET_TENANT_METHOD_PATH`` to the settings file and point a method.
+
+.. code-block:: python
+
+    EXTRA_SET_TENANT_METHOD_PATH = 'tenant_multi_types_tutorial.set_tenant_utils.extra_set_tenant_stuff'
+
+The method
+~~~~~~~~~~
+
+The method takes 2 arguments the first is the database wrapper class and the second is the tenant.
+example
+
+.. code-block:: python
+
+    def extra_set_tenant_stuff(wrapper_class, tenant):
+        pass
+
 Logging
 -------
 

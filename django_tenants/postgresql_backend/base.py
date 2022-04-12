@@ -3,6 +3,8 @@ import warnings
 from django.conf import settings
 from importlib import import_module
 
+from django.utils.module_loading import import_string
+
 from django_tenants.postgresql_backend.introspection import DatabaseSchemaIntrospection
 from django_tenants.utils import get_public_schema_name, get_limit_set_calls
 from django.contrib.contenttypes.models import ContentType
@@ -19,6 +21,12 @@ ORIGINAL_BACKEND = getattr(settings, 'ORIGINAL_BACKEND', 'django.db.backends.pos
 original_backend = import_module(ORIGINAL_BACKEND + '.base')
 
 EXTRA_SEARCH_PATHS = getattr(settings, 'PG_EXTRA_SEARCH_PATHS', [])
+
+EXTRA_SET_TENANT_METHOD_PATH = getattr(settings, 'EXTRA_SET_TENANT_METHOD_PATH', None)
+if EXTRA_SET_TENANT_METHOD_PATH:
+    EXTRA_SET_TENANT_METHOD = import_string(EXTRA_SET_TENANT_METHOD_PATH)
+else:
+    EXTRA_SET_TENANT_METHOD = None
 
 # Valid PostgreSQL schema name regex
 # Criteria:
@@ -73,7 +81,12 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         self.schema_name = tenant.schema_name
         self.include_public_schema = include_public
         self.set_settings_schema(self.schema_name)
+
+        if EXTRA_SET_TENANT_METHOD:
+            EXTRA_SET_TENANT_METHOD(self, tenant)
+
         self.search_path_set_schemas = None
+
         # Content type can no longer be cached as public and tenant schemas
         # have different models. If someone wants to change this, the cache
         # needs to be separated between public and shared schemas. If this
