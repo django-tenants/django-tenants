@@ -450,8 +450,8 @@ When set, ``django-tenants`` will set the search path only once per request. The
 Extra Set Tenant Method
 -----------------------
 
-Sometime you might want to do something special the you switch to another schema / tenant such as read replica.
-To use this add ``EXTRA_SET_TENANT_METHOD_PATH`` to the settings file and point a method.
+Sometime you might want to do something special when you switch to another schema / tenant such as read replica.
+Add ``EXTRA_SET_TENANT_METHOD_PATH`` to the settings file and point a method.
 
 .. code-block:: python
 
