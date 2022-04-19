@@ -62,7 +62,7 @@ represents the ideal compromise between simplicity and performance.
    multitenancy. Plus, you only manage one database.
 -  Performance: make use of shared connections, buffers and memory.
 
-Each solution has its up and down sides, for a more in-depth
+Each solution has its up and down sides. For a more in-depth
 discussion, see Microsoft’s excellent article on `Multi-Tenant Data
 Architecture`_.
 
@@ -114,7 +114,7 @@ change your code!
 Setup & Documentation
 ---------------------
 
-**This is just a short setup guide**, it is **strongly** recommended
+**This is just a short setup guide**. It is **strongly** recommended
 that you read the complete version at
 `django-tenants.readthedocs.org`_.
 
@@ -141,7 +141,7 @@ the correct schema.
     )
     
 Add ``django_tenants.routers.TenantSyncRouter`` to your `DATABASE_ROUTERS`
-setting, so that the correct apps can be synced, depending on what's 
+setting, so that the correct apps can be synced depending on what's 
 being synced (shared or tenant).
 
 .. code-block:: python
@@ -178,7 +178,7 @@ created ``Client`` inside an app named ``customers``, your
     TENANT_MODEL = "customers.Client" # app.Model
     TENANT_DOMAIN_MODEL = "customers.Domain" # app.Model
 
-Now run ``migrate_schemas``, this will sync your apps to the ``public``
+Now run ``migrate_schemas``. This will sync your apps to the ``public``
 schema.
 
 .. code-block:: bash
@@ -246,7 +246,7 @@ Requirements
 Testing
 -------
 
-If you want to run test you can either run ``run_tests.sh`` (which requires access to
+If you want to run tests, you can either run ``run_tests.sh`` (which requires access to
 a PostgreSQL instance, location of which you can customize using the ``DATABASE_HOST``
 env variable) or use `docker-compose`_ like this:
 
@@ -273,7 +273,7 @@ An online video tutorial is available on `youtube`_.
 Donation
 --------
 
-If this project help you reduce time to develop, you can give me cake :)
+If this project helped you reduce development time, you can give me cake :)
 
 .. image:: https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif
   :target: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=QU8BGC7DWB9G6&source=ur
