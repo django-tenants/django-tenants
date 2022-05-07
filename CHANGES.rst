@@ -3,7 +3,7 @@ Changelog
 *********
 
 This changelog is used to track all major changes to django-tenants.
-
+* For releases after v3.1.0, see https://github.com/django-tenants/django-tenants/releases 
 
 v3.1.0 (26 April 2020)
 ======================
