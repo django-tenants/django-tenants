@@ -30,10 +30,10 @@ class TenantPrefixPattern:
         subfolder_prefix = get_subfolder_prefix()
         try:
             # Store the domain to avoid multiple DB hits for the same domain in the same request
-            if self.cached_domain is not None \
-                    and self.cached_domain.domain == connection.tenant.domain_subfolder  \
-                    and self.cached_domain.tenant.schema_name == connection.schema_name:
-                        domain = self.cached_domain
+            if (self.cached_domain is not None and 
+                    self.cached_domain.domain == connection.tenant.domain_subfolder and 
+                    self.cached_domain.tenant.schema_name == connection.schema_name):
+                domain = self.cached_domain
 
             else:
                 domain = _DomainModel.objects.get(
@@ -41,6 +41,7 @@ class TenantPrefixPattern:
                     domain=connection.tenant.domain_subfolder,
                 )
                 self.cached_domain = domain
+                
             return (
                 "{}/{}/".format(subfolder_prefix, domain.domain)
                 if subfolder_prefix
