@@ -5,13 +5,14 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.db import connection, transaction
+from django.db.transaction import TransactionManagementError
 from django.test.utils import override_settings
 
 from django_tenants.signals import schema_migrated, schema_migrate_message
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 
 from django_tenants.migration_executors import get_executor
-from django_tenants.test.cases import TenantTestCase
+from django_tenants.test.cases import TenantTestCase, TransactionTenantTestCase
 from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, \
     get_public_schema_name, get_tenant_domain_model, schema_rename
@@ -561,6 +562,18 @@ class TenantTestCaseTest(BaseTestCase, TenantTestCase):
         self.assertEqual(1, get_tenant_model().objects.filter(
             schema_name=TenantTestCase.get_test_schema_name()
         ).count())
+
+
+class TransactionTenantTestCaseTest(BaseTestCase, TransactionTenantTestCase):
+    """
+    Tests that it is possible to use TransactionTenantTestCase without TransactionManagementError.
+    """
+
+    def test_select_for_update_raises_an_error_without_transaction(self):
+        Client = get_tenant_model()
+        with self.assertRaises(TransactionManagementError):
+            clients = Client.objects.select_for_update().filter()
+            print(clients)  # needed to actually execute the query because they are lazy
 
 
 class TenantManagerMethodsTestCaseTest(BaseTestCase):
