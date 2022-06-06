@@ -68,9 +68,11 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
         self.set_schema_to_public()
 
-    def close(self):
-        self.search_path_set_schemas = None
-        super().close()
+    def __setattr__(self, name: str, value) -> None:
+        if name == "connection":
+            # If connection is updated, reset search path
+            super().__setattr__("search_path_set_schemas", None)
+        return super().__setattr__(name, value)
 
     def set_tenant(self, tenant, include_public=True):
         """
@@ -134,18 +136,18 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         else:
             cursor = super()._cursor()
 
-        # optionally limit the number of executions - under load, the execution
-        # of `set search_path` can be quite time consuming
-        if (not get_limit_set_calls()) or not self.search_path_set_schemas:
-            # Actual search_path modification for the cursor. Database will
-            # search schemata from left to right when looking for the object
-            # (table, index, sequence, etc.).
-            if not self.schema_name:
-                raise ImproperlyConfigured("Database schema not set. Did you forget "
-                                           "to call set_schema() or set_tenant()?")
+        # Actual search_path modification for the cursor. Database will
+        # search schemata from left to right when looking for the object
+        # (table, index, sequence, etc.).
+        if not self.schema_name:
+            raise ImproperlyConfigured("Database schema not set. Did you forget "
+                                       "to call set_schema() or set_tenant()?")
 
-            search_paths = self._get_cursor_search_paths()
+        search_paths = self._get_cursor_search_paths()
 
+        # limit the number of executions of `set search_path` if no changes on db wrapper
+        # this can be quite time consuming
+        if self.search_path_set_schemas != search_paths or not get_limit_set_calls():
             if name:
                 # Named cursor can only be used once
                 cursor_for_search_path = self.connection.cursor()
