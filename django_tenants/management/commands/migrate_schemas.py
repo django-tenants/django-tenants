@@ -34,6 +34,8 @@ class MigrateSchemasCommand(SyncCommon):
         parser.add_argument('--plan', action='store_true',
                             help='Shows a list of the migration actions that will be performed.',
         )
+        parser.add_argument('--prune', action='store_true', dest='prune',
+                            help='Delete nonexistent migrations from the django_migrations table.')
         parser.add_argument('--run-syncdb', action='store_true', dest='run_syncdb',
                             help='Creates tables for apps without migrations.')
         parser.add_argument('--check', action='store_true', dest='check_unapplied',
