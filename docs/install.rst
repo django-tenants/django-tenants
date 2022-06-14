@@ -179,7 +179,11 @@ There is a option that allows you to run Django-Tenants with sub-folder instead 
 
 .. note::
 
-    ie http://www.mydomain.local/r/schemaname/ instead of http://schemaname.mydomain.local/
+    e.g. http://www.mydomain.local/r/schemaname/ instead of http://schemaname.mydomain.local/
+
+.. warning::
+    The ``schemaname`` value from the URL path has to match ``domain`` value which is set when creating a new tenant, as described https://django-tenants.readthedocs.io/en/latest/use.html#creating-a-tenant
+    
 
 
 ``TENANT_SUBFOLDER_PREFIX`` needs to be added to the settings file. This is the url prefix for the tenant this can't be left blank.
@@ -187,6 +191,9 @@ There is a option that allows you to run Django-Tenants with sub-folder instead 
 .. code-block:: python
 
     TENANT_SUBFOLDER_PREFIX = "clients"
+
+    In the example given above, the prefixed path ``/r`` will become ``/clients``.
+    e.g.  http://www.mydomain.local/clients/schemaname/ instead of http://www.mydomain.local/r/schemaname/ 
 
 
 The middleware is different to the standard middleware. The middleware required is
