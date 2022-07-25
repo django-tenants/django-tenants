@@ -4,7 +4,7 @@ from django.http import HttpRequest
 from django.contrib.auth import authenticate
 
 
-class TenantRequestFactory(RequestFactory):
+class BaseTenantRequestFactory:
     tm = TenantMainMiddleware(lambda r: r)
 
     def __init__(self, tenant, **defaults):
@@ -17,7 +17,11 @@ class TenantRequestFactory(RequestFactory):
         return super().generic(*args, **kwargs)
 
 
-class TenantClient(TenantRequestFactory, Client):
+class TenantRequestFactory(BaseTenantRequestFactory, RequestFactory):
+    pass
+
+
+class TenantClient(BaseTenantRequestFactory, Client):
     def login(self, **credentials):
         # Create a dummy HttpRequest object and add HTTP_HOST
 
