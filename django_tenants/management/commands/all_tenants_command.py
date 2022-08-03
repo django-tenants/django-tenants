@@ -42,9 +42,6 @@ class Command(BaseCommand):
         else:
             klass = load_command_class(app_name, command_args[1])
 
-        # Ugly, but works. Delete tenant_command from the argv, parse the schema manually
-        # and forward the rest of the arguments to the actual command being wrapped.
-
         schema_parser = argparse.ArgumentParser()
         schema_namespace, args = schema_parser.parse_known_args(command_args)
         print(args)
