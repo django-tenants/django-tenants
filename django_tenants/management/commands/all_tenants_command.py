@@ -21,30 +21,37 @@ class Command(BaseCommand):
         Changes the option_list to use the options from the wrapped command.
         """
         # load the command object.
+        print(argv)
         if len(argv) <= 3:
             return
+        
+        no_public = "--no-public" in argv
+        
+        command_args = [argv[0]]
+        
+        command_args.extend(argv[3:] if no_public else argv[2:])
+        
         try:
-            app_name = get_commands()[argv[3]]
+            app_name = get_commands()[command_args[1]]
         except KeyError:
-            raise CommandError("Unknown command: %r" % argv[3])
+            raise CommandError("Unknown command: %r" % command_args[1])
 
         if isinstance(app_name, BaseCommand):
             # if the command is already loaded, use it directly.
             klass = app_name
         else:
-            klass = load_command_class(app_name, argv[3])
+            klass = load_command_class(app_name, command_args[1])
 
         # Ugly, but works. Delete tenant_command from the argv, parse the schema manually
         # and forward the rest of the arguments to the actual command being wrapped.
-        del argv[1]
-        del argv[2]
+
         schema_parser = argparse.ArgumentParser()
-        schema_namespace, args = schema_parser.parse_known_args(argv)
+        schema_namespace, args = schema_parser.parse_known_args(command_args)
         print(args)
 
         tenant_model = get_tenant_model()
         tenants = tenant_model.objects.all()
-        if argv[2]:
+        if no_public:
             tenants = tenants.exclude(schema_name=get_public_schema_name())
         for tenant in tenants:
             self.stdout.write("Applying command to: %s" % tenant.schema_name)
