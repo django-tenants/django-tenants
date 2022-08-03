@@ -220,11 +220,14 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
 
 @lru_cache(maxsize=128)
 def get_app_label(string):
-    candidate = string.split(".")[-1]
-    try:
-        return getattr(import_string(string), "name", candidate)  # AppConfig
-    except ImportError:
-        return candidate
+    app_info = import_string(string)
+    app_label = getattr(app_info, "label")
+    if app_label:
+        return app_label
+    app_name = getattr(app_info, "name")
+    if app_name:
+        return app_name
+    raise ValidationError("AppConfig must have a name or a label and we found none %s" % string)
 
 
 def app_labels(apps_list):
