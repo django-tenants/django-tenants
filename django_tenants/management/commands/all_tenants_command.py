@@ -21,7 +21,6 @@ class Command(BaseCommand):
         Changes the option_list to use the options from the wrapped command.
         """
         # load the command object.
-        print(argv)
         if len(argv) <= 3:
             return
         
