@@ -343,7 +343,9 @@ To run any command on an every schema, you can use the special ``all_tenants_com
 If the command you need to run on all tenants should not be run on the public tenant, you can specify the ``--no-public`` flag which whill exclude the public tenant.
 
 .. code-block:: bash
-    ./ manage.py all_tenants_command --no-public loaddata
+
+    ./manage.py all_tenants_command --no-public loaddata
+
 
 
 create_tenant_superuser
