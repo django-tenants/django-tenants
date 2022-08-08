@@ -22,23 +22,39 @@ reverse_lazy = lazy(reverse, str)
 
 class TenantPrefixPattern:
     converters = {}
+    cached_domain = None
 
     @property
     def tenant_prefix(self):
         _DomainModel = get_tenant_domain_model()
         subfolder_prefix = get_subfolder_prefix()
         try:
-            domain = _DomainModel.objects.get(
-                tenant__schema_name=connection.schema_name,
-                domain=connection.tenant.domain_subfolder,
-            )
-            return (
-                "{}/{}/".format(subfolder_prefix, domain.domain)
-                if subfolder_prefix
-                else "{}/".format(domain.domain)
-            )
+            # Store the domain to avoid multiple DB hits for the same domain in the same request
+            if (self.cached_domain is not None and 
+                    self.cached_domain.domain == connection.tenant.domain_subfolder and 
+                    self.cached_domain.tenant.schema_name == connection.schema_name):
+                domain = self.cached_domain
+
+            else:
+                domain = _DomainModel.objects.filter(tenant__schema_name=connection.schema_name).first()
+                self.cached_domain = domain
         except _DomainModel.DoesNotExist:
-            return "/"
+            return '/'
+        else:
+            if (domain.domain == connection.tenant.domain_subfolder or
+                (domain.domain).split('.')[0] == connection.tenant.domain_subfolder):
+                if domain.domain == connection.tenant.domain_subfolder:
+                    return (
+                        "{}/{}/".format(subfolder_prefix, domain.domain)
+                        if subfolder_prefix
+                        else "{}/".format(domain.domain)
+                    )
+                return (
+                    "{}/{}/".format(subfolder_prefix, connection.schema_name)
+                    if subfolder_prefix
+                    else "{}/".format(connection.schema_name)
+                )
+            return '/'
 
     @property
     def regex(self):
