@@ -14,7 +14,7 @@ jobs:
       matrix:
         # always use latest Python b/c the point here is to test PostgreSQL compatibility
         python-version: ["3.10"]
-        postgres-version: [10.15, 11.10, 12.5, 13.1, 14.0]
+        postgres-version: [11-bullseye, 12, 13, 14]
 
     steps:
     - uses: actions/checkout@v3
@@ -50,14 +50,10 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
-        django-version: ["==3.1.*", "==3.2.*", "==4.0.*"]
+        python-version: ["3.8", "3.9", "3.10"]
+        django-version: ["==3.1.*", "==3.2.*", "==4.0.*", "==4.1.*"]
         # always use latest Postgres b/c the point here is to test Django compatibility
-        postgres-version: [13.1]
-        exclude:
-        # Django 4.0 no longer supports python 3.7
-        - python-version: 3.7
-          django-version: "==4.0.*"
+        postgres-version: [latest]
 
     steps:
     - uses: actions/checkout@v3
