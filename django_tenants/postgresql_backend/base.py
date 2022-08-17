@@ -7,7 +7,6 @@ from django.utils.module_loading import import_string
 
 from django_tenants.postgresql_backend.introspection import DatabaseSchemaIntrospection
 from django_tenants.utils import get_public_schema_name, get_limit_set_calls
-from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 import django.db.utils
 import psycopg2
@@ -77,6 +76,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         Main API method to current database schema,
         but it does not actually modify the db connection.
         """
+        is_init = not has_attr(self, 'schema_name')
         self.tenant = tenant
         self.schema_name = tenant.schema_name
         self.include_public_schema = include_public
@@ -94,7 +94,9 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         # on public, a particular model has id 14, but on the tenants it has
         # the id 15. if 14 is cached instead of 15, the permissions for the
         # wrong model will be fetched.
-        ContentType.objects.clear_cache()
+        if not is_init:
+            from django.contrib.contenttypes.models import ContentType
+            ContentType.objects.clear_cache()
 
     def set_schema(self, schema_name, include_public=True, tenant_type=None):
         """
