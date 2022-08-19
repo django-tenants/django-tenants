@@ -456,7 +456,7 @@ When set, ``django-tenants`` will set the search path only once per request. The
 Extra Set Tenant Method
 -----------------------
 
-Sometime you might want to do something special when you switch to another schema / tenant such as read replica.
+Sometimes you might want to do something special when you switch to another schema / tenant such as read replica.
 Add ``EXTRA_SET_TENANT_METHOD_PATH`` to the settings file and point a method.
 
 .. code-block:: python
@@ -473,6 +473,37 @@ example
 
     def extra_set_tenant_stuff(wrapper_class, tenant):
         pass
+
+
+Get Executor Function
+-----------------------
+
+Sometimes you might want to have some custom functionality with your migration executor.
+Add ``GET_EXECUTOR_FUNCTION`` to the settings file and point a method.
+
+.. code-block:: python
+
+    GET_EXECUTOR_FUNCTION = 'tenant_multi_types_tutorial.set_tenant_utils.get_custom_executor'
+
+The function
+~~~~~~~~~~
+
+The function takes 1 keyword argument (default=None) for the executor codename and returns a MigrationExector class.
+example
+
+.. code-block:: python
+    from .custom_migration_executors import CustomMigrationExecutor
+    from django_tenants.migrate_executors.standard import StandardExecutor
+
+    def get_custom_executor(codename=None):
+        codename = codename or os.environ.get('EXECUTOR', StandardExecutor.codename)
+
+        for klass in MigrationExecutor.__subclasses__():
+            if klass.codename == codename:
+                return klass
+
+        raise NotImplementedError('No executor with codename %s' % codename)
+
 
 Logging
 -------
