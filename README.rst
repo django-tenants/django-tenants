@@ -14,7 +14,7 @@ django-tenants
    :target: https://pypi.org/project/django-tenants/
    
 .. image:: https://codecov.io/gh/django-tenants/django-tenants/branch/master/graph/badge.svg?token=wCNgSgTTR8
-:target: https://codecov.io/gh/django-tenants/django-tenants
+   :target: https://codecov.io/gh/django-tenants/django-tenants
 
 
 This application enables `django`_ powered websites to have multiple
