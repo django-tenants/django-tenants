@@ -1,6 +1,6 @@
 import os
 from contextlib import ContextDecorator
-from functools import lru_cache
+from functools import lru_cache, wraps
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
@@ -283,3 +283,34 @@ def validate_extra_extensions():
 
         # Make sure the connection used for the check is not reused and doesn't stay idle.
         connection.close()
+
+
+def tenant_migration(*args, tenant_schema=True, public_schema=False):
+    """
+    Decorator to control which schemas a data migration will execute on.
+    
+    :param tenant_schema: If True (default), the data migration will execute on the tenant schema(s).
+    :param public_schema: If True, the data migration will execute on the public schema.
+
+    :return: None
+    """
+
+    def _tenant_migration(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                _, schema_editor = args  # noqa
+            except Exception as excp:
+                raise Exception(f'Decorator requires apps & schema_editor as positional arguments: {excp}')
+
+            if (tenant_schema is True and schema_editor.connection.schema_name != get_public_schema_name()) or (
+                public_schema is True and schema_editor.connection.schema_name == get_public_schema_name()
+            ):
+                func(*args, **kwargs)
+
+        return wrapper
+
+    if len(args) == 1 and callable(args[0]):
+        return _tenant_migration(args[0])
+
+    return _tenant_migration
