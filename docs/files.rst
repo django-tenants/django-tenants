@@ -172,7 +172,7 @@ Just like with standard Django, the first template found will be returned.
 Specifying a different target directory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-django-tenants supports simple Python string formatting for configuring the various path strings used throughout the configuration steps.  any occurances of ``%s`` in the path string will be replaced with the current tenant's ``schema_name`` during runtime.
+django-tenants supports simple Python string formatting for configuring the various path strings used throughout the configuration steps.  any occurrences of ``%s`` in the path string will be replaced with the current tenant's ``schema_name`` during runtime.
 
 This makes it possible to cater for more elaborate folder structures. Some examples are provided below:
 

@@ -340,7 +340,7 @@ To run any command on an every schema, you can use the special ``all_tenants_com
 
     ./manage.py all_tenants_command loaddata
 
-If the command you need to run on all tenants should not be run on the public tenant, you can specify the ``--no-public`` flag which whill exclude the public tenant.
+If the command you need to run on all tenants should not be run on the public tenant, you can specify the ``--no-public`` flag which will exclude the public tenant.
 
 .. code-block:: bash
 
@@ -369,7 +369,7 @@ The command ``create_tenant`` creates a new schema
 
 The argument are dynamic depending on the fields that are in the ``TenantMixin`` model.
 For example if you have a field in the ``TenantMixin`` model called company you will be able to set this using --company=MyCompany.
-If no argument are specified for a field then you be promted for the values.
+If no argument are specified for a field then you be prompted for the values.
 There is an additional argument of -s which sets up a superuser for that tenant.
 
 
