@@ -59,6 +59,7 @@ DECLARE
   arec             RECORD;
   cnt              integer;
   cnt2             integer;
+  seq_cnt          integer;
   pos              integer;
   action           text := 'N/A';
   v_ret            text;
@@ -212,14 +213,14 @@ BEGIN
 
   -- Create sequences
   action := 'Sequences';
-  cnt := 0;
+  seq_cnt := 0;
   -- TODO: Find a way to make this sequence's owner is the correct table.
   FOR object IN
     SELECT sequence_name::text
       FROM information_schema.sequences
      WHERE sequence_schema = quote_ident(source_schema)
   LOOP
-    cnt := cnt + 1;
+    seq_cnt := seq_cnt + 1;
     IF ddl_only THEN
       RAISE INFO '%', 'CREATE SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(object) || ';';
     ELSE
@@ -270,7 +271,7 @@ BEGIN
 
     END IF;
   END LOOP;
-  RAISE NOTICE '   SEQUENCES cloned: %', LPAD(cnt::text, 5, ' ');
+  RAISE NOTICE '   SEQUENCES cloned: %', LPAD(seq_cnt::text, 5, ' ');
 
 -- Create tables
   action := 'Tables';
@@ -621,7 +622,7 @@ BEGIN
   LOOP
     BEGIN
       cnt := cnt + 1;
-      IF ddl_only THEN
+      IF ddl_only OR seq_cnt = 0 THEN
         RAISE INFO '%', arec.seq_ddl;
       ELSE
         EXECUTE arec.seq_ddl;
