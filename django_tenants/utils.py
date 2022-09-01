@@ -297,16 +297,15 @@ def tenant_migration(*args, tenant_schema=True, public_schema=False):
 
     def _tenant_migration(func):
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*_args, **kwargs):
             try:
-                _, schema_editor = args  # noqa
+                _, schema_editor = _args  # noqa
             except Exception as excp:
                 raise Exception(f'Decorator requires apps & schema_editor as positional arguments: {excp}')
 
-            if (tenant_schema is True and schema_editor.connection.schema_name != get_public_schema_name()) or (
-                public_schema is True and schema_editor.connection.schema_name == get_public_schema_name()
-            ):
-                func(*args, **kwargs)
+            if ((tenant_schema and schema_editor.connection.schema_name != get_public_schema_name()) or
+                    (public_schema and schema_editor.connection.schema_name == get_public_schema_name())):
+                func(*_args, **kwargs)
 
         return wrapper
 
