@@ -2,6 +2,12 @@
 
 set -e
 
+# Colorful output.
+function greenprint {
+    echo -e "\033[1;32m[$(date -Isecond)] ${1}\033[0m"
+}
+
+
 DATABASE=${DATABASE_HOST:-localhost}
 DATABASE_PORT=${DATABASE_PORT:-5432}
 echo "Database: $DATABASE"
@@ -24,3 +30,23 @@ EXECUTORS=( standard multiprocessing )
 for executor in "${EXECUTORS[@]}"; do
     EXECUTOR=$executor PYTHONWARNINGS=d coverage run manage.py test django_tenants
 done
+
+greenprint "===== START INTEGRATION TESTS ====="
+
+# Make sure we can create a tenant via cloning
+greenprint "Create DB"
+PYTHONWARNINGS=d python manage.py migrate --noinput
+
+greenprint "Create public schema"
+PYTHONWARNINGS=d python manage.py create_tenant --noinput \
+    --schema_name public --name "Public tenant" --domain-domain public.example.com --domain-is_primary True
+
+greenprint "Create empty schema - to be used for cloning"
+PYTHONWARNINGS=d python manage.py create_tenant --noinput \
+    --schema_name empty --name "Cloning template" --domain-domain empty.example.com --domain-is_primary True
+
+greenprint "Execute clone_tenant"
+PYTHONWARNINGS=d python manage.py clone_tenant \
+    --clone_from empty --clone_tenant_fields False \
+    --schema_name a-cloned-tenant --name "A cloned tenant" --description "This tenant was created by cloning" \
+    --type type1 --domain-domain a-cloned-tenant.example.com --domain-is_primary True
