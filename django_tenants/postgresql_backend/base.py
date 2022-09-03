@@ -86,15 +86,19 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             EXTRA_SET_TENANT_METHOD(self, tenant)
 
         self.search_path_set_schemas = None
-
-        # Content type can no longer be cached as public and tenant schemas
-        # have different models. If someone wants to change this, the cache
-        # needs to be separated between public and shared schemas. If this
-        # cache isn't cleared, this can cause permission problems. For example,
-        # on public, a particular model has id 14, but on the tenants it has
-        # the id 15. if 14 is cached instead of 15, the permissions for the
-        # wrong model will be fetched.
-        ContentType.objects.clear_cache()
+        
+        if "django.contrib.contenttypes" in settings.TENANT_APPS:
+            # If the Django contenttypes app is installed in TENANT_APPS then the
+            # content type can no longer be cached as public and tenant schemas
+            # have different models.
+            # If this cache isn't cleared, this can cause permission problems.
+            # For example, on public, a particular model has id 14, but on the
+            # tenants it has the id 15. if 14 is cached instead of 15, the permissions
+            # for the wrong model will be fetched.
+            #
+            # If someone wants to change this, the cache
+            # needs to be separated between public and shared schemas.
+            ContentType.objects.clear_cache()
 
     def set_schema(self, schema_name, include_public=True, tenant_type=None):
         """
