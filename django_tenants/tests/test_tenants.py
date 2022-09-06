@@ -594,6 +594,18 @@ class TenantRenameSchemaTest(BaseTestCase):
         self.assertFalse(schema_exists('test'))
         self.assertTrue(schema_exists('new_name'))
 
+    def test_rename_schema_numbers(self):
+        Client = get_tenant_model()
+        tenant = Client(schema_name='1234_test')
+        tenant.save()
+        self.assertTrue(schema_exists(tenant.schema_name))
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+        schema_rename(tenant=Client.objects.filter(pk=tenant.pk).first(), new_schema_name='4321_new_name')
+        self.assertFalse(schema_exists('1234_test'))
+        self.assertTrue(schema_exists('4321_new_name'))
+
+
     # def test_clone_schema(self):
     #     Client = get_tenant_model()
     #     tenant = Client(schema_name='test')
