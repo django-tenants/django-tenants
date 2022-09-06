@@ -210,7 +210,8 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
         raise ValidationError("New schema name already exists")
     if not is_valid_schema_name(new_schema_name):
         raise ValidationError("Invalid string used for the schema name.")
-    sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(tenant.schema_name, new_schema_name)
+    sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(connection.ops.quote_name(tenant.schema_name),
+                                                  connection.ops.quote_name(new_schema_name))
     cursor.execute(sql)
     cursor.close()
     tenant.schema_name = new_schema_name
