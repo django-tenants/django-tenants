@@ -105,7 +105,21 @@ You can also use `tenant_context` as a decorator.
     def my_func():
       # All commands in this function are ran under the schema from the `tenant` object
 
+.. function:: @tenant_migration
 
+This decorator allows the flexibility to have data migrations (using ``migrations.RunPython``) execute specifically under a tenant or public schema for apps in both tenant/public INSTALLED_APPS. 
+It accepts boolean kwargs ``tenant_schema`` or ``public_schema`` - the default beign ``tenant_schema=True`` and ``public_schema=False``.
+
+.. code-block:: python
+    # <users/migrations/0012_datamigration.py>
+    from django.db import migrations
+    from django_tenants.utils import tenant_migration
+
+    @tenant_migration
+    def create_dummy_users(apps, schema_editor):
+        User = apps.get_model("users", "User")
+        User.objects.get_or_create(username='test_user1', email='test_user1@gmail.com')
+        # creates user only in tenant schemas if migration is in app available in both public/tenant schemas
 
 Signals
 -------
