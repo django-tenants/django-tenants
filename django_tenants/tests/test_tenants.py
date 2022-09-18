@@ -606,20 +606,19 @@ class TenantRenameSchemaTest(BaseTestCase):
         self.assertFalse(schema_exists('1234_test'))
         self.assertTrue(schema_exists('4321_new_name'))
 
-
     def test_clone_schema(self):
         Client = get_tenant_model()
-        tenant = Client(schema_name='test')
+        tenant = Client(schema_name='source')
         tenant.save()
         self.assertTrue(schema_exists(tenant.schema_name))
 
-        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain = get_tenant_domain_model()(tenant=tenant, domain='source.test.com')
         domain.save()
         clone_schema = CloneSchema()
-        clone_schema.clone_schema(base_schema_name='test', new_schema_name='new_name')
+        clone_schema.clone_schema(base_schema_name='source', new_schema_name='destination')
 
-        self.assertTrue(schema_exists('test'))
-        self.assertTrue(schema_exists('new_name'))
+        self.assertTrue(schema_exists('source'))
+        self.assertTrue(schema_exists('destination'))
 
 
 class SchemaMigratedSignalTest(BaseTestCase):
