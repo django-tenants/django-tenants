@@ -606,6 +606,8 @@ class TenantRenameSchemaTest(BaseTestCase):
         self.assertFalse(schema_exists('1234_test'))
         self.assertTrue(schema_exists('4321_new_name'))
 
+
+class CloneSchemaTest(BaseTestCase):
     def test_clone_schema(self):
         Client = get_tenant_model()
         tenant = Client(schema_name='source')
@@ -619,6 +621,39 @@ class TenantRenameSchemaTest(BaseTestCase):
 
         self.assertTrue(schema_exists('source'))
         self.assertTrue(schema_exists('destination'))
+
+    def test_clone_schema_with_existing_records_and_add_new_records_to_resulting_schema(self):
+        """
+        Exercises the scenario where the source schema contains records in a shared app which
+        get cloned in the destination schema but the value of the PK column remains at 1 which
+        causes duplicate key errors.
+        See https://github.com/django-tenants/django-tenants/issues/831
+        """
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s1')
+        tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='s1.test.com')
+        domain.save()
+        self.assertTrue(schema_exists(tenant.schema_name))
+
+        # add some records to the source schema
+        with tenant_context(tenant):
+            self.assertFalse(DummyModel.objects.filter(name='Administrator').exists())
+            self.assertFalse(DummyModel.objects.filter(name='Tester').exists())
+            DummyModel(name='Administrator').save()
+            DummyModel(name='Tester').save()
+
+        clone_schema = CloneSchema()
+        clone_schema.clone_schema(base_schema_name='s1', new_schema_name='d1')
+        self.assertTrue(schema_exists('destination'))
+
+        # add some records to the destination schema
+        with schema_context('d1'):
+            self.assertTrue(DummyModel.objects.filter(name='Administrator').exists())
+            self.assertTrue(DummyModel.objects.filter(name='Tester').exists())
+
+            DummyModel(name='Moderator').save()
 
 
 class SchemaMigratedSignalTest(BaseTestCase):
