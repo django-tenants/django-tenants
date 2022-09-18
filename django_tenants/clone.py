@@ -45,6 +45,7 @@ DECLARE
   grantor          text;
   grantee          text;
   privs            text;
+  records_count    bigint;
   seqval           bigint;
   sq_last_value    bigint;
   sq_max_value     bigint;
@@ -311,11 +312,25 @@ BEGIN
       END IF;
     END LOOP;
 
+    records_count := 0;
     IF include_recs
       THEN
       -- Insert records from source table
       RAISE NOTICE 'Populating cloned table, %', buffer;
       EXECUTE 'INSERT INTO ' || buffer || ' SELECT * FROM ' || quote_ident(source_schema) || '.' || quote_ident(object) || ';';
+
+      -- restart the counter for PK's internal identity sequence
+      EXECUTE 'SELECT count(*) FROM ' || quote_ident(dest_schema) || '.' || quote_ident(object) || ';' INTO records_count;
+      FOR column_ IN
+        SELECT column_name::text
+            FROM information_schema.columns
+        WHERE
+            table_schema = dest_schema AND
+            table_name = object AND
+            is_identity = 'YES'
+      LOOP
+          EXECUTE 'ALTER TABLE ' || quote_ident(dest_schema) || '.' || quote_ident(object) || ' ALTER COLUMN ' || quote_ident(column_) || ' RESTART WITH ' || records_count + 1 || ';';
+      END LOOP;
     END IF;
 
     SET search_path = '';
