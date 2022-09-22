@@ -161,3 +161,21 @@ class FastTenantTestCase(TenantTestCase):
     def _fixture_teardown(self):
         if self.flush_data():
             super()._fixture_teardown()
+
+
+class SubfolderTenantTestCase(TenantTestCase):
+    """Adds a public tenant to support tests against TenantSubfolderMiddleware
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        # Set up public tenant
+        cls.public_tenant = get_tenant_model()(schema_name=get_public_schema_name())
+        cls.public_tenant.save()
+
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        cls.public_tenant.delete()
