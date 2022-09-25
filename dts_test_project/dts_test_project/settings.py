@@ -96,7 +96,7 @@ DATABASE_ROUTERS = (
 )
 
 MIDDLEWARE = (
-    'tenant_tutorial.middleware.TenantTutorialMiddleware',
+    'django_tenants.middleware.main.TenantMainMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
