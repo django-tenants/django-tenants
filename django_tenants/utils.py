@@ -37,6 +37,15 @@ def get_tenant_types():
     return getattr(settings, 'TENANT_TYPES', {})
 
 
+def get_tenant_base_migrate_command_class():
+    class_path = getattr(
+        settings,
+        'TENANT_BASE_MIGRATE_COMMAND',
+        'django.core.management.commands.migrate.Command',
+    )
+    return import_string(class_path)
+
+
 def has_multi_type_tenants():
     return getattr(settings, 'HAS_MULTI_TYPE_TENANTS', False)
 

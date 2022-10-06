@@ -257,6 +257,12 @@ Optional Settings
 
     A list of fields to order the tenant queryset by when migrating schemas.
 
+.. attribute:: TENANT_BASE_MIGRATE_COMMAND
+
+    :Default: ``django.core.management.commands.migrate.Command``
+
+    A custom ``migrate`` command class to replace the original one from Django. This is useful if you want to customize the ``migrate`` command to fit your needs.
+
 
 Tenant View-Routing
 -------------------
