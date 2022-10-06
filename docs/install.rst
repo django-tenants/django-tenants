@@ -203,6 +203,31 @@ The middleware is different to the standard middleware. The middleware required 
 
     There is an example project for this in the examples folder
 
+Direct-folder Support
+=====================
+
+Currently in beta.
+
+There is a option that allows you to run Django-Tenants with direct-folder instead of sub-domains.
+
+.. note::
+
+    ie http://www.mydomain.local/schemaname/ instead of http://schemaname.mydomain.local/
+
+
+The middleware is different to the standard middleware. The middleware required is
+
+.. code-block:: python
+
+    MIDDLEWARE = (
+        'django_tenants.middleware.TenantDirectFolderMiddleware',
+        #...
+    )
+
+You shouldn't have any URL path at ``PUBLIC_SCHEMA_URLCONF`` URL's that may enter in conflit with any schemaname (if you are using it).
+
+If the *schemaname* was not found, it will fallback to *public* as default, assuming *public* exists, otherwise it will throw an exception.
+
 Optional Settings
 =================
 
