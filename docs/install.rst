@@ -225,8 +225,20 @@ The middleware is different to the standard middleware. The middleware required 
     )
 
 You shouldn't have any URL path at ``PUBLIC_SCHEMA_URLCONF`` URL's that may enter in conflit with any schemaname (if you are using it).
+It's recommended to split your URL's between ``ROOT_URLCONF`` for tenants and ``PUBLIC_SCHEMA_URLCONF`` for *public*.
 
-If the *schemaname* was not found, it will fallback to *public* as default, assuming *public* exists, otherwise it will throw an exception.
+.. code-block:: python
+
+    ROOT_URLCONF = "app.urls"
+    PUBLIC_SCHEMA_URLCONF = "app.urls_public"
+
+If you're using another middleware and want to change to ``TenantDirectFolderMiddleware``, you should probably create another entry at the **Domain** model table.
+Use the same name as the *schema_name* which the *schema* was created to match the path for the new middleware.
+When creating a tenant, use the *schema_name* as the *domain*.
+
+.. note::
+    
+    If the *schemaname* was not found, it will fallback to *public* as default, assuming *public* exists, otherwise it will throw an exception.
 
 Optional Settings
 =================
