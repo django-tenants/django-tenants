@@ -88,7 +88,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         self.search_path_set_schemas = None
         
         if has_multi_type_tenants():
-            TENANT_TYPES = getattr(settings, 'TENANT_TYPES')
+            TENANT_TYPES = getattr(settings, 'TENANT_TYPES', {})
             no_content_types_in_tenant_apps = True
             for schema in TENANT_TYPES:
                 if schema == get_public_schema_name():
@@ -98,7 +98,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             if no_content_types_in_tenant_apps:
                 return
         else:
-            TENANT_APPS = getattr(settings, 'TENANT_APPS')
+            TENANT_APPS = getattr(settings, 'TENANT_APPS', [])
             if "django.contrib.contenttypes" not in TENANT_APPS:
                 # Don't clear ContentType cache if we are sure that contenttypes are
                 # not installed in TENANT_APPS
