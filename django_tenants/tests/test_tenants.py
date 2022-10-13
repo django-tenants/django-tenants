@@ -699,11 +699,21 @@ class SchemaMigratedSignalTest(BaseTestCase):
         """
         executor = get_executor()
 
+        print("**** DEBUG: existing tenants=", get_tenant_model().objects.all())
+        self.assertFalse(schema_exists('test'))
+
         tenant = get_tenant_model()(schema_name='test')
         with catch_signal(schema_migrated) as handler:
             tenant.save()
 
+        print("*** DEBUG: executor=", executor, executor.codename)
+        print("**** DEBUG: tenants after save=", get_tenant_model().objects.all())
+        self.assertTrue(schema_exists('test'))
+
         if executor.codename == 'standard':
+            self.assertTrue(handler.called)
+            self.assertEqual(handler.call_count, 1)
+
             handler.assert_called_once_with(
                 schema_name='test',
                 sender=mock.ANY,
