@@ -28,7 +28,7 @@ pushd dts_test_project
 EXECUTORS=( standard multiprocessing )
 
 for executor in "${EXECUTORS[@]}"; do
-    EXECUTOR=$executor PYTHONWARNINGS=d coverage run manage.py test django_tenants
+    EXECUTOR=$executor PYTHONWARNINGS=d coverage run manage.py test -v2 django_tenants
 done
 
 greenprint "===== START INTEGRATION TESTS ====="
