@@ -323,3 +323,10 @@ def tenant_migration(*args, tenant_schema=True, public_schema=False):
         return _tenant_migration(args[0])
 
     return _tenant_migration
+
+
+def get_tenant(request):
+    """This gets the tenant object from the request"""
+    if hasattr(request, 'tenant'):
+        return request.tenant
+    return None

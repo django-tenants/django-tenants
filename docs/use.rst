@@ -553,6 +553,20 @@ This will result in logging output that looks similar to:
     [example:example.com] DEBUG 13:29 django.db.backends: (0.001) SELECT ...
 
 
+Get Tenant
+----------
+
+If you need to access the tenant object and have access to the request object you can do the following.
+
+.. code-block:: python
+
+    from django_tenants.utils import get_tenant
+    ...
+    tenant = get_tenant(request)
+
+If no tenant is found None will be returned
+
+
 Running in Development
 ----------------------
 
