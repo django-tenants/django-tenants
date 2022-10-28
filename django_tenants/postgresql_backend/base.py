@@ -6,7 +6,7 @@ from importlib import import_module
 from django.utils.module_loading import import_string
 
 from django_tenants.postgresql_backend.introspection import DatabaseSchemaIntrospection
-from django_tenants.utils import get_public_schema_name, get_limit_set_calls, has_multi_type_tenants
+from django_tenants.utils import get_public_schema_name, get_limit_set_calls
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 import django.db.utils
@@ -86,33 +86,14 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             EXTRA_SET_TENANT_METHOD(self, tenant)
 
         self.search_path_set_schemas = None
-        
-        if has_multi_type_tenants():
-            TENANT_TYPES = getattr(settings, 'TENANT_TYPES', {})
-            no_content_types_in_tenant_apps = True
-            for schema in TENANT_TYPES:
-                if schema == get_public_schema_name():
-                    continue
-                if "django.contrib.contenttypes" in TENANT_TYPES[schema]["APPS"]:
-                    no_content_types_in_tenant_apps = False
-            if no_content_types_in_tenant_apps:
-                return
-        else:
-            TENANT_APPS = getattr(settings, 'TENANT_APPS', [])
-            if "django.contrib.contenttypes" not in TENANT_APPS:
-                # Don't clear ContentType cache if we are sure that contenttypes are
-                # not installed in TENANT_APPS
-                return
-        # If the Django contenttypes app is installed in TENANT_APPS then the
-        # content type can no longer be cached as public and tenant schemas
-        # have different models.
-        # If this cache isn't cleared, this can cause permission problems.
-        # For example, on public, a particular model has id 14, but on the
-        # tenants it has the id 15. if 14 is cached instead of 15, the permissions
-        # for the wrong model will be fetched.
-        #
-        # If someone wants to change this, the cache
-        # needs to be separated between public and shared schemas.
+
+        # Content type can no longer be cached as public and tenant schemas
+        # have different models. If someone wants to change this, the cache
+        # needs to be separated between public and shared schemas. If this
+        # cache isn't cleared, this can cause permission problems. For example,
+        # on public, a particular model has id 14, but on the tenants it has
+        # the id 15. if 14 is cached instead of 15, the permissions for the
+        # wrong model will be fetched.
         ContentType.objects.clear_cache()
 
     def set_schema(self, schema_name, include_public=True, tenant_type=None):
