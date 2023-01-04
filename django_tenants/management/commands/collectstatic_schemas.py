@@ -1,10 +1,10 @@
 
+from django.core.management.base import CommandError
 from django.contrib.staticfiles.management.commands import collectstatic
 from django.db import connection
 
 from django_tenants.management.commands import TenantWrappedCommand
 from django_tenants.utils import get_tenant_model
-from git import CommandError
 
 
 class Command(TenantWrappedCommand):
