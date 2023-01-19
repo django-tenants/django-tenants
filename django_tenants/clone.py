@@ -5,7 +5,7 @@ from django.db.utils import ProgrammingError
 
 from django_tenants.utils import schema_exists
 
-CLONE_SCHEMA_FUNCTION = """
+CLONE_SCHEMA_FUNCTION = r"""
 -- https://github.com/denishpatel/pg-clone-schema/ rev 0d3b522
 -- https://github.com/tomturner/django-tenants/issues/322
 
