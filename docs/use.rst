@@ -307,6 +307,34 @@ Or
 in case you're just switching your ``myapp`` application to use South migrations.
 
 
+Running the ``migrate`` will work however all it does is forward over to ``migrate_schemas``.
+
+
+
+To run the migration only on the public tenant do the following.
+
+
+.. code-block:: bash
+
+    ./manage.py migrate_schemas --shared
+
+
+To exlclude running migration on the public do the following
+
+
+.. code-block:: bash
+
+    ./manage.py migrate_schemas --tenant
+ 
+
+To run only migration only on a single tenant run the following.
+
+.. code-block:: bash
+    
+    python manage.py migrate --schema="demo"
+    
+
+
 migrate_schemas in Parallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

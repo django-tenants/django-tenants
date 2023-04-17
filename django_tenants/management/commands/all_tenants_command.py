@@ -21,7 +21,7 @@ class Command(BaseCommand):
         Changes the option_list to use the options from the wrapped command.
         """
         # load the command object.
-        if len(argv) <= 3:
+        if len(argv) <= 2:
             return
         
         no_public = "--no-public" in argv

@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import DisallowedHost
 from django.db import connection
 from django.http import Http404
 from django.urls import set_urlconf
@@ -32,7 +33,11 @@ class TenantMainMiddleware(MiddlewareMixin):
         # the tenant metadata is stored.
 
         connection.set_schema_to_public()
-        hostname = self.hostname_from_request(request)
+        try:
+            hostname = self.hostname_from_request(request)
+        except DisallowedHost:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound()
 
         domain_model = get_tenant_domain_model()
         try:
