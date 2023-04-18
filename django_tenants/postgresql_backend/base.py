@@ -10,11 +10,20 @@ from django_tenants.utils import get_public_schema_name, get_limit_set_calls
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 import django.db.utils
-import psycopg2
+
+try:
+     from django.db.backends.postgresql.psycopg_any import is_psycopg3
+except ImportError:
+    is_psycopg3 = False
+
+if is_psycopg3:
+    import psycopg
+else:
+    import psycopg2 as psycopg
 
 
 DatabaseError = django.db.utils.DatabaseError
-IntegrityError = psycopg2.IntegrityError
+IntegrityError = psycopg.IntegrityError
 
 ORIGINAL_BACKEND = getattr(settings, 'ORIGINAL_BACKEND', 'django.db.backends.postgresql')
 
@@ -160,7 +169,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             try:
                 formatted_search_paths = ['\'{}\''.format(s) for s in search_paths]
                 cursor_for_search_path.execute('SET search_path = {0}'.format(','.join(formatted_search_paths)))
-            except (django.db.utils.DatabaseError, psycopg2.InternalError):
+            except (django.db.utils.DatabaseError, psycopg.InternalError):
                 self.search_path_set_schemas = None
             else:
                 self.search_path_set_schemas = search_paths
