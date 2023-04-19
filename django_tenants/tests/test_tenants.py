@@ -310,7 +310,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
     def test_tenant_schema_creation_with_special_chars(self):
         """Tests using special characters in schema name."""
-        schema_names = ('test-hyphen', 'test@at', 'test`backtick')
+        schema_names = ('test-hyphen', 'test@at', 'test`backtick', 'country_BD')
 
         Client = get_tenant_model()
         for schema_name in schema_names:
