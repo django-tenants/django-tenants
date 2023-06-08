@@ -1,12 +1,12 @@
 import os
 from contextlib import ContextDecorator
 from functools import lru_cache, wraps
+from types import ModuleType
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-from django.db import connections, DEFAULT_DB_ALIAS, connection
+from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.utils.module_loading import import_string
-
 
 try:
     from django.apps import apps
@@ -229,12 +229,28 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
 
 
 @lru_cache(maxsize=128)
-def get_app_label(string):
-    candidate = string.split(".")[-1]
+def get_app_label(app):
+    from django.apps import apps  # Ensure app registry is imported
+
+    candidate = app.split(".")[-1]
+
     try:
-        return getattr(import_string(string), "name", candidate)  # AppConfig
+        imported_app = import_string(app)
     except ImportError:
         return candidate
+
+    app_name = app if isinstance(imported_app, ModuleType) else imported_app.name
+
+    app_label = [
+        app_config.label
+        for app_config in apps.get_app_configs()
+        if app_config.name == app_name
+    ]
+
+    if len(app_label) != 1:
+        return candidate
+
+    return app_label[0]
 
 
 def app_labels(apps_list):
