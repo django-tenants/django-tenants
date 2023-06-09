@@ -11,6 +11,14 @@ Basic Settings
 ==============
 You'll have to make the following modifications to your ``settings.py`` file.
 
+Add `'django_tenants,'` at the top on `INSTALLED_APPS` list:
+
+.. code-block:: python
+
+    INSTALLED_APPS = [
+        'django_tenants',
+        #
+
 Your ``DATABASE_ENGINE`` setting needs to be changed to
 
 .. code-block:: python
