@@ -155,8 +155,8 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
             search_paths = self._get_cursor_search_paths()
 
-            if name:
-                # Named cursor can only be used once
+            if name or is_psycopg3:
+                # Named cursor can only be used once, psycopg3 and Django 4 have recursion issue
                 cursor_for_search_path = self.connection.cursor()
             else:
                 # Reuse
@@ -173,7 +173,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
                 self.search_path_set_schemas = None
             else:
                 self.search_path_set_schemas = search_paths
-            if name:
+            if name or is_psycopg3:
                 cursor_for_search_path.close()
         return cursor
 
