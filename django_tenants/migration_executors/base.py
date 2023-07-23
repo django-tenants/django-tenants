@@ -40,13 +40,15 @@ def run_migrations(args, options, executor_codename, schema_name, tenant_type=''
         return message
 
     connection = connections[options.get('database', get_tenant_database_alias())]
-    connection.set_schema(schema_name, tenant_type=tenant_type)
+    connection.set_schema(schema_name, tenant_type=tenant_type, include_public=False)
 
     # ensure that django_migrations table is created in the schema before migrations run, otherwise the migration
-    # table in the public schema gets picked and no migrations are applied
+    # table in the public schema gets picked and no migrations are applied.   For psycopg3, need to explicitly
+    # set include_public to false during schema check
     migration_recorder = MigrationRecorder(connection)
     migration_recorder.ensure_schema()
-
+    connection.set_schema(schema_name, tenant_type=tenant_type)
+                       
     stdout = OutputWrapper(sys.stdout)
     stdout.style_func = style_func
     stderr = OutputWrapper(sys.stderr)
