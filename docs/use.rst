@@ -304,7 +304,7 @@ Or
 
     ./manage.py migrate_schemas myapp 0001_initial --fake
 
-in case you're just switching your ``myapp`` application to use South migrations.
+in case you're just switching your ``myapp`` application to use migrations.
 
 
 Running the ``migrate`` will work however all it does is forward over to ``migrate_schemas``.
