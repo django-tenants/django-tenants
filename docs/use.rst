@@ -168,7 +168,7 @@ Example
 Multi-types tenants
 -------------------
 
-It is also possible to have different types of tenants. This is useful if you have two different types of users for instance you might want customers to use one style of tenant and suppliers to use another style. There is no limit to the amount of types however once the tenant has been set to a type it can't easily be convert to another type.
+It is also possible to have different types of tenants. This is useful if you have two different types of users for instance you might want customers to use one style of tenant and suppliers to use another style. There is no limit to the amount of types however once the tenant has been set to a type it can't easily be converted to another type.
 To enable multi types you need to change the setting file and add an extra field onto the tenant table.
 
 In the setting file ```SHARED_APPS```, ```TENANT_APPS``` and ```PUBLIC_SCHEMA_URLCONF``` needs to be removed.
