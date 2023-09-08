@@ -164,7 +164,11 @@ class TenantDataAndSettingsTest(BaseTestCase):
         self.created = [domain, tenant]
 
     def test_switching_search_path(self):
-        tenant1 = get_tenant_model()(schema_name='tenant1')
+        """
+        IMPORTANT: using schema_name with underscore here. See
+        https://github.com/django-tenants/django-tenants/pull/829
+        """
+        tenant1 = get_tenant_model()(schema_name='tenant`1')
         tenant1.save()
 
         domain1 = get_tenant_domain_model()(tenant=tenant1, domain='something.test.com')
@@ -172,7 +176,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
         connection.set_schema_to_public()
 
-        tenant2 = get_tenant_model()(schema_name='tenant2')
+        tenant2 = get_tenant_model()(schema_name='Tenant_2')
         tenant2.save()
 
         domain2 = get_tenant_domain_model()(tenant=tenant2, domain='example.com')
@@ -310,7 +314,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
     def test_tenant_schema_creation_with_special_chars(self):
         """Tests using special characters in schema name."""
-        schema_names = ('test-hyphen', 'test@at', 'test`backtick')
+        schema_names = ('test-hyphen', 'test@at', 'test`backtick', 'country_BD')
 
         Client = get_tenant_model()
         for schema_name in schema_names:

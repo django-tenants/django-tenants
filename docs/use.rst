@@ -168,7 +168,7 @@ Example
 Multi-types tenants
 -------------------
 
-It is also possible to have different types of tenants. This is useful if you have two different types of users for instance you might want customers to use one style of tenant and suppliers to use another style. There is no limit to the amount of types however once the tenant has been set to a type it can't easily be convert to another type.
+It is also possible to have different types of tenants. This is useful if you have two different types of users for instance you might want customers to use one style of tenant and suppliers to use another style. There is no limit to the amount of types however once the tenant has been set to a type it can't easily be converted to another type.
 To enable multi types you need to change the setting file and add an extra field onto the tenant table.
 
 In the setting file ```SHARED_APPS```, ```TENANT_APPS``` and ```PUBLIC_SCHEMA_URLCONF``` needs to be removed.
@@ -304,7 +304,7 @@ Or
 
     ./manage.py migrate_schemas myapp 0001_initial --fake
 
-in case you're just switching your ``myapp`` application to use South migrations.
+in case you're just switching your ``myapp`` application to use migrations.
 
 
 Running the ``migrate`` will work however all it does is forward over to ``migrate_schemas``.
