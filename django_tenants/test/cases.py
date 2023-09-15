@@ -84,7 +84,7 @@ class TenantTestCase(TestCase):
 
     @classmethod
     def get_test_schema_name(cls):
-        return 'test'
+        return 'tenant'
 
 
 class FastTenantTestCase(TenantTestCase):
@@ -121,11 +121,11 @@ class FastTenantTestCase(TenantTestCase):
 
     @classmethod
     def get_test_tenant_domain(cls):
-        return 'tenant.fast-test.com'
+        return 'fast_tenant.test.com'
 
     @classmethod
     def get_test_schema_name(cls):
-        return 'fast_test'
+        return 'fast_tenant'
 
     @classmethod
     def setup_test_tenant_and_domain(cls):

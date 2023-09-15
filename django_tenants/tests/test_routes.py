@@ -41,7 +41,7 @@ class RoutesTestCase(BaseTestCase):
         self.tm = TenantMainMiddleware(lambda r: r)
 
         self.tenant_domain = 'tenant.test.com'
-        self.tenant = get_tenant_model()(schema_name='test')
+        self.tenant = get_tenant_model()(schema_name='tenant')
         self.tenant.save()
         self.domain = get_tenant_domain_model()(tenant=self.tenant, domain=self.tenant_domain)
         self.domain.save()
@@ -110,7 +110,7 @@ class SubfolderRoutesTestCase(BaseTestCase):
         self.public_domain.save()
 
         self.tenant_domain = 'tenant.test.com'
-        self.tenant = get_tenant_model()(schema_name='test')
+        self.tenant = get_tenant_model()(schema_name='tenant')
         self.tenant.save()
         self.domain = get_tenant_domain_model()(tenant=self.tenant, domain=self.tenant_domain)
         self.domain.save()
@@ -130,14 +130,14 @@ class SubfolderRoutesTestCase(BaseTestCase):
 
     def test_tenant_routing(self):
         """
-        Request path should not be altered.
+        Remove tenant specific part from request if subfolder middleware is used.
         """
-        request_url = '/clients/tenant.test.com/any/request/'
-        request = self.factory.get('/clients/tenant.test.com/any/request/',
+        request_url = '/clients/tenant/any/request/'
+        request = self.factory.get(request_url,
                                    HTTP_HOST=self.public_domain.domain)
         self.tsf.process_request(request)
 
-        self.assertEqual(request.path_info, request_url)
+        self.assertEqual(request.path_info, "/any/request/")
 
         # request.tenant should also have been set
         self.assertEqual(request.tenant, self.tenant)
