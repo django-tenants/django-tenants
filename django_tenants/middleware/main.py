@@ -28,10 +28,19 @@ class TenantMainMiddleware(MiddlewareMixin):
         domain = domain_model.objects.select_related('tenant').get(domain=hostname)
         return domain.tenant
 
+    def process_response(self, request, response):
+        if response.status_code < 400 and not hasattr(request, "tenant"):
+            self.no_tenant_found(request, self.hostname_from_request(request))
+        return response
+
     def process_request(self, request):
+        # Short circuit if tenant is already set by another middleware.
+        # This allows for multiple tenant-resolving middleware chained together.
+        if hasattr(request, "tenant"):
+            return
+
         # Connection needs first to be at the public schema, as this is where
         # the tenant metadata is stored.
-
         connection.set_schema_to_public()
         try:
             hostname = self.hostname_from_request(request)
@@ -43,7 +52,6 @@ class TenantMainMiddleware(MiddlewareMixin):
         try:
             tenant = self.get_tenant(domain_model, hostname)
         except domain_model.DoesNotExist:
-            self.no_tenant_found(request, hostname)
             return
 
         tenant.domain_url = hostname
@@ -57,7 +65,7 @@ class TenantMainMiddleware(MiddlewareMixin):
         if hasattr(settings, 'SHOW_PUBLIC_IF_NO_TENANT_FOUND') and settings.SHOW_PUBLIC_IF_NO_TENANT_FOUND:
             self.setup_url_routing(request=request, force_public=True)
         else:
-            raise self.TENANT_NOT_FOUND_EXCEPTION('No tenant for hostname "%s"' % hostname)
+            raise self.TENANT_NOT_FOUND_EXCEPTION('No tenant for "%s"' % hostname)
 
     @staticmethod
     def setup_url_routing(request, force_public=False):
