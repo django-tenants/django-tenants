@@ -67,4 +67,3 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
         request.tenant = tenant
         connection.set_tenant(request.tenant)
         self.setup_url_routing(request, force_public=is_public)
-        return None
