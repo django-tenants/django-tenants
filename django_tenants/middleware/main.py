@@ -29,7 +29,7 @@ class TenantMainMiddleware(MiddlewareMixin):
         return domain.tenant
 
     def process_response(self, request, response):
-        if response.status_code < 400 and not hasattr(request, "tenant"):
+        if 200 <= response.status_code < 400 and not hasattr(request, "tenant"):
             self.no_tenant_found(request, self.hostname_from_request(request))
         return response
 
