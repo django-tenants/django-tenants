@@ -43,8 +43,7 @@ class TenantMainMiddleware(MiddlewareMixin):
         try:
             tenant = self.get_tenant(domain_model, hostname)
         except domain_model.DoesNotExist:
-            self.no_tenant_found(request, hostname)
-            return
+            return self.no_tenant_found(request, hostname)
 
         tenant.domain_url = hostname
         request.tenant = tenant
