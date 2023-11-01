@@ -49,13 +49,11 @@ class Command(InteractiveTenantOption, BaseCommand):
     def handle(self, *args, **options):
         tenant = self.get_tenant_from_options_or_interactive(**options)
         connection.set_tenant(tenant)
+        options.pop('schema_name', None)
 
         # options come including {"command_name": ["x", "y"]}
-        # in case multiple arguments are passed.
+        # Because command_name argument has nargs='+', thus it is always a list of strings
 
-        command_name = options.pop("command_name")
+        subcommand_name, *subcommand_options = options.pop("command_name")
 
-        if isinstance(command_name, list):
-            call_command(command_name[0], *command_name[1:])
-        else:
-            call_command(*args, **options)
+        call_command(subcommand_name, *subcommand_options, **options)
