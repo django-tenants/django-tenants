@@ -3799,7 +3799,9 @@ class CloneSchema:
         cursor.execute(CLONE_SCHEMA_FUNCTION.format(db_user=db_user))
         cursor.close()
 
-    def clone_schema(self, base_schema_name, new_schema_name, set_connection=True):
+    def clone_schema(
+        self, base_schema_name, new_schema_name, clone_mode="DATA", set_connection=True
+    ):
         """
         Creates a new schema `new_schema_name` as a clone of an existing schema
         `old_schema_name`.
@@ -3818,8 +3820,13 @@ class CloneSchema:
         if schema_exists(new_schema_name):
             raise ValidationError("New schema name already exists")
 
-        sql = "SELECT clone_schema(%(base_schema)s, %(new_schema)s, 'DATA')"
+        sql = "SELECT clone_schema(%(base_schema)s, %(new_schema)s, %(clone_mode)s)"
         cursor.execute(
-            sql, {"base_schema": base_schema_name, "new_schema": new_schema_name}
+            sql,
+            {
+                "base_schema": base_schema_name,
+                "new_schema": new_schema_name,
+                "clone_mode": clone_mode,
+            },
         )
         cursor.close()
