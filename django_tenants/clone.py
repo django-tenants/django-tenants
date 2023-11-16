@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import connection, transaction
-from django.db.utils import ProgrammingError
 
 from django_tenants.utils import schema_exists
 
@@ -3810,12 +3809,9 @@ class CloneSchema:
             connection.set_schema_to_public()
         cursor = connection.cursor()
 
-        # check if the clone_schema function already exists in the db
-        try:
-            cursor.execute("SELECT 'clone_schema'::regproc")
-        except ProgrammingError:
-            self._create_clone_schema_function()
-            transaction.commit()
+        # create or update the clone_schema function in the db
+        self._create_clone_schema_function()
+        transaction.commit()
 
         if schema_exists(new_schema_name):
             raise ValidationError("New schema name already exists")
