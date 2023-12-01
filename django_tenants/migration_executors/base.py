@@ -46,6 +46,10 @@ def run_migrations(args, options, executor_codename, schema_name, tenant_type=''
     # table in the public schema gets picked and no migrations are applied
     migration_recorder = MigrationRecorder(connection)
     migration_recorder.ensure_schema()
+    
+    # As creating the django_migrations table does not restore the search path, it's necessary
+    # to reset it to work with TENANT_LIMIT_SET_CALLS=True.
+    connection.set_schema(schema_name, tenant_type=tenant_type)
 
     stdout = OutputWrapper(sys.stdout)
     stdout.style_func = style_func
