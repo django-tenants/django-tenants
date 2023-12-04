@@ -14,6 +14,10 @@ class BaseTenantCommand(BaseCommand):
     class variable COMMAND_NAME of the subclass.
     """
 
+    # schema name can be overridden when inheriting from BaseTenantCommand
+    # if your command will always run on the same schema such as 'public'
+    schema_name = None
+
     def __new__(cls, *args, **kwargs):
         """
         Sets option_list and help dynamically.
@@ -56,10 +60,12 @@ class BaseTenantCommand(BaseCommand):
         """
         Iterates a command over all registered schemata.
         """
-        if options['schema_name']:
+        if options['schema_name'] or self.schema_name:
+            # options schema_name can override inherited schema_name
+            schema_name = options['schema_name'] or self.schema_name
             # only run on a particular schema
             connection.set_schema_to_public()
-            self.execute_command(get_tenant_model().objects.get(schema_name=options['schema_name']), self.COMMAND_NAME,
+            self.execute_command(get_tenant_model().objects.get(schema_name=schema_name), self.COMMAND_NAME,
                                  *args, **options)
         else:
             for tenant in get_tenant_model().objects.all():
