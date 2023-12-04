@@ -16,7 +16,7 @@ class BaseTenantCommand(BaseCommand):
 
     # schema name can be overridden when inheriting from BaseTenantCommand
     # if your command will always run on the same schema such as 'public'
-    schema_name = ''
+    schema_name = None
 
     def __new__(cls, *args, **kwargs):
         """
