@@ -29,8 +29,8 @@ class Command(TenantWrappedCommand):
         )
 
     def collect_tenant(self, tenant, *args, **options):
-        connection.set_tenant(tenant)
-        self.command_instance.execute(*args, **options)
+        with tenant_context(tenant):
+            self.command_instance.execute(*args, **options)
 
     def handle(self, *args, **options):
         if options.get("all_schemas"):
