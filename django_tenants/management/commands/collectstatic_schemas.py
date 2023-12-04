@@ -4,7 +4,7 @@ from django.contrib.staticfiles.management.commands import collectstatic
 from django.db import connection
 
 from django_tenants.management.commands import TenantWrappedCommand
-from django_tenants.utils import get_tenant_model
+from django_tenants.utils import get_tenant_model, tenant_context
 
 
 class Command(TenantWrappedCommand):
