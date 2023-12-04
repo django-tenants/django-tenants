@@ -105,6 +105,10 @@ The command to collect the static files for all tenants is ``collectstatic_schem
     
     ./manage.py collectstatic_schemas --schema=your_tenant_schema_name
 
+.. code-block:: bash
+
+    ./manage.py collectstatic_schemas --all-schemas
+
 .. note::
 
    If you have configured an HTTP server, like `nginx <https://nginx.org>`_, to serve static files instead of the
