@@ -159,7 +159,7 @@ class TenantMixin(models.Model):
         auto_drop_schema set to True.
         """
         self._drop_schema(force_drop)
-        super().delete(*args, **kwargs)
+        return super().delete(*args, **kwargs)
 
     def create_schema(self, check_if_exists=False, sync_schema=True,
                       verbosity=1):
