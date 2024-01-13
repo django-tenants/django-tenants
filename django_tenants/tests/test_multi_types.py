@@ -146,7 +146,7 @@ class MultiTypeTestCase(BaseTestCase):
         with tenant_context(self.tenant2):
             TypeTwoOnly(name='hello')
 
-    # For some reason the migrations are using the wrong settings hence I can't get this test to worl
+    # For some reason the migrations are using the wrong settings hence I can't get this test to work
     # If someone would like to fix this I would be grateful :)
     # def test_type2_with_type1(self):
     #     """
