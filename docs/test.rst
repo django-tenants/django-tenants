@@ -105,7 +105,7 @@ You can set the the verbosity by overriding the ``get_verbosity`` method.
 
 Running tests faster
 --------------------
-Using the ``TenantTestCase`` can make running your tests really slow quite early in your project. This is due to the fact that it drops, recreates the test schema and runs migrations for every ``TenantTestCase`` you have. If you want to gain speed, there's a ``FastTenantTestCase`` where the test schema will be created and migrations ran only one time. The gain in speed is noticeable but be aware that by using this you will be perpetrating state between your test cases, please make sure your they won't be affected by this.
+Using the ``TenantTestCase`` can make running your tests really slow quite early in your project. This is due to the fact that it drops, recreates the test schema and runs migrations for every ``TenantTestCase`` you have. If you want to gain speed, there's a ``FastTenantTestCase`` where the test schema will be created and migrations ran only one time. The gain in speed is noticeable but be aware that by using this you will be perpetrating state between your test cases, please make sure they won't be affected by this.
 
 Running tests using ``TenantTestCase`` can start being a bottleneck once the number of tests grow. If you do not care that the state between tests is kept, an alternative is to use the class ``FastTenantTestCase``. Unlike ``TenantTestCase``, the test schema and its migrations will only be created and ran once. This is a significant improvement in speed coming at the cost of shared state.
 
