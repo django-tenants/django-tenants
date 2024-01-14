@@ -50,8 +50,8 @@ class Command(InteractiveTenantOption, BaseCommand):
         tenant = self.get_tenant_from_options_or_interactive(**options)
         connection.set_tenant(tenant)
 
-        # options comes including {"command_name": ["x", "y"]}
-        # In case of multiple arguments passed.
+        # options come including {"command_name": ["x", "y"]}
+        # in case multiple arguments are passed.
 
         command_name = options.pop("command_name")
 
