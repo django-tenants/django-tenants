@@ -8,7 +8,10 @@ from django.utils.functional import lazy
 from django_tenants.utils import (
     get_tenant_domain_model,
     get_subfolder_prefix,
-    clean_tenant_url, has_multi_type_tenants, get_tenant_types,
+    clean_tenant_url,
+    has_multi_type_tenants,
+    get_tenant_types,
+    get_public_schema_name,
 )
 
 
@@ -28,9 +31,13 @@ class TenantPrefixPattern:
         _DomainModel = get_tenant_domain_model()
         subfolder_prefix = get_subfolder_prefix()
         try:
+            if hasattr(connection.tenant, "domain_subfolder"):
+                domain_subfolder = connection.tenant.domain_subfolder
+            else:
+                domain_subfolder = get_public_schema_name()
             domain = _DomainModel.objects.get(
                 tenant__schema_name=connection.schema_name,
-                domain=connection.tenant.domain_subfolder,
+                domain=domain_subfolder,
             )
             return (
                 "{}/{}/".format(subfolder_prefix, domain.domain)
