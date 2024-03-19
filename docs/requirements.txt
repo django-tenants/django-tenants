@@ -1,6 +1,6 @@
 breathe==4.35.0
 docutils==0.20.1
 Pygments==2.17.2
-pyparsing==3.1.1
+pyparsing==3.1.2
 Sphinx==7.2.6
 sphinxcontrib-bibtex==2.6.2
