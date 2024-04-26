@@ -1,4 +1,5 @@
 import io
+import json
 
 from django.core.management import call_command
 
@@ -12,25 +13,24 @@ class TenantCommandTestCase(FastTenantTestCase):
         DummyModel(name="Schemas are").save()
         DummyModel(name="awesome!").save()
 
-        indented_dump_data = '\n'.join([
-            '[',
-            '{',
-            '    "model": "dts_test_app.dummymodel",',
-            '    "pk": 1,',
-            '    "fields": {',
-            '        "name": "Schemas are"',
-            '    }',
-            '},',
-            '{',
-            '    "model": "dts_test_app.dummymodel",',
-            '    "pk": 2,',
-            '    "fields": {',
-            '        "name": "awesome!"',
-            '    }',
-            '}',
-            ']',
-            '',
-        ])
+        dump_data = [
+            {
+                "model": "dts_test_app.dummymodel",
+                "pk": 1,
+                "fields": {
+                    "name": "Schemas are"
+                }
+            },
+            {
+                "model": "dts_test_app.dummymodel",
+                "pk": 2,
+                "fields": {
+                    "name": "awesome!"
+                }
+            }
+        ]
+        # json.dump has extra level of indentation comparing to dumpdata, so we remove it
+        indented_dump_data = json.dumps(dump_data, indent=4).replace('\n    ', '\n')+'\n'
 
         out = io.StringIO()
         call_command(
