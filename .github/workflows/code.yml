@@ -14,7 +14,7 @@ jobs:
       matrix:
         # always use latest Python b/c the point here is to test PostgreSQL compatibility
         python-version: ["3.11"]
-        postgres-version: [11-bullseye, 12, 13, 14, 15, 16]
+        postgres-version: [12, 13, 14, 15, 16]
 
     steps:
     - uses: actions/checkout@v4
@@ -25,13 +25,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install Django
-      if: matrix.postgres-version == '11-bullseye'
-      run: |
-        # Django 4.1 is the last one to support Postgres 11
-        pip install Django==4.1.*
-
-    - name: Install Django
-      if: matrix.postgres-version != '11-bullseye'
       run: |
         # always use latest Django b/c the point here is to test PostgreSQL compatibility
         pip install Django
