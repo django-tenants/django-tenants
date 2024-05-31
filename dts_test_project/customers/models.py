@@ -10,7 +10,7 @@ class Client(TenantMixin):
 
     def reverse(self, request, view_name):
         """
-        If you have different implementation of reserve from what the
+        If you have a different implementation of reverse from what the
         Django-Tenants library uses (A.k.a. Sites Framework) then you can write
         your own override here.
         """
