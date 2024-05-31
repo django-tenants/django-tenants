@@ -52,4 +52,4 @@ class ConfigStringParsingTestCase(TenantTestCase):
         tm = TenantMainMiddleware(lambda r: r)
         request = factory.get('/any/request/', HTTP_HOST=tenant_domain)
         tm.process_request(request)
-        self.assertEqual(get_tenant(request).schema_name, 'test')
+        self.assertEqual(get_tenant(request).schema_name, 'tenant')
