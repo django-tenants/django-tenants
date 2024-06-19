@@ -29,19 +29,19 @@ class Command(InteractiveTenantOption, BaseCommand):
         schema_name = tenant.schema_name
         if options["interactive"]:
             self.print_warning("Warning you are about to delete '%s' there is no undo." % schema_name)
-            result = input("Are you sure you want to delete '%s'?" % schema_name).lower()
+            result = input("Are you sure you want to delete '%s'? " % schema_name)
 
-            while not result in ["yes", "no"]:
+            while not result.lower() in ["yes", "no"]:
                 result = input("Please answer yes or no: ")
 
-            if result == "no":
+            if result.lower() == "no":
                 self.stderr.write("Canceled")
                 return
                 
-        self.print_info("Deleting '%s'" % tenant.schema_name)
+        self.print_info("Deleting '%s'" % schema_name)
         tenant.auto_drop_schema = True
         tenant.delete()
-        self.print_info("Deleted '%s'" % tenant.schema_name)
+        self.print_info("Deleted '%s'" % schema_name)
 
     def print_warning(self, message):
         self.stderr.write("\033[91m%s\033[0m" % message)
