@@ -116,6 +116,8 @@ class TenantDataAndSettingsTest(BaseTestCase):
             # to assert atomic transactions when creating a tenant
             with self.assertRaises(transaction.TransactionManagementError):
                 atomically_create_tenant()
+        else:
+            assert False
 
     def test_non_auto_sync_tenant(self):
         """
@@ -715,6 +717,8 @@ class SchemaMigratedSignalTest(BaseTestCase):
             # migrations run in a different process, therefore signal
             # will get sent in a different process as well
             handler.assert_not_called()
+        else:
+            assert False
 
         domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
         domain.save()
@@ -753,6 +757,8 @@ class SchemaMigratedSignalTest(BaseTestCase):
                 sender=mock.ANY,
                 signal=schema_migrated,
             )
+        else:
+            assert False
 
 
 class MigrationOrderTestTest(BaseTestCase):
