@@ -33,17 +33,17 @@ class Command(InteractiveTenantOption, BaseCommand):
             while len(result) < 1 or result.lower() not in ["yes", "no"]:
                 result = input("Please answer yes or no: ")
                 if result.lower() == "yes":
-                    self.delete_tenant(schema_name)
+                    self.delete_tenant(tenant)
                 elif result.lower() == "no":
                     self.stderr.write("Canceled")
         else:
-            self.delete_tenant(schema_name)
+            self.delete_tenant(tenant)
 
-    def delete_tenant(self, schema_name):
-        self.print_info(f"Deleting '{schema_name}'" )
+    def delete_tenant(self, tenant):
+        self.print_info(f"Deleting '{tenant.schema_name}'" )
         tenant.auto_drop_schema = True
         tenant.delete()
-        self.print_info(f"Deleted '{schema_name}'")
+        self.print_info(f"Deleted '{tenant.schema_name}'")
 
     def print_warning(self, message):
         self.stderr.write(f"\033[91m{message}\033[0m")
