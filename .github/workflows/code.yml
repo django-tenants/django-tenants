@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
-      matrix:
+      matrix: # https://www.postgresql.org/docs/release
         # always use latest Python b/c the point here is to test PostgreSQL compatibility
-        python-version: ["3.11"]
-        postgres-version: [12, 13, 14, 15, 16]
+        python-version: ["3.12"]
+        postgres-version: [13, 14, 15, 16]
 
     steps:
     - uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
 
     - name: Install Python dependencies
       run: |
-        pip install psycopg2 coverage
+        pip install psycopg2 coverage setuptools
         python setup.py develop
 
     - name: Create database
@@ -54,12 +54,9 @@ jobs:
       fail-fast: true
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-        django-version: ["==4.1.*", "==4.2.*", "==5.0.*"]
+        django-version: ["==4.2.*", "==5.0.*", "==5.1.*"]
         # always use latest Postgres b/c the point here is to test Django compatibility
         postgres-version: [latest]
-        exclude:
-          - python-version: "3.12"
-            django-version: "==4.1.*"
     steps:
     - uses: actions/checkout@v4
 
