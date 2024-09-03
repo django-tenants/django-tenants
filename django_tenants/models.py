@@ -184,7 +184,7 @@ class TenantMixin(models.Model):
                 # copy tables and data from provided model schema
                 base_schema = get_tenant_base_schema()
                 clone_schema = CloneSchema()
-                clone_schema.clone_schema(base_schema, self.schema_name)
+                clone_schema.clone_schema(base_schema, self.schema_name, with_data=True)
 
                 call_command('migrate_schemas',
                              tenant=True,
