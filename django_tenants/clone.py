@@ -5,7 +5,7 @@ from django.db.utils import ProgrammingError
 
 from django_tenants.utils import schema_exists
 
-CLONE_SCHEMA_FUNCTION_SQL = """
+CLONE_SCHEMA_FUNCTION_SQL = r"""
 do $$ 
 <<first_block>>
 DECLARE
@@ -47,7 +47,7 @@ $$
       ELSE
         v_schema = target_schema;
       END IF;
-
+      
       v_cnt = v_cnt + 1;
       -- RAISE NOTICE 'DEBUGGGGGGG atable=%  colname=%  datatype=%  udtname=%  coldflt=%  isidentity=%  identgen=%  isgenerated=%', atable, v_colrec.column_name,v_colrec.data_type,v_colrec.udt_name,v_colrec.column_default,v_colrec.is_identity,v_colrec.identity_generation,v_colrec.is_generated;
       IF v_colrec.is_identity = 'YES' AND v_colrec.identity_generation = 'ALWAYS' THEN
@@ -238,14 +238,14 @@ $$
     v_diag4          text;
     v_diag5          text;
     v_diag6          text;
-
+	
   BEGIN
     SET client_min_messages = 'notice';
     IF _verbose THEN bVerbose = True; END IF;
-
+    
     -- v17 fix: handle case-sensitive  
     -- v_qualified = in_schema || '.' || in_table;
-
+	
     arglen := array_length($4, 1);
     IF arglen IS NULL THEN
         -- nothing to do, so assume defaults
@@ -268,7 +268,7 @@ $$
                 pktype = avarg;				                
             ELSEIF avarg = 'COMMENTS' THEN
                 cmtcnt = cmtcnt + 1;
-
+                
             END IF;
         END LOOP;
         IF fkcnt > 1 THEN 
@@ -283,7 +283,7 @@ $$
         ELSEIF cmtcnt > 1 THEN 
             RAISE WARNING 'Only one comments option can be provided. You provided %', cmtcnt;
             RETURN '';			
-
+            
         END IF;		   		   
     END IF;
 
@@ -300,7 +300,7 @@ $$
     EXECUTE 'SET search_path = "public"';
     SELECT setting INTO search_path_new FROM pg_settings WHERE name = 'search_path';
     -- RAISE NOTICE 'DEBUG tableddl: using new search path=***%***', search_path_new;
-
+    
     -- throw an error if table was not found
     IF (v_table_oid IS NULL) THEN
       RAISE EXCEPTION 'table does not exist';
@@ -313,7 +313,7 @@ $$
     ELSE
       v_tablespace := 'TABLESPACE ' || v_temp;
     END IF;
-
+    
     -- also see if there are any SET commands for this table, ie, autovacuum_enabled=off, fillfactor=70
     WITH relopts AS (SELECT unnest(c.reloptions) relopts FROM pg_class c, pg_namespace n WHERE n.nspname = in_schema and n.oid = c.relnamespace and c.relname = in_table) 
     SELECT string_agg(r.relopts, ', ') as relopts INTO v_temp from relopts r;
@@ -322,7 +322,7 @@ $$
     ELSE
       v_relopts := ' WITH (' || v_temp || ')';
     END IF;
-
+    
     -- -----------------------------------------------------------------------------------
     -- Create table defs for partitions/children using inheritance or declarative methods.
     -- inheritance: pg_class.relkind = 'r'   pg_class.relispartition=false   pg_class.relpartbound is NULL
@@ -358,12 +358,12 @@ $$
 		  -- WHERE t.table_schema=s.table_schema AND t.table_name=s.table_name AND t.table_schema = quote_ident(in_schema) AND t.table_name = quote_ident(in_table) AND t.table_type = 'BASE TABLE');      
 		  SELECT count(*) INTO v_cnt1 FROM information_schema.tables t WHERE EXISTS (SELECT REGEXP_MATCHES(s.table_name, '([A-Z]+)','g') FROM information_schema.tables s 
 		  WHERE t.table_schema=s.table_schema AND t.table_name=s.table_name AND t.table_schema = in_schema AND t.table_name = in_table AND t.table_type = 'BASE TABLE');      		  
-
+		  
       --Issue#19 put double-quotes around SQL keyword column names
       -- Issue#121: fix keyword lookup for table name not column name that does not apply here
       -- SELECT COUNT(*) INTO v_cnt2 FROM pg_get_keywords() WHERE word = v_colrec.column_name AND catcode = 'R';
       SELECT COUNT(*) INTO v_cnt2 FROM pg_get_keywords() WHERE word = in_table AND catcode = 'R';
-
+		  
       IF bInheritance THEN
         -- inheritance-based
         IF v_cnt1 > 0 OR v_cnt2 > 0 THEN
@@ -404,7 +404,7 @@ $$
         v_temp := '';
       END IF;
     END IF;
-
+    
     -- start the create definition for regular tables unless we are in progress creating an inheritance-based child table
     IF NOT bPartition THEN
       --Issue#17 fix for case-sensitive tables
@@ -426,7 +426,7 @@ $$
         FROM information_schema.columns c WHERE (table_schema, table_name) = (in_schema, in_table) ORDER BY ordinal_position
       LOOP
          IF bVerbose THEN RAISE NOTICE '(col loop) name=%  type=%  udt_name=%  default=%  is_generated=%  gen_expr=%', v_colrec.column_name, v_colrec.data_type, v_colrec.udt_name, v_colrec.column_default, v_colrec.is_generated, v_colrec.generation_expression; END IF;  
-
+         
          -- v17 fix: handle case-sensitive for pg_get_serial_sequence that requires SQL Identifier handling
          -- SELECT CASE WHEN pg_get_serial_sequence(v_qualified, v_colrec.column_name) IS NOT NULL THEN True ELSE False END into bSerial;
          SELECT CASE WHEN pg_get_serial_sequence(quote_ident(in_schema) || '.' || quote_ident(in_table), v_colrec.column_name) IS NOT NULL THEN True ELSE False END into bSerial;
@@ -439,14 +439,14 @@ $$
            RAISE NOTICE 'DEBUG table: %  Column: %  datatype: %  Serial=%  serialval=%  coldef=%', v_qualified, v_colrec.column_name, v_colrec.data_type, bSerial, v_temp, v_diag1;
            RAISE NOTICE 'DEBUG tabledef: %', v_table_ddl;
          END IF;
-
+         
          --Issue#17 put double-quotes around case-sensitive column names
          SELECT COUNT(*) INTO v_cnt1 FROM information_schema.columns t WHERE EXISTS (SELECT REGEXP_MATCHES(s.column_name, '([A-Z]+)','g') FROM information_schema.columns s 
          WHERE t.table_schema=s.table_schema and t.table_name=s.table_name and t.column_name=s.column_name AND t.table_schema = quote_ident(in_schema) AND column_name = v_colrec.column_name);         
 
          --Issue#19 put double-quotes around SQL keyword column names         
          SELECT COUNT(*) INTO v_cnt2 FROM pg_get_keywords() WHERE word = v_colrec.column_name AND catcode = 'R';
-
+         
          IF v_cnt1 > 0 OR v_cnt2 > 0 THEN
            v_table_ddl := v_table_ddl || '  "' || v_colrec.column_name || '" ';
          ELSE
@@ -509,7 +509,7 @@ $$
       END LOOP;
     END IF;
     IF bVerbose THEN RAISE NOTICE '(2)tabledef so far: %', v_table_ddl; END IF;
-
+        
     -- define all the constraints: conparentid does not exist pre PGv11
     IF v_pgversion < 110000 THEN
       FOR v_constraintrec IN
@@ -574,7 +574,7 @@ $$
         END IF;
         if bVerbose THEN RAISE NOTICE 'DEBUG4: constraint name=% constraint_def=%', v_constraint_name,v_constraint_def; END IF;
         constraintarr := constraintarr || v_constraintrec.constraint_name:: text;
-
+  
       END LOOP;
     ELSE
       -- handle PG versions 11 and up
@@ -645,10 +645,10 @@ $$
         END IF;
         if bVerbose THEN RAISE NOTICE 'DEBUG4: constraint name=% constraint_def=%', v_constraint_name,v_constraint_def; END IF;
         constraintarr := constraintarr || v_constraintrec.constraint_name:: text;
-
+  
        END LOOP;
     END IF;      
-
+	
     -- drop the last comma before ending the create statement, which should be right before the carriage return character
     -- Issue#24: make sure the comma is there before removing it
     select substring(v_table_ddl, length(v_table_ddl) - 1, 1) INTO v_temp;
@@ -689,7 +689,7 @@ $$
     END IF;
 
     IF bVerbose THEN RAISE NOTICE '(5)tabledef so far: %', v_table_ddl; END IF;
-
+    
     -- Add closing paren for regular tables
     -- IF NOT bPartition THEN
     -- v_table_ddl := v_table_ddl || ') ' || v_relopts || ' ' || v_tablespace || E';\n';  
@@ -700,14 +700,14 @@ $$
     IF v_pkey_def <> '' THEN
         v_table_ddl := v_table_ddl || v_pkey_def || E'\n';    
     END IF;
-
+   
     -- Issue#20
     IF v_fkey_defs <> '' THEN
 	         v_table_ddl := v_table_ddl || v_fkey_defs || E'\n';    
     END IF;
-
+   
     IF bVerbose THEN RAISE NOTICE '(6)tabledef so far: %', v_table_ddl; END IF;
-
+   
     -- create indexes
     FOR v_indexrec IN
       SELECT indexdef, COALESCE(tablespace, 'pg_default') as tablespace, indexname FROM pg_indexes WHERE (schemaname, tablename) = (in_schema, in_table)
@@ -724,13 +724,13 @@ $$
          END IF;
       END LOOP;   
       if bSkip THEN CONTINUE; END IF;
-
+      
       -- Add IF NOT EXISTS clause so partition index additions will not be created if declarative partition in effect and index already created on parent
       v_indexrec.indexdef := REPLACE(v_indexrec.indexdef, 'CREATE INDEX', 'CREATE INDEX IF NOT EXISTS');
       -- Fix Issue#26: do it for unique/primary key indexes as well
       v_indexrec.indexdef := REPLACE(v_indexrec.indexdef, 'CREATE UNIQUE INDEX', 'CREATE UNIQUE INDEX IF NOT EXISTS');
       -- RAISE NOTICE 'DEBUG8: adding index, %', v_indexrec.indexname;
-
+      
       -- NOTE:  cannot specify default tablespace for partitioned relations
       IF v_partition_key IS NOT NULL AND v_partition_key <> '' THEN
           v_table_ddl := v_table_ddl || v_indexrec.indexdef || ';' || E'\n';
@@ -750,7 +750,7 @@ $$
               v_table_ddl := v_table_ddl || v_indexrec.indexdef || ' TABLESPACE ' || v_indexrec.tablespace || ';' || E'\n';
           END IF;
       END IF;
-
+      
     END LOOP;
     IF bVerbose THEN RAISE NOTICE '(7)tabledef so far: %', v_table_ddl; END IF;
 
@@ -768,7 +768,7 @@ $$
         END LOOP;   
     END IF;
     IF bVerbose THEN RAISE NOTICE '(8)tabledef so far: %', v_table_ddl; END IF;
-
+	
     IF trigtype = 'INCLUDE_TRIGGERS' THEN
 	    -- Issue#14: handle multiple triggers for a table
       FOR v_trigrec IN
@@ -780,12 +780,12 @@ $$
           IF bVerbose THEN RAISE NOTICE 'triggerdef = %', v_trigrec.triggerdef; END IF;
       END LOOP;       	    
     END IF;
-
+  
     IF bVerbose THEN RAISE NOTICE '(9)tabledef so far: %', v_table_ddl; END IF;
     -- add empty line
     v_table_ddl := v_table_ddl || E'\n';
     IF bVerbose THEN RAISE NOTICE '(10)tabledef so far: %', v_table_ddl; END IF;
-
+    
     -- reset search_path back to what it was
     IF search_path_old = '' THEN
       SELECT set_config('search_path', '', false) into v_temp;
@@ -794,7 +794,7 @@ $$
     END IF;
 
     RETURN v_table_ddl;
-
+	
     EXCEPTION
     WHEN others THEN
     BEGIN
@@ -913,7 +913,7 @@ DECLARE
   spath_tmp        text;
   -- issue#86 fix
   isGenerated      text;
-
+  
   -- issue#91 fix
   tblowner         text;
   func_owner       text;
@@ -924,7 +924,7 @@ DECLARE
 
   -- issue#92    
   calleruser       text;
-
+  
   -- issue#94
   bData            boolean := False;
   bDDLOnly         boolean := False;
@@ -939,13 +939,13 @@ DECLARE
   -- issue#98
   mvarray          text[] := '{}';  
   mvscopied        integer := 0;
-
+  
   -- issue#99 tablespaces
   tblspace         text;
-
+  
   -- issue#101
   bFileCopy        boolean := False;
-
+  
   t                timestamptz := clock_timestamp();
   r                timestamptz;
   s                timestamptz;
@@ -960,9 +960,9 @@ BEGIN
 
   IF 'DEBUG'   = ANY ($3) THEN bDebug = True; END IF;
   IF 'VERBOSE' = ANY ($3) THEN bVerbose = True; END IF;
-
+  
   -- IF bVerbose THEN RAISE NOTICE 'START: %',clock_timestamp() - t; END IF;
-
+  
   arglen := array_length($3, 1);
   IF arglen IS NULL THEN
     -- nothing to do, so defaults are assumed
@@ -995,13 +995,13 @@ BEGIN
       RETURN;
     END IF;
   END IF;  
-
+  
   -- Get server version info to handle certain things differently based on the version.
   SELECT setting INTO sq_server_version
   FROM pg_settings
   WHERE name = 'server_version';
   SELECT version() INTO sq_version;
-
+  
   IF POSITION('compiled by Visual C++' IN sq_version) > 0 THEN
       bWindows = True;
       RAISE NOTICE 'Windows: %', sq_version;
@@ -1057,14 +1057,14 @@ BEGIN
 
   -- Issue#92
   SELECT current_user into calleruser;
-
+  
   -- Set the search_path to source schema. Before exiting set it back to what it was before.
   -- In order to avoid issues with the special schema name "$user" that may be
   -- returned unquoted by some applications, we ensure it remains double quoted.
   -- MJV FIX: #47
   SELECT setting INTO v_dummy FROM pg_settings WHERE name='search_path';
   IF bDebug THEN RAISE NOTICE 'DEBUG: search_path=%', v_dummy; END IF;
-
+  
   SELECT REPLACE(REPLACE(setting, '"$user"', '$user'), '$user', '"$user"') INTO v_src_path_old
   FROM pg_settings WHERE name = 'search_path';
 
@@ -1314,7 +1314,7 @@ BEGIN
       IF arec.typcategory = 'E' THEN
         IF bDDLOnly THEN
           RAISE INFO '%', arec.type_ddl;
-
+          
           --issue#95
           IF NOT bNoOwner THEN
             -- Fixed Issue#108: double-quote roles in case they have special characters
@@ -1404,7 +1404,7 @@ BEGIN
     SELECT pg_catalog.quote_ident(n.nspname) || '.' || pg_catalog.quote_ident(c.relname) || '.' || pg_catalog.quote_ident(a.attname) INTO v_seqowner
     FROM pg_catalog.pg_class c INNER JOIN pg_catalog.pg_depend d ON c.oid=d.refobjid INNER JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace INNER JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid AND a.attnum=d.refobjsubid) 
     INNER JOIN depends d2 ON (d.objid = d2.oid) WHERE d.classid='pg_catalog.pg_class'::pg_catalog.regclass AND d.refclassid='pg_catalog.pg_class'::pg_catalog.regclass AND d.deptype IN ('a', 'i');
-
+		
 		IF v_seqowner IS NULL THEN
 		    -- nothing to do
 		    IF bDebug THEN RAISE NOTICE 'DEBUG: Not generating sequence owner for object=%',object; END IF;
@@ -1493,7 +1493,7 @@ BEGIN
   IF bDebug THEN RAISE NOTICE 'Section=%',action; END IF;
   SELECT setting INTO v_dummy FROM pg_settings WHERE name='search_path';
   IF bDebug THEN RAISE NOTICE 'DEBUG: search_path=%', v_dummy; END IF;
-
+  
   cnt := 0;
   lasttbl = '';
   -- Issue#61 FIX: use set_config for empty string
@@ -1503,7 +1503,7 @@ BEGIN
   -- Fix#86 add isgenerated to column list
   -- Fix#91 add tblowner for setting the table ownership to that of the source
   -- Fix#99 added join to pg_tablespace
-
+  
   -- Handle PG versions greater than last major/minor version of PG 9.6.24
   IF sq_server_version_num > 90624 THEN
   FOR tblname, relpersist, bRelispart, relknd, data_type, udt_name, udt_schema, ocomment, l_child, isGenerated, tblowner, tblspace  IN
@@ -1535,13 +1535,13 @@ BEGIN
   LOOP
     cnt := cnt + 1;
     lastsql = '';
-
+    
     -- Issue#121 we may have dup tables due to multiple user-defined different datatypes, so skip 2-n occurences of them
     IF lasttbl = tblname THEN
         IF bDebug THEN RAISE INFO 'skipping dup table, %', tblname; END IF;
         continue;
     END IF;
-
+    
     lasttbl = tblname;
     IF l_child IS NULL THEN
       bChild := False;
@@ -1583,7 +1583,7 @@ BEGIN
               -- Fixed Issue#108: double-quote roles in case they have special characters
               RAISE INFO 'ALTER TABLE IF EXISTS % OWNER TO %;', quote_ident(dest_schema) || '.' || tblname, tblowner;
             END IF;
-
+            
             -- issue#99 
             IF tblspace <> 'pg_default' THEN
               -- replace with user-defined tablespace
@@ -1649,7 +1649,7 @@ BEGIN
               EXECUTE buffer3;
               lastsql = '';
             END IF;
-
+            
             -- issue#99
             IF tblspace <> 'pg_default' THEN
               -- replace with user-defined tablespace
@@ -1727,7 +1727,7 @@ BEGIN
         lastsql = qry;
         EXECUTE qry;
         lastsql = '';
-
+        
         -- Issue#103
         -- Set search path back to what it was
         spath = 'SET search_path = "' || spath_tmp || '"';
@@ -1735,7 +1735,7 @@ BEGIN
         EXECUTE spath;
         SELECT setting INTO v_dummy FROM pg_settings WHERE name = 'search_path';   
         IF bDebug THEN RAISE NOTICE 'DEBUG: search_path changed back to %', v_dummy; END IF;
-
+        
         -- issue#91 fix
         -- issue#95
         IF NOT bNoOwner THEN
@@ -1745,7 +1745,7 @@ BEGIN
           EXECUTE buffer3;
           lastsql = '';
         END IF;
-
+        
       END IF;
       -- loop for child tables and alter them to attach to parent for specific partition method.
       -- Issue#103 fix: only loop for the table we are currently processing, tblname!
@@ -1777,7 +1777,7 @@ BEGIN
         END IF;
       END LOOP;
     END IF;
-
+    
     -- INCLUDING ALL creates new index names, we restore them to the old name.
     -- There should be no conflicts since they live in different schemas
     FOR ix_old_name, ix_new_name IN
@@ -1834,7 +1834,7 @@ BEGIN
       -- BUG for inserting rows from tables with user-defined columns
       -- INSERT INTO sample_clone.address OVERRIDING SYSTEM VALUE SELECT * FROM sample.address;
       -- ERROR:  column "id2" is of type sample_clone.udt_myint but expression is of type udt_myint
-
+      
       -- Issue#86 fix:
       -- IF data_type = 'USER-DEFINED' THEN
       IF bDebug THEN RAISE NOTICE 'DEBUG: includerecs branch  table=%  data_type=%  isgenerated=%  buffer3=%', tblname, data_type, isGenerated, buffer3; END IF;
@@ -1854,15 +1854,15 @@ BEGIN
               tblarray2 := tblarray2 || buffer2;
               -- Issue #81 reformat COPY command for upload
               -- buffer2:= 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM  ''C:\WINDOWS\TEMP\cloneschema.tmp'' (DELIMITER '','', NULL '''');';
-              buffer2   := 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM  ''C:\WINDOWS\TEMP\cloneschema.tmp'' (DELIMITER '','', NULL ''\n'', FORMAT CSV);';
+              buffer2   := 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM  ''C:\WINDOWS\TEMP\cloneschema.tmp'' (DELIMITER '','', NULL ''\N'', FORMAT CSV);';
               tblarray2 := tblarray2 || buffer2;
           ELSE
               buffer2   := 'COPY ' || quote_ident(source_schema) || '.' || quote_ident(tblname) || ' TO ''/tmp/cloneschema.tmp'' WITH DELIMITER AS '','';';
               tblarray2 := tblarray2 || buffer2;
               -- Issue #81 reformat COPY command for upload
               -- buffer2   := 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM ''/tmp/cloneschema.tmp'' (DELIMITER '','', NULL '''');';
-              -- works--> COPY sample.timestamptbl2  FROM '/tmp/cloneschema.tmp' WITH (DELIMITER ',', NULL '\n', FORMAT CSV) ;
-              buffer2   := 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM ''/tmp/cloneschema.tmp'' (DELIMITER '','', NULL ''\n'', FORMAT CSV);';
+              -- works--> COPY sample.timestamptbl2  FROM '/tmp/cloneschema.tmp' WITH (DELIMITER ',', NULL '\N', FORMAT CSV) ;
+              buffer2   := 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM ''/tmp/cloneschema.tmp'' (DELIMITER '','', NULL ''\N'', FORMAT CSV);';
               tblarray2 := tblarray2 || buffer2;
           END IF;
           IF bDebug THEN RAISE NOTICE 'Deferring file copy to end:%', buffer2; END IF;
@@ -1916,7 +1916,7 @@ BEGIN
         lastsql = '';
       END IF;
     END LOOP;
-
+    
     EXECUTE 'SET search_path = ' || quote_ident(source_schema) ;
     IF bDebug THEN RAISE NOTICE 'DEBUG: search_path changed back to source schema:%', quote_ident(source_schema); END IF;
   END LOOP;
@@ -1992,7 +1992,7 @@ BEGIN
               -- Fixed Issue#108: double-quote roles in case they have special characters
               RAISE INFO 'ALTER TABLE IF EXISTS % OWNER TO %;', quote_ident(dest_schema) || '.' || tblname, tblowner;
             END IF;
-
+            
             -- issue#99 
             IF tblspace <> 'pg_default' THEN
               -- replace with user-defined tablespace
@@ -2057,7 +2057,7 @@ BEGIN
               EXECUTE buffer3;
               lastsql = '';
             END IF;
-
+            
             -- issue#99
             IF tblspace <> 'pg_default' THEN
               -- replace with user-defined tablespace
@@ -2071,7 +2071,7 @@ BEGIN
           ELSE
             -- FIXED #65, #67
             -- SELECT * INTO buffer3 FROM public.pg_get_tabledef(quote_ident(source_schema), tblname);
-
+           
             -- FIX: #121 Use pg_get_tabledef instead
             -- SELECT * INTO buffer3 FROM public.get_table_ddl(quote_ident(source_schema), tblname, False);
             SELECT * INTO buffer3 FROM public.pg_get_tabledef(quote_ident(source_schema), tblname, bDebug, 'FKEYS_NONE');                      
@@ -2105,14 +2105,14 @@ BEGIN
     ELSIF relknd = 'p' THEN
       -- define parent table and assume child tables have already been created based on top level sort order.
       -- Issue #103 Put the complex query into its own function, get_table_ddl_complex()
-
+      
       -- FIX: #121 Use pg_get_tabledef instead
       -- SELECT * INTO qry FROM public.get_table_ddl_complex(source_schema, dest_schema, tblname, sq_server_version_num);
       SELECT * INTO qry FROM public.pg_get_tabledef(quote_ident(source_schema), tblname, bDebug, 'FKEYS_NONE');                      
       qry := REPLACE(qry, quote_ident(source_schema) || '.', quote_ident(dest_schema) || '.');
-
+      
       IF bDebug THEN RAISE NOTICE 'DEBUG: tabledef04 - %', buffer; END IF;
-
+      
       IF bDDLOnly THEN
         RAISE INFO '%', qry;
         -- issue#95
@@ -2136,7 +2136,7 @@ BEGIN
         lastsql = qry;
         EXECUTE qry;
         lastsql = '';
-
+        
         -- Issue#103
         -- Set search path back to what it was
         spath = 'SET search_path = "' || spath_tmp || '"';
@@ -2144,7 +2144,7 @@ BEGIN
         EXECUTE spath;
         SELECT setting INTO v_dummy FROM pg_settings WHERE name = 'search_path';   
         IF bDebug THEN RAISE NOTICE 'DEBUG: search_path changed back to %', v_dummy; END IF;
-
+        
         -- issue#91 fix
         -- issue#95
         IF NOT bNoOwner THEN
@@ -2152,7 +2152,7 @@ BEGIN
           buffer3 = 'ALTER TABLE IF EXISTS ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || ' OWNER TO ' || tblowner;
           EXECUTE buffer3;
         END IF;
-
+        
       END IF;
       -- loop for child tables and alter them to attach to parent for specific partition method.
       -- Issue#103 fix: only loop for the table we are currently processing, tblname!
@@ -2184,7 +2184,7 @@ BEGIN
         END IF;
       END LOOP;
     END IF;
-
+        
     -- INCLUDING ALL creates new index names, we restore them to the old name.
     -- There should be no conflicts since they live in different schemas
     FOR ix_old_name, ix_new_name IN
@@ -2230,7 +2230,7 @@ BEGIN
 
       -- 2021-03-03  MJV FIX
       buffer := dest_schema || '.' || quote_ident(tblname);
-
+      
       -- Issue#86 fix:
       -- IF data_type = 'USER-DEFINED' THEN
       IF bDebug THEN RAISE NOTICE 'DEBUG: includerecs branch  table=%  data_type=%  isgenerated=%', tblname, data_type, isGenerated; END IF;
@@ -2250,15 +2250,15 @@ BEGIN
               tblarray2 := tblarray2 || buffer2;
               -- Issue #81 reformat COPY command for upload
               -- buffer2:= 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM  ''C:\WINDOWS\TEMP\cloneschema.tmp'' (DELIMITER '','', NULL '''');';
-              buffer2   := 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM  ''C:\WINDOWS\TEMP\cloneschema.tmp'' (DELIMITER '','', NULL ''\n'', FORMAT CSV);';
+              buffer2   := 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM  ''C:\WINDOWS\TEMP\cloneschema.tmp'' (DELIMITER '','', NULL ''\N'', FORMAT CSV);';
               tblarray2 := tblarray2 || buffer2;
           ELSE
               buffer2   := 'COPY ' || quote_ident(source_schema) || '.' || quote_ident(tblname) || ' TO ''/tmp/cloneschema.tmp'' WITH DELIMITER AS '','';';
               tblarray2 := tblarray2 || buffer2;
               -- Issue #81 reformat COPY command for upload
               -- buffer2   := 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM ''/tmp/cloneschema.tmp'' (DELIMITER '','', NULL '''');';
-              -- works--> COPY sample.timestamptbl2  FROM '/tmp/cloneschema.tmp' WITH (DELIMITER ',', NULL '\n', FORMAT CSV) ;
-              buffer2   := 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM ''/tmp/cloneschema.tmp'' (DELIMITER '','', NULL ''\n'', FORMAT CSV);';
+              -- works--> COPY sample.timestamptbl2  FROM '/tmp/cloneschema.tmp' WITH (DELIMITER ',', NULL '\N', FORMAT CSV) ;
+              buffer2   := 'COPY ' || quote_ident(dest_schema) || '.' || quote_ident(tblname) || '  FROM ''/tmp/cloneschema.tmp'' (DELIMITER '','', NULL ''\N'', FORMAT CSV);';
               tblarray2 := tblarray2 || buffer2;
           END IF;
         ELSE
@@ -2309,13 +2309,13 @@ BEGIN
         lastsql = '';
       END IF;
     END LOOP;
-
+    
     EXECUTE 'SET search_path = ' || quote_ident(source_schema) ;
     IF bDebug THEN RAISE NOTICE 'DEBUG: search_path changed back to source schema:%', quote_ident(source_schema); END IF;
   END LOOP;      
   END IF;
   -- end of 90600 branch
-
+  
   RAISE NOTICE '      TABLES cloned: %', LPAD(cnt::text, 5, ' ');
 
   SELECT setting INTO v_dummy FROM pg_settings WHERE name = 'search_path';
@@ -2446,7 +2446,7 @@ BEGIN
         cnt := cnt + 1;
         SELECT pg_get_functiondef(func_oid)
         INTO qry;
-
+  
         SELECT replace(qry, quote_ident(source_schema) || '.', quote_ident(dest_schema) || '.') INTO dest_qry;
         IF bDDLOnly THEN
           RAISE INFO '%;', dest_qry;
@@ -2500,7 +2500,7 @@ BEGIN
         END IF;
       END LOOP;
     END IF;
-
+  
     -- Create aggregate functions.
     -- Fixed Issue#65
     -- FOR func_oid IN SELECT oid FROM pg_proc WHERE pronamespace = src_oid AND prokind = 'a'
@@ -2542,7 +2542,7 @@ BEGIN
         JOIN pg_aggregate a ON a.aggfnoid = p.oid
         LEFT JOIN pg_operator op ON op.oid = a.aggsortop
         WHERE p.oid = func_oid;
-
+  
         IF bDDLOnly THEN
           RAISE INFO '%;', dest_qry;
         ELSE
@@ -2550,10 +2550,10 @@ BEGIN
           EXECUTE dest_qry;
           lastsql = '';
         END IF;
-
+  
       END LOOP;
       RAISE NOTICE '   FUNCTIONS cloned: %', LPAD(cnt::text, 5, ' ');
-
+  
     ELSE
       FOR func_oid IN SELECT oid FROM pg_proc WHERE pronamespace = src_oid AND proisagg
       LOOP
@@ -2589,7 +2589,7 @@ BEGIN
         JOIN pg_aggregate a ON a.aggfnoid = p.oid
         LEFT JOIN pg_operator op ON op.oid = a.aggsortop
         WHERE p.oid = func_oid;
-
+  
         IF bDDLOnly THEN
           RAISE INFO '%;', dest_qry;
         ELSE
@@ -2597,11 +2597,11 @@ BEGIN
           EXECUTE dest_qry;
           lastsql = '';
         END IF;
-
+  
       END LOOP;
       RAISE NOTICE '   FUNCTIONS cloned: %', LPAD(cnt::text, 5, ' ');
     END IF;
-
+  
   -- Create views
   action := 'Views';
   IF bDebug THEN RAISE NOTICE 'Section=%',action; END IF;
@@ -2730,7 +2730,7 @@ BEGIN
         -- EXECUTE 'CREATE MATERIALIZED VIEW ' || buffer || ' AS ' || buffer2 || ' WITH DATA;' ;
         buffer3 = 'CREATE MATERIALIZED VIEW ' || buffer || ' AS ' || buffer2 || ' WITH DATA;';
         mvarray := mvarray || buffer3;
-
+        
         -- issue#95 
         IF NOT bNoOwner THEN      
           -- buffer3 = 'ALTER MATERIALIZED VIEW ' || buffer || ' OWNER TO ' || view_owner || ';' ;
@@ -2773,7 +2773,7 @@ BEGIN
           ELSE
             EXECUTE 'COMMENT ON MATERIALIZED VIEW ' || quote_ident(dest_schema) || '.' || object || ' IS ''' || adef || ''';';
           END IF;
-
+          
         END IF;
       END IF;
 
@@ -2798,8 +2798,8 @@ BEGIN
   RAISE NOTICE '   MAT VIEWS cloned: %', LPAD(cnt::text, 5, ' ');
 
   -- Issue 90 Move create functions to before views
-
-
+  
+  
   -- Issue#111: forces us to defer triggers til after we populate the tables, just like we did with FKeys (Issue#78).
   -- MV: Create Triggers
   SELECT set_config('search_path', '', false) into v_dummy;
@@ -2856,7 +2856,7 @@ BEGIN
         EXECUTE arec.definition;
         lastsql = '';
       END IF;
-
+    
       -- Issue#76: Enable row security if indicated
       SELECT c.relrowsecurity INTO abool FROM pg_class c, pg_namespace n where n.nspname = quote_ident(arec.schemaname) AND n.oid = c.relnamespace AND c.relname = quote_ident(arec.tablename) and c.relkind = 'r';
       IF abool THEN
@@ -2893,7 +2893,7 @@ BEGIN
         EXECUTE arec.definition;
         lastsql = '';
       END IF;
-
+    
       -- Issue#76: Enable row security if indicated
       SELECT c.relrowsecurity INTO abool FROM pg_class c, pg_namespace n where n.nspname = quote_ident(arec.schemaname) AND n.oid = c.relnamespace AND c.relname = quote_ident(arec.tablename) and c.relkind = 'r';
       IF abool THEN
@@ -2934,17 +2934,17 @@ BEGIN
     ORDER BY ddl
   LOOP
     cnt := cnt + 1;
-
+    
     -- BAD : "COMMENT ON SEQUENCE sample_clone2.CaseSensitive_ID_seq IS 'just a comment on CaseSensitive sequence';"
     -- GOOD: "COMMENT ON SEQUENCE "CaseSensitive_ID_seq" IS 'just a comment on CaseSensitive sequence';"
-
+    
     -- Issue#98 For MVs we create comments when we create the MVs
     IF substring(qry,1,28) = 'COMMENT ON MATERIALIZED VIEW' THEN
       IF bDebug THEN RAISE NOTICE 'DEBUG: deferring comments on MVs'; END IF;
       cnt = cnt - 1;
       continue;
     END IF;
-
+    
     IF bDDLOnly THEN
       RAISE INFO '%', qry;
     ELSE
@@ -3125,7 +3125,7 @@ BEGIN
             IF arec.atype = 'function' THEN
               -- Just having execute is enough to grant all apparently.
               buffer := 'ALTER DEFAULT PRIVILEGES FOR ROLE ' || grantor || ' IN SCHEMA ' || quote_ident(dest_schema) || ' GRANT ALL ON FUNCTIONS TO "' || grantee || '";';
-
+            
               -- Issue#92 Fix
               -- set role = cm_stage_ro_grp;
               -- ALTER DEFAULT PRIVILEGES FOR ROLE cm_stage_ro_grp IN SCHEMA cm_stage GRANT REFERENCES, TRIGGER ON TABLES TO cm_stage_ro_grp;
@@ -3133,7 +3133,7 @@ BEGIN
                   -- append set role to statement
                   buffer = 'SET ROLE = ' || grantor || '; ' || buffer;
               END IF;
-
+            
               IF bDDLOnly THEN
                 RAISE INFO '%', buffer;
               ELSE
@@ -3143,12 +3143,12 @@ BEGIN
               END IF;
               -- Issue#92 Fix:
               EXECUTE 'SET ROLE = ' || calleruser;
-
+            
             ELSIF arec.atype = 'sequence' THEN
               IF POSITION('r' IN privs) > 0 AND POSITION('w' IN privs) > 0 AND POSITION('U' IN privs) > 0 THEN
                 -- arU is enough for all privs
                 buffer := 'ALTER DEFAULT PRIVILEGES FOR ROLE ' || grantor || ' IN SCHEMA ' || quote_ident(dest_schema) || ' GRANT ALL ON SEQUENCES TO "' || grantee || '";';
-
+              
                 -- Issue#92 Fix
                 IF grantor = grantee THEN
                     -- append set role to statement
@@ -3192,7 +3192,7 @@ BEGIN
                     -- append set role to statement
                     buffer = 'SET ROLE = ' || grantor || '; ' || buffer;
                 END IF;
-
+              
                 IF bDDLOnly THEN
                   RAISE INFO '%', buffer;
                 ELSE
@@ -3247,13 +3247,13 @@ BEGIN
                 END IF;
               END IF;
               buffer := 'ALTER DEFAULT PRIVILEGES FOR ROLE ' || grantor || ' IN SCHEMA ' || quote_ident(dest_schema) || ' GRANT ' || buffer2 || ' ON TABLES TO "' || grantee || '";';
-
+            
               -- Issue#92 Fix
               IF grantor = grantee THEN
                   -- append set role to statement
                   buffer = 'SET ROLE = ' || grantor || '; ' || buffer;
               END IF;
-
+            
               IF bDDLOnly THEN
                 RAISE INFO '%', buffer;
               ELSE
@@ -3269,13 +3269,13 @@ BEGIN
               IF POSITION('r' IN privs) > 0 AND POSITION('w' IN privs) > 0 AND POSITION('U' IN privs) > 0 THEN
                 -- arU is enough for all privs
                 buffer := 'ALTER DEFAULT PRIVILEGES FOR ROLE ' || grantor || ' IN SCHEMA ' || quote_ident(dest_schema) || ' GRANT ALL ON TYPES TO "' || grantee || '";';
-
+                
                 -- Issue#92 Fix
                 IF grantor = grantee THEN
                     -- append set role to statement
                     buffer = 'SET ROLE = ' || grantor || '; ' || buffer;
                 END IF;
-
+              
                 IF bDDLOnly THEN
                   RAISE INFO '%', buffer;
                 ELSE
@@ -3285,16 +3285,16 @@ BEGIN
                 END IF;
                 -- Issue#92 Fix:
                 EXECUTE 'SET ROLE = ' || calleruser;
-
+              
               ELSIF POSITION('U' IN privs) THEN
                 buffer := 'ALTER DEFAULT PRIVILEGES FOR ROLE ' || grantor || ' IN SCHEMA ' || quote_ident(dest_schema) || ' GRANT USAGE ON TYPES TO "' || grantee || '";';
-
+              
                 -- Issue#92 Fix
                 IF grantor = grantee THEN
                     -- append set role to statement
                     buffer = 'SET ROLE = ' || grantor || '; ' || buffer;
                 END IF;
-
+              
                 IF bDDLOnly THEN
                   RAISE INFO '%', buffer;
                 ELSE
@@ -3304,7 +3304,7 @@ BEGIN
                 END IF;
                 -- Issue#92 Fix:
                 EXECUTE 'SET ROLE = ' || calleruser;
-
+              
               ELSE
                 RAISE WARNING 'Unhandled TYPE Privs:: type=%  privs=%  owner=%   defaclacl=%  defaclstr=%  grantor=%  grantee=% ', arec.atype, privs, arec.owner, arec.defaclacl, arec.defaclstr, grantor, grantee;
             END IF;
@@ -3314,7 +3314,7 @@ BEGIN
         END LOOP;
       END;
     END LOOP;
-
+  
     RAISE NOTICE '  DFLT PRIVS cloned: %', LPAD(cnt::text, 5, ' ');    
   END IF; -- NO ACL BRANCH
 
@@ -3346,7 +3346,7 @@ BEGIN
           EXECUTE arec.schema_ddl;
           lastsql = '';
         END IF;
-
+  
       END;
     END LOOP;
     RAISE NOTICE 'SCHEMA PRIVS cloned: %', LPAD(cnt::text, 5, ' ');
@@ -3503,7 +3503,7 @@ BEGIN
        IF bVerbose THEN RAISE NOTICE 'Populated cloned table, %   Rows Copied: %    seconds: %', buffer, LPAD(cnt::text, 10, ' '), LPAD(cnt2::text, 5, ' '); END IF;
        tblscopied := tblscopied + 1;
     END LOOP;
-
+    
     -- Issue#79 implementation
     -- Do same for tables with user-defined elements using copy to file method
     FOREACH tblelement IN ARRAY tblarray2
@@ -3514,7 +3514,7 @@ BEGIN
        EXECUTE tblelement;       
        lastsql = '';
        GET DIAGNOSTICS cnt = ROW_COUNT;  
-
+       
        -- STATEMENT LOOKS LIKE THIS:
        -- INSERT INTO sample11.warehouses SELECT * FROM sample.warehouses;
        -- INSERT INTO sample11.person OVERRIDING SYSTEM VALUE SELECT * FROM sample.person;  
@@ -3549,14 +3549,14 @@ BEGIN
            RAISE EXCEPTION 'Programming Error for parsing tblarray2.';
        END IF;
        -- RAISE NOTICE 'buffer2=%', buffer;
-
+       
        SELECT RPAD(buffer, 35, ' ') INTO buffer;
        -- RAISE NOTICE 'buffer3=%', buffer;
        cnt2 := cast(extract(epoch from (clock_timestamp() - s)) as numeric(18,3));
        IF bVerbose THEN RAISE NOTICE 'Populated cloned table, %   Rows Copied: %    seconds: %', buffer, LPAD(cnt::text, 10, ' '), LPAD(cnt2::text, 5, ' '); END IF;
        tblscopied := tblscopied + 1;
     END LOOP;    
-
+    
     -- Issue#101 
     -- Do same for tables with user-defined elements using direct method with text cast
     FOREACH tblelement IN ARRAY tblarray3
@@ -3584,7 +3584,7 @@ BEGIN
        IF bVerbose THEN RAISE NOTICE 'Populated cloned table, %   Rows Copied: %    seconds: %', buffer, LPAD(cnt::text, 10, ' '), LPAD(cnt2::text, 5, ' '); END IF;
        tblscopied := tblscopied + 1;
     END LOOP;    
-
+    
     -- Issue#98 MVs deferred until now
     FOREACH tblelement IN ARRAY mvarray
     LOOP 
@@ -3604,7 +3604,7 @@ BEGIN
          mvscopied := mvscopied + 1;
        END IF;
     END LOOP;    
-
+    
     cnt := cast(extract(epoch from (clock_timestamp() - r)) as numeric(18,3));
     IF bVerbose THEN RAISE NOTICE 'Copy rows duration: % seconds',cnt; END IF;  
   END IF;
@@ -3622,7 +3622,7 @@ BEGIN
          EXECUTE tblelement;       
      END IF;
   END LOOP;    
-
+  
   -- Issue#78 forces us to defer FKeys until the end since we previously did row copies before FKeys
   --  add FK constraint
   action := 'FK Constraints';
@@ -3768,7 +3768,7 @@ class CloneSchema:
         cursor.execute(ALTER_FUNCTION_CLONE_SCHEMA.format(db_user=db_user))
         cursor.close()
 
-    def clone_schema(self, base_schema_name, new_schema_name, set_connection=True, with_data=False):
+    def clone_schema(self, base_schema_name, new_schema_name, set_connection=True):
         """
         Creates a new schema `new_schema_name` as a clone of an existing schema
         `old_schema_name`.
@@ -3787,6 +3787,6 @@ class CloneSchema:
         if schema_exists(new_schema_name):
             raise ValidationError("New schema name already exists")
 
-        sql = f'SELECT clone_schema({base_schema_name}, {new_schema_name} {"DATA" if with_data else "NODATA"})'
+        sql = f"select clone_schema('{base_schema_name}', '{new_schema_name}', 'DATA');"
         cursor.execute(sql)
         cursor.close()

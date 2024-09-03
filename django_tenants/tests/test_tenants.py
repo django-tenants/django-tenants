@@ -42,7 +42,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
                                 'customers')
         settings.TENANT_APPS = ('dts_test_app',
                                 'django.contrib.contenttypes',
-                                'django.contrib.auth', )
+                                'django.contrib.auth',)
         settings.INSTALLED_APPS = settings.SHARED_APPS + settings.TENANT_APPS
         cls.sync_shared()
 
@@ -333,8 +333,8 @@ class BaseSyncTest(BaseTestCase):
     SHARED_APPS = ('django_tenants',  # 2 tables
                    'customers',
                    'django.contrib.auth',  # 6 tables
-                   'django.contrib.contenttypes', )  # 1 table
-    TENANT_APPS = ('django.contrib.sessions', )
+                   'django.contrib.contenttypes',)  # 1 table
+    TENANT_APPS = ('django.contrib.sessions',)
 
     @classmethod
     def setUpClass(cls):
@@ -354,7 +354,7 @@ class BaseSyncTest(BaseTestCase):
         connection.set_schema_to_public()
         with connection.cursor() as cursor:
             cursor.execute('DROP SCHEMA %s CASCADE; CREATE SCHEMA %s;'
-                           % (get_public_schema_name(), get_public_schema_name(), ))
+                           % (get_public_schema_name(), get_public_schema_name(),))
 
         self.sync_shared()
 
@@ -394,8 +394,8 @@ class TestSyncTenantsWithAuth(BaseSyncTest):
                    'customers',
                    'django.contrib.auth',  # 6 tables
                    'django.contrib.contenttypes',  # 1 table
-                   'django.contrib.sessions', )  # 1 table
-    TENANT_APPS = ('django.contrib.sessions', )  # 1 table
+                   'django.contrib.sessions',)  # 1 table
+    TENANT_APPS = ('django.contrib.sessions',)  # 1 table
 
     def _pre_setup(self):
         self.sync_shared()
@@ -423,8 +423,8 @@ class TestSyncTenantsWithAuth(BaseSyncTest):
 class TestSyncTenantsNoAuth(BaseSyncTest):
     SHARED_APPS = ('django_tenants',  # 2 tables
                    'customers',
-                   'django.contrib.contenttypes', )  # 1 table
-    TENANT_APPS = ('django.contrib.sessions', )  # 1 table
+                   'django.contrib.contenttypes',)  # 1 table
+    TENANT_APPS = ('django.contrib.sessions',)  # 1 table
 
     def test_content_types_is_not_mandatory(self):
         """
@@ -451,8 +451,8 @@ class SharedAuthTest(BaseTestCase):
         settings.SHARED_APPS = ('django_tenants',
                                 'customers',
                                 'django.contrib.auth',
-                                'django.contrib.contenttypes', )
-        settings.TENANT_APPS = ('dts_test_app', )
+                                'django.contrib.contenttypes',)
+        settings.TENANT_APPS = ('dts_test_app',)
         settings.INSTALLED_APPS = settings.SHARED_APPS + settings.TENANT_APPS
         self.sync_shared()
         self.public_tenant = get_tenant_model()(schema_name=get_public_schema_name())
@@ -572,6 +572,7 @@ class TenantManagerMethodsTestCaseTest(BaseTestCase):
     """
     Tests manager's delete method.
     """
+
     def test_manager_method_deletes_schema(self):
         Client = get_tenant_model()
         Client.auto_drop_schema = True
@@ -645,19 +646,27 @@ class CloneSchemaTest(BaseTestCase):
         with tenant_context(tenant):
             self.assertFalse(DummyModel.objects.filter(name='Administrator').exists())
             self.assertFalse(DummyModel.objects.filter(name='Tester').exists())
-            DummyModel(name='Administrator').save()
-            DummyModel(name='Tester').save()
+            obj_1 = DummyModel.objects.create(name='Administrator')
+            obj_2 = DummyModel.objects.create(name='Tester')
+            obj_3 = DummyModel.objects.create(name='Moderator')
+            obj_4 = DummyModel.objects.create(name='Superuser')
+            self.assertEqual(obj_1.id, 1)
+            self.assertEqual(obj_2.id, 2)
+            self.assertEqual(obj_3.id, 3)
+            self.assertEqual(obj_4.id, 4)
+            DummyModel.objects.filter(id__in=[1, 3, 4]).delete()
 
         clone_schema = CloneSchema()
         clone_schema.clone_schema(base_schema_name='s1', new_schema_name='d1')
         self.assertTrue(schema_exists('destination'))
-
         # add some records to the destination schema
         with schema_context('d1'):
-            self.assertTrue(DummyModel.objects.filter(name='Administrator').exists())
             self.assertTrue(DummyModel.objects.filter(name='Tester').exists())
-
-            DummyModel(name='Moderator').save()
+            obj_5 = DummyModel.objects.create(name='New Administrator')
+            obj_6 = DummyModel.objects.create(name='New Tester')
+            # Check sequence
+            self.assertEqual(obj_5.id, 5)
+            self.assertEqual(obj_6.id, 6)
 
 
 class SchemaMigratedSignalTest(BaseTestCase):
