@@ -3763,9 +3763,9 @@ class CloneSchema:
         """
         cursor = connection.cursor()
 
-        db_user = settings.DATABASES["default"].get("USER", None) or "postgres"
-        cursor.execute(CLONE_SCHEMA_FUNCTION_SQL)
-        cursor.execute(ALTER_FUNCTION_CLONE_SCHEMA.format(db_user=db_user))
+        #db_user = settings.DATABASES["default"].get("USER", None) or "postgres"
+        # cursor.execute(CLONE_SCHEMA_FUNCTION_SQL)
+        # cursor.execute(ALTER_FUNCTION_CLONE_SCHEMA.format(db_user=db_user))
         cursor.close()
 
     def clone_schema(self, base_schema_name, new_schema_name, set_connection=True):
