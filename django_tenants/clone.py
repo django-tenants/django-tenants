@@ -3773,8 +3773,8 @@ class CloneSchema:
         Creates a new schema `new_schema_name` as a clone of an existing schema
         `old_schema_name`.
         """
-        if set_connection:
-            connection.set_schema_to_public()
+        # if set_connection:
+        connection.set_schema_to_public()
         cursor = connection.cursor()
 
         # check if the clone_schema function already exists in the db
