@@ -320,7 +320,7 @@ BEGIN
       EXECUTE 'INSERT INTO ' || buffer || ' SELECT * FROM ' || quote_ident(source_schema) || '.' || quote_ident(object) || ';';
 
       -- restart the counter for PK's internal identity sequence
-      EXECUTE 'SELECT MAX(id) FROM ' || quote_ident(dest_schema) || '.' || quote_ident(object) || ';' INTO records_count;
+      EXECUTE 'SELECT count(*) FROM ' || quote_ident(dest_schema) || '.' || quote_ident(object) || ';' INTO records_count;
       FOR column_ IN
         SELECT column_name::text
             FROM information_schema.columns
