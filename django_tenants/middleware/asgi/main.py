@@ -5,20 +5,15 @@ from django.core.exceptions import DisallowedHost
 from django_tenants.utils import get_tenant_domain_model
 from asgiref.sync import sync_to_async
 from django.http import HttpResponse
-from django.core.exceptions import ImproperlyConfigured
-from django.urls import set_urlconf, clear_url_caches
-from django_tenants.urlresolvers import get_subfolder_urlconf
+from django.urls import set_urlconf
 from django_tenants.utils import (
     remove_www, get_public_schema_name,
     get_tenant_types,
     has_multi_type_tenants,
     get_tenant_domain_model,
     get_public_schema_urlconf,
-    get_subfolder_prefix,
-    get_tenant_model,
 
 )
-from django.http import Http404, HttpResponseNotFound
 from django.core.handlers.asgi import ASGIRequest
 from middleware.asgi import CoreMiddleware
 
@@ -31,7 +26,7 @@ class ASGITenantMainMiddleware(CoreMiddleware):
      This middleware selects the proper database schema using the request host. Can fail in
      various ways which is better than corrupting or revealing data.
 
-     This middleware must wrapped the http value (get_asgi_application()) of the `ProtocolTypeRouter`
+     ASGITenantMainMiddleware must wrapped the http value (get_asgi_application()) of the `ProtocolTypeRouter`
      class which is the entry point of asgi application instance. This ensures that the middleware
      is being called first in the Django request-response cycle made by the user.
 
