@@ -7,7 +7,7 @@ class ASGISuspiciousTenantMiddleware(ASGITenantMainMiddleware):
     """
     Middleware that handles suspicious multi-tenancy for ASGI applications.
 
-    Extend the TenantMiddleware in scenario where you need to configure
+    Extend the ASGITenantMiddleware in scenario where you need to configure
     ``ALLOWED_HOSTS`` to allow ANY domain_url to be used because your tenants
     can bring any custom domain with them, as opposed to all tenants being a
     subdomain of a common base.
