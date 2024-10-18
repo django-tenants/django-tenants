@@ -15,7 +15,7 @@ from django_tenants.utils import (
 
 )
 from django.http import Http404, HttpResponseNotFound
-from middleware.asgi.main import ASGITenantMainMiddleware
+from django_tenants.middleware.asgi.main import ASGITenantMainMiddleware
 
 
 class ASGITenantSubfolderMiddleware(ASGITenantMainMiddleware):

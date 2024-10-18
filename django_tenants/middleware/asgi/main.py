@@ -15,7 +15,7 @@ from django_tenants.utils import (
 
 )
 from django.core.handlers.asgi import ASGIRequest
-from middleware.asgi import CoreMiddleware
+from django_tenants.middleware.asgi import CoreMiddleware
 
 
 class ASGITenantMainMiddleware(CoreMiddleware):
