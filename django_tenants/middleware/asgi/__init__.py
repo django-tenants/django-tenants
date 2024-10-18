@@ -13,7 +13,7 @@ class ProtocolTypeRouter:
     PS: If you have channels in your installed app you can simply call it from
     here, it is all your choice.
 
-    #### How to set it up on your asgi.py 
+    #### How to set it up on your `asgi.py` 
         
         ```
         application = ProtocolTypeRouter(
