@@ -134,25 +134,25 @@ Evidences: (the images can be deleted, it is just to show you that it is working
 
 Attach Evidence: Added screenshots or pictures here to demonstrate the middleware in action.
 
-.. image:: django_tenants/middleware/asgi/images/asgi-served-tenant-domain.png :alt: Screenshot of ASGIMainTenantMiddleware working for a tenant routing.
+.. image:: images/asgi-served-tenant-domain.png :alt: Screenshot of ASGIMainTenantMiddleware working for a tenant routing.
 
-.. image:: django_tenants/middleware/asgi/images/domain-url.png :alt: Screenshot of ASGIMainTenantMiddleware working for a tenant routing. 
+.. image:: images/domain-url.png :alt: Screenshot of ASGIMainTenantMiddleware working for a tenant routing. 
 
-.. image:: django_tenants/middleware/asgi/images/subfolder-asgi-url.png :alt: Screenshot of ASGISubfolderTenantMiddleware working
+.. image:: images/subfolder-asgi-url.png :alt: Screenshot of ASGISubfolderTenantMiddleware working
 
-.. image:: django_tenants/middleware/asgi/images/domain-url.png :alt: Screenshot of ASGISuspiciousTenantMiddleware working
+.. image:: images/domain-url.png :alt: Screenshot of ASGISuspiciousTenantMiddleware working
 
 
 Attach Evidence: Shown the tests cases for ASGI middleware working  
 
-.. image:: django_tenants/middleware/asgi/images/test-cases-for-the-asgi-middlewares.png  :alt: Screenshot of ASGISubfolderTenantMiddleware and ASGIMainTenantMiddleware working 
+.. image:: images/test-cases-for-the-asgi-middlewares.png  :alt: Screenshot of ASGISubfolderTenantMiddleware and ASGIMainTenantMiddleware working 
 
 
 Attached Evidence: Shown evidence of the Development server and my asgi.py screenshot
 
-.. image:: django_tenants/middleware/asgi/images/django-dev-server.png :alt: Screenshot of Django Development server working with Daphne server. However, on the development you may decide to use only Django server
+.. image:: images/django-dev-server.png :alt: Screenshot of Django Development server working with Daphne server. However, on the development you may decide to use only Django server
 
-.. image:: django_tenants/middleware/asgi/images/my-setup-of-asgi.png  :alt: Screenshot of my asgi project setup working. Other protocol key-value pairs are not necessary. 
+.. image:: images/my-setup-of-asgi.png  :alt: Screenshot of my asgi project setup working. Other protocol key-value pairs are not necessary. 
 
 
 Deployment
