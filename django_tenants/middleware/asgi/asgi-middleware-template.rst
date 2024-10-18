@@ -129,30 +129,32 @@ ASGI_APPLICATION = "your_project.asgi.application"
 
 
 
-Evidences: (the images can be deleted, it is just to show you that it is working, same with the tests)
+Evidences: 
 -----------
+- The images on the IMAGES folder can be deleted, it is just to show you that it is working, same with the tests
 
 Attach Evidence: Added screenshots or pictures here to demonstrate the middleware in action.
 
-.. image:: images/asgi-served-tenant-domain.png :alt: Screenshot of ASGIMainTenantMiddleware working for a tenant routing.
+.. image:: asgi/images/asgi-served-tenant-domain.png :alt: Screenshot of ASGIMainTenantMiddleware working for a tenant routing.
 
-.. image:: images/domain-url.png :alt: Screenshot of ASGIMainTenantMiddleware working for a tenant routing. 
+.. image:: asgi/images/domain-url.png :alt: Screenshot of ASGIMainTenantMiddleware working for a tenant routing. 
 
-.. image:: images/subfolder-asgi-url.png :alt: Screenshot of ASGISubfolderTenantMiddleware working
+.. image:: asgi/images/subfolder-asgi-url.png :alt: Screenshot of ASGISubfolderTenantMiddleware working
 
-.. image:: images/domain-url.png :alt: Screenshot of ASGISuspiciousTenantMiddleware working
+.. image:: asgi/images/domain-url.png :alt: Screenshot of ASGISuspiciousTenantMiddleware working
+
 
 
 Attach Evidence: Shown the tests cases for ASGI middleware working  
 
-.. image:: images/test-cases-for-the-asgi-middlewares.png  :alt: Screenshot of ASGISubfolderTenantMiddleware and ASGIMainTenantMiddleware working 
+.. image:: asgi/images/test-cases-for-the-asgi-middlewares.png  :alt: Screenshot of ASGISubfolderTenantMiddleware and ASGIMainTenantMiddleware working 
 
 
 Attached Evidence: Shown evidence of the Development server and my asgi.py screenshot
 
-.. image:: images/django-dev-server.png :alt: Screenshot of Django Development server working with Daphne server. However, on the development you may decide to use only Django server
+.. image:: asgi/images/django-dev-server.png :alt: Screenshot of Django Development server working with Daphne server. However, on the development you may decide to use only Django server
 
-.. image:: images/my-setup-of-asgi.png  :alt: Screenshot of my asgi project setup working. Other protocol key-value pairs are not necessary. 
+.. image:: asgi/images/my-setup-of-asgi.png  :alt: Screenshot of my asgi project setup working. Other protocol key-value pairs are not necessary. 
 
 
 Deployment
