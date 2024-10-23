@@ -177,7 +177,7 @@ class InteractiveDomainOption(InteractiveTenantOption):
     def add_arguments(self, parser):
         super().add_arguments(parser)
         # Add the domain-domain argument with a similar help message to the create_tenant argument
-        parser.add_argument("-d", "--domain_domain", dest="domain_domain", help="Specifies the domain for the tenant.")
+        parser.add_argument("-d", "--domain-domain", dest="domain_domain", help="Specifies the domain for the tenant.")
 
     def get_domain_from_options_or_interactive(self, tenant, **options):
         """
