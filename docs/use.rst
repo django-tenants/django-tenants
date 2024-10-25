@@ -472,6 +472,28 @@ If it find a schema that doesn't exist it will create it.
 
     ./manage.py create_missing_schemas
 
+create_domain
+~~~~~~~~~~~~~
+
+The command ``create_domain`` adds a domain to an existing tenant.
+
+.. code-block:: bash
+
+    ./manage.py create_domain     
+    ./manage.py create_domain --schema_name=tenant1 --domain-domain=tenant1.my-domain.com
+    ./manage.py create_domain -s=tenant1 -d=tenant1.my-domain.com --is_primary=True --no-input
+
+delete_domain
+~~~~~~~~~~~~~
+
+The command ``delete_domain`` deletes a domain on a tenant.
+
+.. code-block:: bash
+
+    ./manage.py delete_domain     
+    ./manage.py delete_domain --schema_name=tenant1 --domain-domain=tenant1.my-domain.com
+    ./manage.py delete_domain -s=tenant1 -d=tenant1.my-domain.com
+
 PostGIS
 -------
 

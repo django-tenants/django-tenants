@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
 
-from django_tenants.utils import get_tenant_model, get_public_schema_name
+from django_tenants.utils import get_tenant_model, get_public_schema_name, get_tenant_domain_model
 
 
 class BaseTenantCommand(BaseCommand):
@@ -78,7 +78,7 @@ class InteractiveTenantOption:
         super().__init__(*args, **kwargs)
 
     def add_arguments(self, parser):
-        parser.add_argument("-s", "--schema", dest="schema_name", help="specify tenant schema")
+        parser.add_argument("-s", "--schema", '--schema_name', dest="schema_name", help="specify tenant schema")
 
     def get_tenant_from_options_or_interactive(self, **options):
         TenantModel = get_tenant_model()
@@ -168,3 +168,62 @@ class SyncCommon(BaseCommand):
 
     def _notice(self, output):
         self.stdout.write(self.style.NOTICE(output))
+
+
+class InteractiveDomainOption(InteractiveTenantOption):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def add_arguments(self, parser):
+        super().add_arguments(parser)
+        # Add the domain-domain argument with a similar help message to the create_tenant argument
+        parser.add_argument("-d", "--domain-domain", dest="domain_domain", help="Specifies the domain for the tenant.")
+
+    def get_domain_from_options_or_interactive(self, tenant, **options):
+        """
+        Get the domain from the options or interactively if not provided in the options.
+        """
+        _DomainModel = get_tenant_domain_model()
+        all_domains = _DomainModel.objects.all()
+
+        if not all_domains:
+            raise CommandError("""There are no domains in the system.""")
+        else:
+            all_domains = all_domains.filter(tenant=tenant).order_by('domain')
+            if not all_domains:
+                raise CommandError("""There are no domains in the system for the tenant '%s'.""" % tenant.schema_name)
+
+        if options.get('domain_domain') and options.get('domain_domain') in [d.domain for d in all_domains]:
+            domain_name = options['domain_domain']
+        elif options.get('domain_domain') is None:
+            while True:
+                # Since domains can be long and unwieldy to type out each time, provide the user a list of the current options
+                print("\nAvailable domains for tenant '%s':" % tenant.schema_name)
+                for index, item in enumerate(all_domains, start=1):
+                    print(f"{index}. {item.domain}")
+                selected_number = input("Select the domain for tenant '%s': " % tenant.schema_name)
+
+                try:
+                    # If it's not a number or outside the expected range we ask again
+                    if not selected_number.isdigit() or int(selected_number) > len(all_domains) or int(selected_number) < 1:
+                        raise ValueError
+                    else:
+                        selected_number = int(selected_number)
+                        if selected_number in range(1, len(all_domains)+1):
+                            domain_name = all_domains[selected_number-1].domain
+                            if domain_name not in [d.domain for d in all_domains]:
+                                raise ValueError
+                            break
+                        else:
+                            raise ValueError
+                except ValueError:
+                    print("Invalid input. Please enter a valid number.")
+                except Exception as e:
+                    print("An error occurred. Please try again. \nError: %s" % e)
+        else:
+            raise CommandError("Invalid domain name, '%s' for tenant '%s'" % (options['domain_domain'], tenant))
+
+        if domain_name not in [d.domain for d in all_domains]:
+            raise CommandError("Invalid domain name, '%s' for tenant '%s'" % (domain_name, tenant))
+
+        return _DomainModel.objects.get(domain=domain_name, tenant=tenant)
