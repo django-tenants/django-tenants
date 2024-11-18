@@ -90,7 +90,7 @@ jobs:
         coverage report -m
 
     - name: Send coverage to CodeCov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       if: env.CODECOV_TOKEN
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
