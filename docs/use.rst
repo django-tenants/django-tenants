@@ -255,6 +255,7 @@ Other settings
 By default if no tenant is found it will raise an error Http404 however you add ```SHOW_PUBLIC_IF_NO_TENANT_FOUND``` to
 the setting it will display the the public tenant. This will not work for subfolders.
 
+```DEFAULT_NOT_FOUND_TENANT_VIEW``` If set, specifies a path to a view (function-based or class-based) that will handle requests when no tenant is found for the current domain.
 
 Admin
 ~~~~~
