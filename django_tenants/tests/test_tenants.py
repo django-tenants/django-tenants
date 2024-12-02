@@ -190,7 +190,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
         DummyModel(name="awesome!").save()
 
         # switch temporarily to tenant2's path
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(3):
             with tenant_context(tenant2):
                 # add some data, 3 DummyModels for tenant2
                 DummyModel(name="Man,").save()
@@ -198,11 +198,11 @@ class TenantDataAndSettingsTest(BaseTestCase):
                 DummyModel(name="is great!").save()
 
         # we should be back to tenant1's path, test what we have
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             self.assertEqual(2, DummyModel.objects.count())
 
         # switch back to tenant2's path
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             with tenant_context(tenant2):
                 self.assertEqual(3, DummyModel.objects.count())
 
@@ -229,8 +229,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
             connection.set_tenant(tenant1)
 
         # switch temporarily to tenant2's path
-        # 1 query to set search path + 3 to save data
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(3):
             with tenant_context(tenant2):
                 DummyModel(name="Man,").save()
                 DummyModel(name="testing").save()
@@ -240,16 +239,14 @@ class TenantDataAndSettingsTest(BaseTestCase):
         with self.assertNumQueries(0):
             connection.set_tenant(tenant1)
 
-        # 1 set search path + 1 count
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             self.assertEqual(0, DummyModel.objects.count())
 
         # 0 queries as search path not set here
         with self.assertNumQueries(0):
             connection.set_tenant(tenant2)
 
-        # 1 set search path + 1 count
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             self.assertEqual(3, DummyModel.objects.count())
 
         self.created = [domain2, domain1, tenant2, tenant1]
