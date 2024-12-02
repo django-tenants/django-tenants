@@ -118,10 +118,11 @@ class schema_context(ContextDecorator):
     # Please do not try and merge this with tenant_context as they are not the same. As pointed out in #501
     def __init__(self, *args, **kwargs):
         self.schema_name = args[0]
+        self.database = kwargs.get("database", get_tenant_database_alias())
         super().__init__()
 
     def __enter__(self):
-        self.connection = connections[get_tenant_database_alias()]
+        self.connection = connections[self.database]
         self.previous_tenant = connection.tenant
         self.connection.set_schema(self.schema_name)
 
@@ -136,10 +137,11 @@ class tenant_context(ContextDecorator):
     # Please do not try and merge this with schema_context as they are not the same. As pointed out in #501
     def __init__(self, *args, **kwargs):
         self.tenant = args[0]
+        self.database = kwargs.get("database", get_tenant_database_alias())
         super().__init__()
 
     def __enter__(self):
-        self.connection = connections[get_tenant_database_alias()]
+        self.connection = connections[self.database]
         self.previous_tenant = connection.tenant
         self.connection.set_tenant(self.tenant)
 
