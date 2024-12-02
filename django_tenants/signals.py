@@ -26,6 +26,15 @@ Sent after migration has finished on a schema
 Argument Required = schema_name
 """
 
+
+schema_pre_migration = Signal()
+schema_pre_migration.__doc__ = """
+Sent before migrations start on a schema
+
+Argument Required = schema_name
+"""
+
+
 schema_migrate_message = Signal()
 schema_migrate_message.__doc__ = """
 Sent when a message is generated in run migration

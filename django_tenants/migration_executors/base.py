@@ -4,7 +4,7 @@ from django.db import transaction
 
 from django.db.migrations.recorder import MigrationRecorder
 
-from django_tenants.signals import schema_migrated, schema_migrate_message
+from django_tenants.signals import schema_migrated, schema_migrate_message, schema_pre_migration
 from django_tenants.utils import (
     get_public_schema_name,
     get_tenant_base_migrate_command_class,
@@ -38,6 +38,8 @@ def run_migrations(args, options, executor_codename, schema_name, tenant_type=''
         )
         schema_migrate_message.send(run_migrations, message=signal_message)
         return message
+
+    schema_pre_migration.send(run_migrations, schema_name=schema_name)
 
     connection = connections[options.get('database', get_tenant_database_alias())]
     connection.set_schema(schema_name, tenant_type=tenant_type, include_public=False)
