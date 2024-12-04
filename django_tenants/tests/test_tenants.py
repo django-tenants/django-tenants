@@ -107,15 +107,17 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
             self.created = [t]
 
-        if executor == 'simple':
+        if executor.codename == 'standard':
             atomically_create_tenant()
 
             self.assertTrue(schema_exists(schema_name))
-        elif executor == 'multiprocessing':
+        elif executor.codename == 'multiprocessing':
             # Unfortunately, it's impossible for the multiprocessing executor
             # to assert atomic transactions when creating a tenant
             with self.assertRaises(transaction.TransactionManagementError):
                 atomically_create_tenant()
+        else:
+            assert False
 
     def test_non_auto_sync_tenant(self):
         """
@@ -701,20 +703,32 @@ class SchemaMigratedSignalTest(BaseTestCase):
         """
         executor = get_executor()
 
+        print("**** DEBUG: existing tenants=", get_tenant_model().objects.all())
+        self.assertFalse(schema_exists('test'))
+
         tenant = get_tenant_model()(schema_name='test')
         with catch_signal(schema_migrated) as handler:
             tenant.save()
 
-        if executor == 'simple':
+        print("*** DEBUG: executor=", executor, executor.codename)
+        print("**** DEBUG: tenants after save=", get_tenant_model().objects.all())
+        self.assertTrue(schema_exists('test'))
+
+        if executor.codename == 'standard':
+            self.assertTrue(handler.called)
+            self.assertEqual(handler.call_count, 1)
+
             handler.assert_called_once_with(
                 schema_name='test',
                 sender=mock.ANY,
                 signal=schema_migrated
             )
-        elif executor == 'multiprocessing':
+        elif executor.codename == 'multiprocessing':
             # migrations run in a different process, therefore signal
             # will get sent in a different process as well
             handler.assert_not_called()
+        else:
+            assert False
 
         domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
         domain.save()
@@ -734,7 +748,7 @@ class SchemaMigratedSignalTest(BaseTestCase):
         with catch_signal(schema_migrated) as handler:
             call_command('migrate_schemas', interactive=False, verbosity=0)
 
-        if executor == 'simple':
+        if executor.codename == 'standard':
             handler.assert_has_calls([
                 mock.call(
                     schema_name=get_public_schema_name(),
@@ -746,13 +760,15 @@ class SchemaMigratedSignalTest(BaseTestCase):
                     sender=mock.ANY,
                     signal=schema_migrated)
             ])
-        elif executor == 'multiprocessing':
+        elif executor.codename == 'multiprocessing':
             # public schema gets migrated in the current process, always
             handler.assert_called_once_with(
                 schema_name=get_public_schema_name(),
                 sender=mock.ANY,
                 signal=schema_migrated,
             )
+        else:
+            assert False
 
 
 class MigrationOrderTestTest(BaseTestCase):
