@@ -133,6 +133,8 @@ There are number of signals
 
 ```schema_migrated``` will get called once migrations finish running for a schema.
 
+```schema_pre_migration``` will get called just before migrations start running for a schema.
+
 ```schema_migrate_message``` will get called after each migration with the message of the migration. This signal is very useful when for process / status bars.
 
 Example
@@ -152,6 +154,12 @@ Example
         client = kwargs['tenant']
 
         # send email to client to as tenant is ready to use
+
+    @receiver(schema_pre_migration, sender=run_migrations)
+    def handle_schema_pre_migration(sender, **kwargs):
+        schema_name = kwargs['schema_name']
+
+        # write some logs
 
     @receiver(schema_migrated, sender=run_migrations)
     def handle_schema_migrated(sender, **kwargs):
