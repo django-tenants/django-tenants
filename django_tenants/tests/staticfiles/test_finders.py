@@ -52,14 +52,14 @@ class TenantFileSystemFinderTestCase(TenantTestCase):
             self.finder._locations,
             "Lazy loading of locations failed!",
         )
-        self.assertTrue(locations[0][1].endswith("tenants/test/static"))
+        self.assertTrue(locations[0][1].endswith(f"tenants/{self.tenant.schema_name}/static"))
 
     def test_location_getter_after_connection_change(self):
         locations = self.finder.locations
 
         self.assertTrue(len(self.finder._locations) == 1)
-        self.assertIn("test", self.finder._locations)
-        self.assertTrue(locations[0][1].endswith("tenants/test/static"))
+        self.assertIn(self.tenant.schema_name, self.finder._locations)
+        self.assertTrue(locations[0][1].endswith(f"tenants/{self.tenant.schema_name}/static"))
 
         connection.schema_name = "other"
         locations = self.finder.locations

@@ -18,13 +18,13 @@ class SubfolderTenantTestCase(SubfolderTenantTestCase):
 
     def test_tenant_routing(self):
         """
-        Request path should not be altered.
+        Remove tenant specific part from request if subfolder middleware is used.
         """
-        request_url = '/clients/tenant.test.com/any/request/'
-        request = self.factory.get('/clients/tenant.test.com/any/request/')
+        request_url = '/clients/tenant/any/request/'
+        request = self.factory.get(request_url)
         self.tsf.process_request(request)
 
-        self.assertEqual(request.path_info, request_url)
+        self.assertEqual(request.path_info, "/any/request/")
 
         # request.tenant should also have been set
         self.assertEqual(request.tenant, self.tenant)
