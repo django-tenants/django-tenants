@@ -8,7 +8,7 @@ from django.db import connection, transaction
 from django.test.utils import override_settings
 
 from django_tenants.clone import CloneSchema
-from django_tenants.signals import schema_migrated, schema_migrate_message
+from django_tenants.signals import schema_migrated, schema_migrate_message, schema_pre_migration
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 
 from django_tenants.migration_executors import get_executor
@@ -682,10 +682,15 @@ class SchemaMigratedSignalTest(BaseTestCase):
         Public schema always gets migrated in the current process,
         even with executor multiprocessing.
         """
-        with catch_signal(schema_migrated) as handler:
+        with catch_signal(schema_migrated) as handler_post, catch_signal(schema_pre_migration) as handler_pre:
             self.sync_shared()
 
-        handler.assert_called_once_with(
+        handler_pre.assert_called_once_with(
+            schema_name=get_public_schema_name(),
+            sender=mock.ANY,
+            signal=schema_pre_migration,
+        )
+        handler_post.assert_called_once_with(
             schema_name=get_public_schema_name(),
             sender=mock.ANY,
             signal=schema_migrated,
@@ -699,11 +704,16 @@ class SchemaMigratedSignalTest(BaseTestCase):
         executor = get_executor()
 
         tenant = get_tenant_model()(schema_name='test')
-        with catch_signal(schema_migrated) as handler:
+        with catch_signal(schema_migrated) as handler_post, catch_signal(schema_pre_migration) as handler_pre:
             tenant.save()
 
         if executor == 'simple':
-            handler.assert_called_once_with(
+            handler_pre.assert_called_once_with(
+                schema_name='test',
+                sender=mock.ANY,
+                signal=schema_pre_migration
+            )
+            handler_post.assert_called_once_with(
                 schema_name='test',
                 sender=mock.ANY,
                 signal=schema_migrated
@@ -711,7 +721,8 @@ class SchemaMigratedSignalTest(BaseTestCase):
         elif executor == 'multiprocessing':
             # migrations run in a different process, therefore signal
             # will get sent in a different process as well
-            handler.assert_not_called()
+            handler_post.assert_not_called()
+            handler_pre.assert_not_called()
 
         domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
         domain.save()
@@ -728,11 +739,22 @@ class SchemaMigratedSignalTest(BaseTestCase):
         domain.save()
 
         # test the signal gets called when running migrate
-        with catch_signal(schema_migrated) as handler:
+        with catch_signal(schema_migrated) as handler_post, catch_signal(schema_pre_migration) as handler_pre:
             call_command('migrate_schemas', interactive=False, verbosity=0)
 
         if executor == 'simple':
-            handler.assert_has_calls([
+            handler_pre.assert_has_calls([
+                mock.call(
+                    schema_name=get_public_schema_name(),
+                    sender=mock.ANY,
+                    signal=schema_pre_migration,
+                ),
+                mock.call(
+                    schema_name='test',
+                    sender=mock.ANY,
+                    signal=schema_pre_migration)
+            ])
+            handler_post.assert_has_calls([
                 mock.call(
                     schema_name=get_public_schema_name(),
                     sender=mock.ANY,
@@ -745,7 +767,12 @@ class SchemaMigratedSignalTest(BaseTestCase):
             ])
         elif executor == 'multiprocessing':
             # public schema gets migrated in the current process, always
-            handler.assert_called_once_with(
+            handler_pre.assert_called_once_with(
+                schema_name=get_public_schema_name(),
+                sender=mock.ANY,
+                signal=schema_pre_migration,
+            )
+            handler_post.assert_called_once_with(
                 schema_name=get_public_schema_name(),
                 sender=mock.ANY,
                 signal=schema_migrated,
@@ -794,10 +821,22 @@ class MigrationOrderTestTest(BaseTestCase):
         )
 
         # test the signal gets called when running migrate
-        with catch_signal(schema_migrated) as handler:
+        with catch_signal(schema_migrated) as handler_post, catch_signal(schema_pre_migration) as handler_pre:
             call_command("migrate_schemas", interactive=False, verbosity=0)
 
-        handler.assert_has_calls(
+        handler_pre.assert_has_calls(
+            [
+                mock.call(
+                    schema_name=get_public_schema_name(),
+                    sender=mock.ANY,
+                    signal=schema_pre_migration,
+                ),
+                mock.call(schema_name="xtest", sender=mock.ANY, signal=schema_pre_migration),
+                mock.call(schema_name="test", sender=mock.ANY, signal=schema_pre_migration),
+            ]
+        )
+
+        handler_post.assert_has_calls(
             [
                 mock.call(
                     schema_name=get_public_schema_name(),
