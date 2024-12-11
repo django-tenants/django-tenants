@@ -263,6 +263,8 @@ env variable) or use `docker-compose`_ like this:
     ## Install docker-compose (you might want to do this in Python virtualenv)
     # pip install docker-compose
 
+    ## [OPTIONAL] Copy .env.sample to .env and modify as needed
+
     ## In main directory of this repo do:
     docker-compose run --rm django-tenants-test  # runs django-tenants tests.
     # dockerized PostgreSQL service is started implicitly
