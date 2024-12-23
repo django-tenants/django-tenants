@@ -28,6 +28,7 @@ pushd dts_test_project
 EXECUTORS=( standard multiprocessing )
 
 for executor in "${EXECUTORS[@]}"; do
+    echo "Running tests with executor: $executor"
     EXECUTOR=$executor PYTHONWARNINGS=d coverage run manage.py test -v2 django_tenants
 done
 

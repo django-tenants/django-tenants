@@ -35,6 +35,7 @@ class InvalidHostname(FastTenantTestCase):
         self.assertIsInstance(response, HttpResponseNotFound)
 
 
+@override_settings(ALLOWED_HOSTS=['nonexistent.fast-test.com', 'tenant.fast-test.com'])
 class WhenTenantNotFound(FastTenantTestCase):
     @classmethod
     def get_test_tenant_domain(cls):
