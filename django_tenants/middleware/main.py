@@ -1,3 +1,4 @@
+from functools import lru_cache
 from django.conf import settings
 from django.core.exceptions import DisallowedHost
 from django.db import connection
@@ -19,6 +20,7 @@ class TenantMainMiddleware(MiddlewareMixin):
     """
 
     @staticmethod
+    @lru_cache(maxsize=128)
     def hostname_from_request(request):
         """ Extracts hostname from request. Used for custom requests filtering.
             By default removes the request's port and common prefixes.
