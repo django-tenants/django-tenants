@@ -42,7 +42,7 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
 
         tenant_model = get_tenant_model()
         domain_model = get_tenant_domain_model()
-        hostname = self.hostname_from_request(request)
+        hostname = self.hostname_from_request_host(request.get_host())
         subfolder_prefix_path = "/{}/".format(get_subfolder_prefix())
 
         # We are in the public tenant
