@@ -3,6 +3,7 @@ from django.core.exceptions import DisallowedHost
 from django.db import connection
 from django.http import Http404
 from django.urls import set_urlconf
+from django.utils.module_loading import import_string
 from django.utils.deprecation import MiddlewareMixin
 
 from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_types, \
@@ -43,8 +44,8 @@ class TenantMainMiddleware(MiddlewareMixin):
         try:
             tenant = self.get_tenant(domain_model, hostname)
         except domain_model.DoesNotExist:
-            self.no_tenant_found(request, hostname)
-            return
+            default_tenant = self.no_tenant_found(request, hostname)
+            return default_tenant
 
         tenant.domain_url = hostname
         request.tenant = tenant
@@ -54,7 +55,17 @@ class TenantMainMiddleware(MiddlewareMixin):
     def no_tenant_found(self, request, hostname):
         """ What should happen if no tenant is found.
         This makes it easier if you want to override the default behavior """
-        if hasattr(settings, 'SHOW_PUBLIC_IF_NO_TENANT_FOUND') and settings.SHOW_PUBLIC_IF_NO_TENANT_FOUND:
+        if hasattr(settings, 'DEFAULT_NOT_FOUND_TENANT_VIEW'):
+            view_path = settings.DEFAULT_NOT_FOUND_TENANT_VIEW
+            view = import_string(view_path)
+            if hasattr(view, 'as_view'):
+                response = view.as_view()(request)
+            else:
+                response = view(request)
+            if hasattr(response, 'render'):
+                response.render()
+            return response
+        elif hasattr(settings, 'SHOW_PUBLIC_IF_NO_TENANT_FOUND') and settings.SHOW_PUBLIC_IF_NO_TENANT_FOUND:
             self.setup_url_routing(request=request, force_public=True)
         else:
             raise self.TENANT_NOT_FOUND_EXCEPTION('No tenant for hostname "%s"' % hostname)
