@@ -21,11 +21,11 @@ class TenantMainMiddleware(MiddlewareMixin):
 
     @staticmethod
     @lru_cache(maxsize=128)
-    def hostname_from_request(request):
-        """ Extracts hostname from request. Used for custom requests filtering.
+    def hostname_from_request_host(request_host):
+        """ Extracts hostname from request host. Used for custom requests filtering.
             By default removes the request's port and common prefixes.
         """
-        return remove_www(request.get_host().split(':')[0])
+        return remove_www(request_host.split(':')[0])
 
     def get_tenant(self, domain_model, hostname):
         domain = domain_model.objects.select_related('tenant').get(domain=hostname)
@@ -37,7 +37,7 @@ class TenantMainMiddleware(MiddlewareMixin):
 
         connection.set_schema_to_public()
         try:
-            hostname = self.hostname_from_request(request)
+            hostname = self.hostname_from_request_host(request.get_host())
         except DisallowedHost:
             from django.http import HttpResponseNotFound
             return HttpResponseNotFound()
