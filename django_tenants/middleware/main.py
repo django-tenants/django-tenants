@@ -12,6 +12,7 @@ from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_
 TENANTS_CACHE_DATA = {}
 TENANT_CACHE_ENABLE = getattr(settings, 'TENANT_CACHE_ENABLE', False)
 
+
 class TenantMainMiddleware(MiddlewareMixin):
     TENANT_NOT_FOUND_EXCEPTION = Http404
     """
@@ -26,13 +27,6 @@ class TenantMainMiddleware(MiddlewareMixin):
             By default removes the request's port and common prefixes.
         """
         return remove_www(request.get_host().split(':')[0])
-
-    def get_tenant(self, domain_model, hostname):
-        if TENANT_CACHE_ENABLE is True:
-            self.get_tenant_cache(domain_model, hostname)
-        else:
-            domain = domain_model.objects.select_related('tenant').get(domain=hostname)
-            return domain.tenant
 
     @staticmethod
     def get_cached_tenant(domain_model, hostname):
@@ -53,6 +47,13 @@ class TenantMainMiddleware(MiddlewareMixin):
             else:
                 TENANTS_CACHE_DATA[hostname] = domain.tenant
                 return domain.tenant
+
+    def get_tenant(self, domain_model, hostname):
+        if TENANT_CACHE_ENABLE is True:
+            return self.get_cached_tenant(domain_model, hostname)
+        else:
+            domain = domain_model.objects.select_related('tenant').get(domain=hostname)
+            return domain.tenant
 
     def process_request(self, request):
         # Connection needs first to be at the public schema, as this is where
