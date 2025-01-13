@@ -7,8 +7,10 @@ from django.utils.module_loading import import_string
 from django.utils.deprecation import MiddlewareMixin
 
 from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_types, \
-    has_multi_type_tenants, get_tenant_domain_model, get_public_schema_urlconf
+    has_multi_type_tenants, get_tenant_domain_model, get_public_schema_urlconf, get_tenant_model
 
+TENANTS_CACHE_DATA = {}
+TENANT_CACHE_ENABLE = getattr(settings, 'TENANT_CACHE_ENABLE', False)
 
 class TenantMainMiddleware(MiddlewareMixin):
     TENANT_NOT_FOUND_EXCEPTION = Http404
@@ -26,8 +28,31 @@ class TenantMainMiddleware(MiddlewareMixin):
         return remove_www(request.get_host().split(':')[0])
 
     def get_tenant(self, domain_model, hostname):
-        domain = domain_model.objects.select_related('tenant').get(domain=hostname)
-        return domain.tenant
+        if TENANT_CACHE_ENABLE is True:
+            self.get_tenant_cache(domain_model, hostname)
+        else:
+            domain = domain_model.objects.select_related('tenant').get(domain=hostname)
+            return domain.tenant
+
+    @staticmethod
+    def get_cached_tenant(domain_model, hostname):
+        """Get cached tenant."""
+        if hostname in TENANTS_CACHE_DATA:
+            tenant = TENANTS_CACHE_DATA[hostname]
+            client_model = get_tenant_model()
+            if isinstance(tenant, client_model):
+                return tenant
+            else:
+                raise domain_model.DoesNotExist()
+        else:
+            try:
+                domain = domain_model.objects.select_related('tenant').get(domain=hostname)
+            except domain_model.DoesNotExist:
+                TENANTS_CACHE_DATA[hostname] = None
+                raise domain_model.DoesNotExist()
+            else:
+                TENANTS_CACHE_DATA[hostname] = domain.tenant
+                return domain.tenant
 
     def process_request(self, request):
         # Connection needs first to be at the public schema, as this is where
