@@ -23,8 +23,8 @@ class TenantMainMiddleware(MiddlewareMixin):
 
     @staticmethod
     def hostname_from_request(request):
-        """ Extracts hostname from request. Used for custom requests filtering.
-            By default removes the request's port and common prefixes.
+        """Extracts hostname from request. Used for custom requests filtering.
+        By default removes the request's port and common prefixes.
         """
         return remove_www(request.get_host().split(':')[0])
 
@@ -64,6 +64,7 @@ class TenantMainMiddleware(MiddlewareMixin):
             hostname = self.hostname_from_request(request)
         except DisallowedHost:
             from django.http import HttpResponseNotFound
+
             return HttpResponseNotFound()
 
         domain_model = get_tenant_domain_model()
@@ -79,8 +80,8 @@ class TenantMainMiddleware(MiddlewareMixin):
         self.setup_url_routing(request)
 
     def no_tenant_found(self, request, hostname):
-        """ What should happen if no tenant is found.
-        This makes it easier if you want to override the default behavior """
+        """What should happen if no tenant is found.
+        This makes it easier if you want to override the default behavior"""
         if hasattr(settings, 'DEFAULT_NOT_FOUND_TENANT_VIEW'):
             view_path = settings.DEFAULT_NOT_FOUND_TENANT_VIEW
             view = import_string(view_path)

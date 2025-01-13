@@ -60,9 +60,8 @@ def tenant_delete_callback(sender, instance, **kwargs):
 @receiver(post_save)
 def change_domain(sender, instance, **kwargs):
     """Change domain in cache."""
-    if (
-        TENANT_CACHE_ENABLE is not True
-        or not isinstance(instance, get_tenant_domain_model())
+    if TENANT_CACHE_ENABLE is not True or not isinstance(
+        instance, get_tenant_domain_model()
     ):
         return
 
@@ -73,9 +72,8 @@ def change_domain(sender, instance, **kwargs):
 @receiver(post_delete)
 def delete_domain(sender, instance, **kwargs):
     """Delete domain from cache."""
-    if (
-            TENANT_CACHE_ENABLE is not True
-            or not isinstance(instance, get_tenant_domain_model())
+    if TENANT_CACHE_ENABLE is not True or not isinstance(
+        instance, get_tenant_domain_model()
     ):
         return
 
@@ -88,13 +86,13 @@ def delete_domain(sender, instance, **kwargs):
 @receiver([post_delete, post_save])
 def delete_or_change_client(sender, instance, **kwargs):
     """Delete client from cache."""
-    if (
-            TENANT_CACHE_ENABLE is not True
-            or not isinstance(instance, get_tenant_domain_model())
+    if TENANT_CACHE_ENABLE is not True or not isinstance(
+        instance, get_tenant_domain_model()
     ):
         return
 
-    # copy() is required (RuntimeError: dictionary changed size during iteration)
+    # copy() is required
+    # (RuntimeError: dictionary changed size during iteration)
     for hostname, tenant in TENANTS_CACHE_DATA.copy().items():
         if tenant is None or tenant == instance:
             try:
