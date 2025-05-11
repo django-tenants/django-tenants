@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from pprint import pprint
 from unittest import mock
 
 from django.conf import settings
@@ -333,17 +334,6 @@ class BaseSyncTest(BaseTestCase):
                    'django.contrib.contenttypes', )  # 1 table
     TENANT_APPS = ('django.contrib.sessions', )
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.INSTALLED_APPS = cls.SHARED_APPS + cls.TENANT_APPS
-
-        settings.SHARED_APPS = cls.SHARED_APPS
-        settings.TENANT_APPS = cls.TENANT_APPS
-        settings.INSTALLED_APPS = cls.INSTALLED_APPS
-
-        cls.available_apps = cls.INSTALLED_APPS
-
     def setUp(self):
         super().setUp()
         # Django calls syncdb by default for the test database, but we want
@@ -357,6 +347,20 @@ class BaseSyncTest(BaseTestCase):
 
 
 class TenantSyncTest(BaseSyncTest):
+
+    @classmethod
+    def _pre_setup(cls):
+        cls.sync_shared()
+        cls.INSTALLED_APPS = cls.SHARED_APPS + cls.TENANT_APPS
+
+        settings.SHARED_APPS = cls.SHARED_APPS
+        settings.TENANT_APPS = cls.TENANT_APPS
+        settings.INSTALLED_APPS = cls.INSTALLED_APPS
+
+        cls.available_apps = cls.INSTALLED_APPS
+
+        super()._pre_setup()
+
     def test_shared_apps_does_not_sync_tenant_apps(self):
         """
         Tests that if an app is in SHARED_APPS, it does not get synced to
@@ -394,8 +398,16 @@ class TestSyncTenantsWithAuth(BaseSyncTest):
                    'django.contrib.sessions', )  # 1 table
     TENANT_APPS = ('django.contrib.sessions', )  # 1 table
 
-    def _pre_setup(self):
-        self.sync_shared()
+    @classmethod
+    def _pre_setup(cls):
+        cls.INSTALLED_APPS = cls.SHARED_APPS + cls.TENANT_APPS
+
+        settings.SHARED_APPS = cls.SHARED_APPS
+        settings.TENANT_APPS = cls.TENANT_APPS
+        settings.INSTALLED_APPS = cls.INSTALLED_APPS
+
+        cls.available_apps = cls.INSTALLED_APPS
+        cls.sync_shared()
         super()._pre_setup()
 
     def test_tenant_apps_and_shared_apps_can_have_the_same_apps(self):
@@ -422,6 +434,19 @@ class TestSyncTenantsNoAuth(BaseSyncTest):
                    'customers',
                    'django.contrib.contenttypes', )  # 1 table
     TENANT_APPS = ('django.contrib.sessions', )  # 1 table
+
+    @classmethod
+    def _pre_setup(cls):
+        cls.sync_shared()
+        cls.INSTALLED_APPS = cls.SHARED_APPS + cls.TENANT_APPS
+
+        settings.SHARED_APPS = cls.SHARED_APPS
+        settings.TENANT_APPS = cls.TENANT_APPS
+        settings.INSTALLED_APPS = cls.INSTALLED_APPS
+
+        cls.available_apps = cls.INSTALLED_APPS
+
+        super()._pre_setup()
 
     def test_content_types_is_not_mandatory(self):
         """
