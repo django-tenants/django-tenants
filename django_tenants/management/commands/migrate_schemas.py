@@ -1,3 +1,5 @@
+from django.db.migrations.autodetector import MigrationAutodetector
+
 from django_tenants.migration_executors import get_executor
 from django_tenants.utils import get_tenant_model, get_public_schema_name, schema_exists, get_tenant_database_alias, \
     has_multi_type_tenants, get_multi_type_database_field_name, get_tenant_migration_order
@@ -14,6 +16,7 @@ else:
 
 
 class MigrateSchemasCommand(SyncCommon):
+    autodetector = MigrationAutodetector
     help = "Updates database schema. Manages both apps with migrations and those without."
 
     def add_arguments(self, parser):
