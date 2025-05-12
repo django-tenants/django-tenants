@@ -45,11 +45,10 @@ setup(
         'Framework :: Django :: 5.0',
         'Framework :: Django :: 5.1',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     install_requires=[
