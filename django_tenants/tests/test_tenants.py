@@ -333,17 +333,6 @@ class BaseSyncTest(BaseTestCase):
                    'django.contrib.contenttypes', )  # 1 table
     TENANT_APPS = ('django.contrib.sessions', )
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.INSTALLED_APPS = cls.SHARED_APPS + cls.TENANT_APPS
-
-        settings.SHARED_APPS = cls.SHARED_APPS
-        settings.TENANT_APPS = cls.TENANT_APPS
-        settings.INSTALLED_APPS = cls.INSTALLED_APPS
-
-        cls.available_apps = cls.INSTALLED_APPS
-
     def setUp(self):
         super().setUp()
         # Django calls syncdb by default for the test database, but we want
