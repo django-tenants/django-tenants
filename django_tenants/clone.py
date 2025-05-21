@@ -742,12 +742,9 @@ class CloneSchema:
             connection.set_schema_to_public()
         cursor = connection.cursor()
 
-        # check if the clone_schema function already exists in the db
-        try:
-            cursor.execute("SELECT 'clone_schema'::regproc")
-        except ProgrammingError:
-            self._create_clone_schema_function()
-            transaction.commit()
+
+        self._create_clone_schema_function()
+
 
         if schema_exists(new_schema_name):
             raise ValidationError("New schema name already exists")
