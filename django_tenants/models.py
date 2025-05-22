@@ -29,6 +29,13 @@ class TenantMixin(models.Model):
     to be automatically created upon save.
     """
 
+    clone_mode = "DATA"
+    """
+    One of "DATA", "NODATA".
+    When using TENANT_BASE_SCHEMA, controls whether only the database
+    structure will be copied, or if data will be copied along with it.
+    """
+
     schema_name = models.CharField(max_length=63, unique=True, db_index=True,
                                    validators=[_check_schema_name])
 
@@ -184,7 +191,9 @@ class TenantMixin(models.Model):
                 # copy tables and data from provided model schema
                 base_schema = get_tenant_base_schema()
                 clone_schema = CloneSchema()
-                clone_schema.clone_schema(base_schema, self.schema_name)
+                clone_schema.clone_schema(
+                    base_schema, self.schema_name, self.clone_mode
+                )
 
                 call_command('migrate_schemas',
                              tenant=True,
