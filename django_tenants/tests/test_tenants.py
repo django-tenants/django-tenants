@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.db import connection, transaction
 from django.test.utils import override_settings
+from django.utils.version import get_main_version, get_version_tuple
 
 from django_tenants.clone import CloneSchema
 from django_tenants.signals import schema_migrated, schema_migrate_message, schema_pre_migration
@@ -333,17 +334,6 @@ class BaseSyncTest(BaseTestCase):
                    'django.contrib.contenttypes', )  # 1 table
     TENANT_APPS = ('django.contrib.sessions', )
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.INSTALLED_APPS = cls.SHARED_APPS + cls.TENANT_APPS
-
-        settings.SHARED_APPS = cls.SHARED_APPS
-        settings.TENANT_APPS = cls.TENANT_APPS
-        settings.INSTALLED_APPS = cls.INSTALLED_APPS
-
-        cls.available_apps = cls.INSTALLED_APPS
-
     def setUp(self):
         super().setUp()
         # Django calls syncdb by default for the test database, but we want
@@ -394,9 +384,15 @@ class TestSyncTenantsWithAuth(BaseSyncTest):
                    'django.contrib.sessions', )  # 1 table
     TENANT_APPS = ('django.contrib.sessions', )  # 1 table
 
-    def _pre_setup(self):
-        self.sync_shared()
-        super()._pre_setup()
+    if get_version_tuple(get_main_version()) < (5, 2):
+        def _pre_setup(self):
+            self.sync_shared()
+            super()._pre_setup()
+    else:
+        @classmethod
+        def _pre_setup(cls):
+            cls.sync_shared()
+            super()._pre_setup()
 
     def test_tenant_apps_and_shared_apps_can_have_the_same_apps(self):
         """

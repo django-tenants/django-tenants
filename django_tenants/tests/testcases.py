@@ -11,15 +11,19 @@ class BaseTestCase(TransactionTestCase):
     Base test case that comes packed with overloaded INSTALLED_APPS,
     custom public tenant, and schemas cleanup on tearDown.
     """
+
+    TENANT_APPS = ('dts_test_app',
+                   'django.contrib.contenttypes',
+                   'django.contrib.auth', )
+    SHARED_APPS = ('django_tenants',
+                   'customers')
+
     @classmethod
     def setUpClass(cls):
         settings.TENANT_MODEL = 'customers.Client'
         settings.TENANT_DOMAIN_MODEL = 'customers.Domain'
-        settings.SHARED_APPS = ('django_tenants',
-                                'customers')
-        settings.TENANT_APPS = ('dts_test_app',
-                                'django.contrib.contenttypes',
-                                'django.contrib.auth', )
+        settings.SHARED_APPS = cls.SHARED_APPS
+        settings.TENANT_APPS = cls.TENANT_APPS
         settings.INSTALLED_APPS = settings.SHARED_APPS + settings.TENANT_APPS
         if '.test.com' not in settings.ALLOWED_HOSTS:
             settings.ALLOWED_HOSTS += ['.test.com']

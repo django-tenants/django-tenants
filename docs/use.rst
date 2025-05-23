@@ -50,7 +50,9 @@ Any call to the methods ``filter``, ``get``, ``save``, ``delete`` or any other f
 Deleting a tenant
 -----------------
 
-You can delete tenants by just deleting the entry via the Django ORM. There is a flag that can set on the tenant model called ``auto_drop_schema``. The default for ``auto_drop_schema`` is False. WARNING SETTING ``AUTO_DROP_SCHEMA`` TO TRUE WITH DELETE WITH TENANT!
+You can delete tenants by just deleting the entry via the Django ORM. There is a flag that can set on the tenant model called ``auto_drop_schema``. The default for ``auto_drop_schema`` is False. 
+
+WARNING SETTING ``AUTO_DROP_SCHEMA`` TO TRUE WILL DELETE THE SCHEMA WITH THE TENANT!
 
 
 Utils
