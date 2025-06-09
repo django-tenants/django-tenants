@@ -20,6 +20,7 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
     """
 
     TENANT_NOT_FOUND_EXCEPTION = Http404
+    get_subfolder_urlconf_override = None
 
     def __init__(self, get_response):
         super().__init__(get_response)
@@ -64,7 +65,10 @@ class TenantSubfolderMiddleware(TenantMainMiddleware):
                 return self.no_tenant_found(request, tenant_subfolder)
 
             tenant.domain_subfolder = tenant_subfolder
-            urlconf = get_subfolder_urlconf(tenant)
+            if self.__class__.get_subfolder_urlconf_override:
+                urlconf = self.__class__.get_subfolder_urlconf_override(tenant)
+            else:
+                urlconf = get_subfolder_urlconf(tenant)
 
         tenant.domain_url = hostname
         request.tenant = tenant
