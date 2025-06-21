@@ -92,10 +92,10 @@ class Command(BaseCommand):
                     break
                 domain_data = {}
         else:
-                domain_data['tenant_id'] = tenant.pk
-                domain = self.store_tenant_domain(**domain_data)
-                if domain is None:
-                    raise CommandError("Missing required domain fields")
+            domain_data['tenant_id'] = tenant.pk
+            domain = self.store_tenant_domain(**domain_data)
+            if domain is None:
+                raise CommandError("Missing required domain fields")
 
         if options.get('s', None):
             self.stdout.write("Create superuser for %s" % tenant_data['schema_name'])
