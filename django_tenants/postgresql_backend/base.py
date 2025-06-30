@@ -168,7 +168,12 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             # we do not have to worry that it's not the good one
             try:
                 formatted_search_paths = ['\'{}\''.format(s) for s in search_paths]
-                cursor_for_search_path.execute('SET search_path = {0}'.format(','.join(formatted_search_paths)))
+                set_search_path_sql = (
+                    "SET LOCAL search_path = {0}"
+                    if getattr(settings, "TENANT_USE_SET_LOCAL", False)
+                    else "SET search_path = {0}"
+                )
+                cursor_for_search_path.execute(set_search_path_sql.format(','.join(formatted_search_paths)))
             except (django.db.utils.DatabaseError, psycopg.InternalError):
                 self.search_path_set_schemas = None
             else:
