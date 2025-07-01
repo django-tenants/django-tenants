@@ -114,7 +114,7 @@ class Command(BaseCommand):
     def store_tenant_domain(self, **fields):
         try:
             domain = get_tenant_domain_model().objects.create(**fields)
-            domain.save()
+            # domain.save()
             return domain
         except exceptions.ValidationError as e:
             self.stderr.write("Error: %s" % '; '.join(e.messages))
