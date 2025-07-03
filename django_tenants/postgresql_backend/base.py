@@ -1,3 +1,4 @@
+import logging
 import re
 import warnings
 from django.conf import settings
@@ -20,6 +21,8 @@ if is_psycopg3:
     import psycopg
 else:
     import psycopg2 as psycopg
+
+logger = logging.getLogger(__name__)
 
 
 DatabaseError = django.db.utils.DatabaseError
@@ -74,6 +77,8 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         # Use a patched version of the DatabaseIntrospection that only returns the table list for the
         # currently selected schema.
         self.introspection = DatabaseSchemaIntrospection(self)
+        logger.error(f"DatabaseWrapper introspection: {self.introspection}")
+        warnings.warn(f"WARN DatabaseWrapper introspection: {self.introspection}")
 
         self.set_schema_to_public()
 
@@ -145,6 +150,8 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
         # optionally limit the number of executions - under load, the execution
         # of `set search_path` can be quite time consuming
+        logger.error(f"DatabaseWrapper self.search_path_set_schemas: {self.search_path_set_schemas}")
+        warnings.warn(f"WARN DatabaseWrapper self.search_path_set_schemas: {self.search_path_set_schemas}")
         if (not get_limit_set_calls()) or not self.search_path_set_schemas:
             # Actual search_path modification for the cursor. Database will
             # search schemata from left to right when looking for the object
@@ -154,6 +161,9 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
                                            "to call set_schema() or set_tenant()?")
 
             search_paths = self._get_cursor_search_paths()
+            logger.error(f"DatabaseWrapper search_paths: {search_paths}")
+            warnings.warn(f"WARN DatabaseWrapper search_paths: {search_paths}")
+        
 
             if name or is_psycopg3:
                 # Named cursor can only be used once, psycopg3 and Django 4 have recursion issue
