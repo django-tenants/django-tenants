@@ -150,8 +150,13 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
         # optionally limit the number of executions - under load, the execution
         # of `set search_path` can be quite time consuming
-        logger.error(f"DatabaseWrapper self.search_path_set_schemas: {self.search_path_set_schemas}")
-        warnings.warn(f"WARN DatabaseWrapper self.search_path_set_schemas: {self.search_path_set_schemas}")
+        logger.error(
+            f"""
+                DatabaseWrapper
+                self.search_path_set_schemas: {self.search_path_set_schemas}
+            """
+        )
+        # warnings.warn(f"WARN DatabaseWrapper self.search_path_set_schemas: {self.search_path_set_schemas}")
         if (not get_limit_set_calls()) or not self.search_path_set_schemas:
             # Actual search_path modification for the cursor. Database will
             # search schemata from left to right when looking for the object
@@ -162,7 +167,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
             search_paths = self._get_cursor_search_paths()
             logger.error(f"DatabaseWrapper search_paths: {search_paths}")
-            warnings.warn(f"WARN DatabaseWrapper search_paths: {search_paths}")
+            # warnings.warn(f"WARN DatabaseWrapper search_paths: {search_paths}")
         
 
             if name or is_psycopg3:
