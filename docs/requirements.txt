@@ -3,4 +3,4 @@ docutils==0.21.2
 Pygments==2.19.1
 pyparsing==3.2.3
 Sphinx==8.2.3
-sphinxcontrib-bibtex==2.6.3
+sphinxcontrib-bibtex==2.6.5
