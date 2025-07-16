@@ -2,6 +2,7 @@ import warnings
 
 from django_tenants.middleware.main import TenantMainMiddleware
 from django_tenants.middleware.subfolder import TenantSubfolderMiddleware
+from django_tenants.middleware.directfolder import TenantDirectFolderMiddleware
 
 
 class TenantMiddleware(TenantMainMiddleware):
