@@ -13,47 +13,32 @@ You'll have to make the following modifications to your ``settings.py`` file.
 
 Your ``DATABASE_ENGINE`` setting needs to be changed to
 
-.. code-block:: python
-
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django_tenants.postgresql_backend',
-            # ..
-        }
-    }
+.. literalinclude:: ../dts_test_project/dts_test_project/settings.py
+    :lines: 83-92
+    :emphasize-lines: 3
+    :lineno-match:
 
 Add `django_tenants.routers.TenantSyncRouter` to your `DATABASE_ROUTERS` setting, so that the correct apps can be synced, depending on what's being synced (shared or tenant).
 
-.. code-block:: python
+.. literalinclude:: ../dts_test_project/dts_test_project/settings.py
+    :lines: 94-96
+    :lineno-match:
 
-    DATABASE_ROUTERS = (
-        'django_tenants.routers.TenantSyncRouter',
-    )
 
 Add the middleware ``django_tenants.middleware.main.TenantMainMiddleware`` to the top of ``MIDDLEWARE``, so that each request can be set to use the correct schema.
 
-.. code-block:: python
+.. literalinclude:: ../dts_test_project/dts_test_project/settings.py
+    :lines: 98-105
+    :lineno-match:
+    :emphasize-lines: 2
 
-    MIDDLEWARE = (
-        'django_tenants.middleware.main.TenantMainMiddleware',
-        #...
-    )
 
 Make sure you have ``django.template.context_processors.request`` listed under the ``context_processors`` option of ``TEMPLATES`` otherwise the tenant will not be available on ``request``.
 
-.. code-block:: python
-
-    TEMPLATES = [
-        {
-            #...
-            'OPTIONS': {
-                'context_processors': [
-                    'django.template.context_processors.request',
-                    #...
-                ],
-            },
-        },
-    ]
+.. literalinclude:: ../dts_test_project/dts_test_project/settings.py
+    :lines: 107-121
+    :lineno-match:
+    :emphasize-lines: 9
 
 The Tenant & Domain Model
 =========================
