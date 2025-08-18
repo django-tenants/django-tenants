@@ -17,7 +17,7 @@ jobs:
         postgres-version: [14, 15, 16, 17]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -56,7 +56,7 @@ jobs:
         # always use latest Postgres b/c the point here is to test Django compatibility
         postgres-version: [latest]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
