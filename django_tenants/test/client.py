@@ -14,7 +14,10 @@ class BaseTenantRequestFactory:
     def generic(self, *args, **kwargs):
         if "HTTP_HOST" not in kwargs:
             kwargs["HTTP_HOST"] = self.tenant.get_primary_domain().domain
-        return super().generic(*args, **kwargs)
+        request = super().generic(*args, **kwargs)
+        # Assign the tenant to the request object
+        request.tenant = self.tenant
+        return request
 
 
 class TenantRequestFactory(BaseTenantRequestFactory, RequestFactory):

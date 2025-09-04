@@ -50,7 +50,9 @@ Any call to the methods ``filter``, ``get``, ``save``, ``delete`` or any other f
 Deleting a tenant
 -----------------
 
-You can delete tenants by just deleting the entry via the Django ORM. There is a flag that can set on the tenant model called ``auto_drop_schema``. The default for ``auto_drop_schema`` is False. WARNING SETTING ``AUTO_DROP_SCHEMA`` TO TRUE WITH DELETE WITH TENANT!
+You can delete tenants by just deleting the entry via the Django ORM. There is a flag that can set on the tenant model called ``auto_drop_schema``. The default for ``auto_drop_schema`` is False. 
+
+WARNING SETTING ``AUTO_DROP_SCHEMA`` TO TRUE WILL DELETE THE SCHEMA WITH THE TENANT!
 
 
 Utils
@@ -133,6 +135,8 @@ There are number of signals
 
 ```schema_migrated``` will get called once migrations finish running for a schema.
 
+```schema_pre_migration``` will get called just before migrations start running for a schema.
+
 ```schema_migrate_message``` will get called after each migration with the message of the migration. This signal is very useful when for process / status bars.
 
 Example
@@ -152,6 +156,12 @@ Example
         client = kwargs['tenant']
 
         # send email to client to as tenant is ready to use
+
+    @receiver(schema_pre_migration, sender=run_migrations)
+    def handle_schema_pre_migration(sender, **kwargs):
+        schema_name = kwargs['schema_name']
+
+        # write some logs
 
     @receiver(schema_migrated, sender=run_migrations)
     def handle_schema_migrated(sender, **kwargs):
@@ -247,6 +257,7 @@ Other settings
 By default if no tenant is found it will raise an error Http404 however you add ```SHOW_PUBLIC_IF_NO_TENANT_FOUND``` to
 the setting it will display the the public tenant. This will not work for subfolders.
 
+```DEFAULT_NOT_FOUND_TENANT_VIEW``` If set, specifies a path to a view (function-based or class-based) that will handle requests when no tenant is found for the current domain. It uses the public schema `DEFAULT_NOT_FOUND_TENANT_VIEW='myapp.views.my_view'`
 
 Admin
 ~~~~~
@@ -471,6 +482,28 @@ If it find a schema that doesn't exist it will create it.
 .. code-block:: bash
 
     ./manage.py create_missing_schemas
+
+create_domain
+~~~~~~~~~~~~~
+
+The command ``create_domain`` adds a domain to an existing tenant.
+
+.. code-block:: bash
+
+    ./manage.py create_domain     
+    ./manage.py create_domain --schema_name=tenant1 --domain-domain=tenant1.my-domain.com
+    ./manage.py create_domain -s=tenant1 -d=tenant1.my-domain.com --is_primary=True --no-input
+
+delete_domain
+~~~~~~~~~~~~~
+
+The command ``delete_domain`` deletes a domain on a tenant.
+
+.. code-block:: bash
+
+    ./manage.py delete_domain     
+    ./manage.py delete_domain --schema_name=tenant1 --domain-domain=tenant1.my-domain.com
+    ./manage.py delete_domain -s=tenant1 -d=tenant1.my-domain.com
 
 PostGIS
 -------

@@ -31,7 +31,7 @@ Each solution has it's up and down sides, for a more in-depth discussion, see Mi
 
 How it works
 ------------
-Tenants are identified via their host name (i.e tenant.domain.com). This information is stored on a table on the ``public`` schema. Whenever a request is made, the host name is used to match a tenant in the database. If there's a match, the search path is updated to use this tenant's schema. So from now on all queries will take place at the tenant's schema. For example, suppose you have a tenant ``customer`` at http://customer.example.com. Any request incoming at ``customer.example.com`` will automatically use ``customer``'s schema and make the tenant available at the request. If no tenant is found, a 404 error is raised. This also means you should have a tenant for your main domain, typically using the ``public`` schema. For more information please read the [setup](#setup) section.
+Tenants are identified via their host name (i.e tenant.domain.com). This information is stored on a table on the ``public`` schema. Whenever a request is made, the host name is used to match a tenant in the database. If there's a match, the search path is updated to use this tenant's schema. So from now on all queries will take place at the tenant's schema. For example, suppose you have a tenant ``customer`` at http://customer.example.com. Any request incoming at ``customer.example.com`` will automatically use ``customer``'s schema and make the tenant available at the request. If no tenant is found, a 404 error is raised. This also means you should have a tenant for your main domain, typically using the ``public`` schema. For more information please read the :doc:`use <use>` section.
 
 .. important::
 

@@ -11,34 +11,25 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
-      matrix:
+      matrix: # https://www.postgresql.org/docs/release
         # always use latest Python b/c the point here is to test PostgreSQL compatibility
-        python-version: ["3.11"]
-        postgres-version: [11-bullseye, 12, 13, 14, 15]
+        python-version: ["3.12"]
+        postgres-version: [14, 15, 16, 17]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install Django
-      if: matrix.postgres-version == '11-bullseye'
-      run: |
-        # Django 4.1 is the last one to support Postgres 11
-        pip install Django==4.1.*
-
-    - name: Install Django
-      if: matrix.postgres-version != '11-bullseye'
-      run: |
-        # always use latest Django b/c the point here is to test PostgreSQL compatibility
-        pip install Django
-
     - name: Install Python dependencies
       run: |
-        pip install psycopg2 coverage
+        pip install -r requirements.txt
+        pip install setuptools
+        # always use latest Django b/c the point here is to test PostgreSQL compatibility
+        pip install Django
         python setup.py develop
 
     - name: Create database
@@ -60,15 +51,12 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
-        django-version: ["==4.1.*", "==4.2.*", "==5.0.*"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        django-version: ["==4.2.*", "==5.0.*", "==5.1.*", "==5.2.*"]
         # always use latest Postgres b/c the point here is to test Django compatibility
         postgres-version: [latest]
-        exclude:
-          - python-version: "3.12"
-            django-version: "==4.1.*"
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -77,7 +65,8 @@ jobs:
 
     - name: Install Python dependencies
       run: |
-        pip install psycopg2 coverage setuptools
+        pip install -r requirements.txt
+        pip install setuptools
         pip install Django${{ matrix.django-version }}
         python setup.py develop
 
@@ -100,7 +89,10 @@ jobs:
         coverage report -m
 
     - name: Send coverage to CodeCov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
+      if: env.CODECOV_TOKEN
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
         fail_ci_if_error: true
         verbose: true

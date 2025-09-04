@@ -12,7 +12,8 @@ class Command(InteractiveTenantOption, BaseCommand):
     def add_arguments(self, parser):
         super().add_arguments(parser)
 
-        parser.add_argument('command_name', nargs='+', help='The command name you want to run')
+        parser.add_argument('command_name', nargs=argparse.ONE_OR_MORE, help='The command name you want to run')
+        parser.add_argument('command_options', nargs=argparse.REMAINDER, help='The command options')
 
     def run_from_argv(self, argv):
         """
@@ -49,13 +50,12 @@ class Command(InteractiveTenantOption, BaseCommand):
     def handle(self, *args, **options):
         tenant = self.get_tenant_from_options_or_interactive(**options)
         connection.set_tenant(tenant)
+        options.pop('schema_name', None)
 
-        # options comes including {"command_name": ["x", "y"]}
-        # Incase of multiple argument passed.
+        # options come including {"command_name": ["x", "y"], "command_options": ["--w=1", "--z=2"]}
+        # Because command_name argument has nargs='+', thus it is always a list of strings
 
-        command_name = options.pop("command_name")
+        subcommand_name, *subcommand_options = options.pop("command_name")
+        subcommand_options += options.pop("command_options")
 
-        if isinstance(command_name, list):
-            call_command(command_name[0], *command_name[1:])
-        else:
-            call_command(*args, **options)
+        call_command(subcommand_name, *subcommand_options, **options)
