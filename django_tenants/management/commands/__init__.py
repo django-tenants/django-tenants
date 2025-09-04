@@ -95,25 +95,20 @@ https://django-tenants.readthedocs.org/en/latest/use.html#creating-a-tenant""")
             while True:
                 tenant_schema = input("Enter Tenant Schema ('?' to list schemas): ")
                 if tenant_schema == '?':
-                    print('\n'.join(["%i) %s - %s" % (i, t.schema_name, t.get_primary_domain()) for i, t in enumerate(all_tenants, start=1)]))
+                    print('\n'.join(
+                        [f"{i}) {t.schema_name} - {t.get_primary_domain()}" for i, t in enumerate(all_tenants)]))
                 else:
                     break
 
-        tenant_schema_index = 0
-        tenant_schema_index_is_valid = False
-
         try:
-            tenant_schema_index = int(tenant_schema) - 1
-        except ValueError:
+            selected_tenant = all_tenants[int(tenant_schema)]
+            self.stdout.write(self.style.SUCCESS(f'Selected Tenant: {selected_tenant.schema_name}'))
+            return selected_tenant
+        except (ValueError, IndexError):
             pass
-        else:
-            tenant_schema_index_is_valid = 0 < tenant_schema_index <= len(all_tenants) 
 
-        if tenant_schema not in [t.schema_name for t in all_tenants] and not tenant_schema_index_is_valid:
-            raise CommandError("Invalid tenant schema, '%s'" % (tenant_schema,))
-
-        if tenant_schema_index_is_valid:
-            return all_tenants[tenant_schema_index]
+        if tenant_schema not in [t.schema_name for t in all_tenants]:
+            raise CommandError(f"Invalid tenant schema, '{tenant_schema}'")
 
         return TenantModel.objects.get(schema_name=tenant_schema)
 
