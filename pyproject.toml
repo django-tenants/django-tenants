@@ -1,0 +1,78 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+
+requires = [ "setuptools>=61" ]
+
+[project]
+name = "django-tenants"
+version = "3.9.0"
+description = "Tenant support for Django using PostgreSQL schemas."
+readme = "README.rst"
+license = "MIT"
+authors = [
+  { name = "Thomas Turner", email = "tom@twt.me.uk" },
+]
+requires-python = ">=3.8"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Web Environment",
+  "Framework :: Django",
+  "Framework :: Django :: 4.2",
+  "Framework :: Django :: 5.0",
+  "Framework :: Django :: 5.1",
+  "Framework :: Django :: 5.2",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+  "django>=2.1,<6",
+]
+
+optional-dependencies.dev = [
+  "coverage",
+  "gunicorn==23",
+  "psycopg>=3.2.1,<3.3",
+]
+urls."Homepage" = "https://github.com/django-tenants/django-tenants"
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+include = [
+  "django_tenants",
+  "django_tenants.files",
+  "django_tenants.postgresql_backend",
+  "django_tenants.management",
+  "django_tenants.management.commands",
+  "django_tenants.migration_executors",
+  "django_tenants.template",
+  "django_tenants.template.loaders",
+  "django_tenants.templatetags",
+  "django_tenants.test",
+  "django_tenants.tests",
+  "django_tenants.staticfiles",
+  "django_tenants.middleware",
+  "docs",
+  "examples",
+  "dts_test_project",
+]
+
+[tool.setuptools.package-data]
+"django_tenants" = [ "templates/**/*.html" ]
+"docs" = [ "**/*" ]
+"examples" = [ "**/*" ]
+"dts_test_project" = [ "**/*" ]
+
+[tool.setuptools.exclude-package-data]
+"*" = [ "*.pyc", "*.pyo" ]
+
+[tool.setuptools.data-files]
