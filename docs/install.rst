@@ -175,7 +175,7 @@ Sub-folder Support
 
 Currently in beta.
 
-There is a option that allows you to run Django-Tenants with sub-folder instead of sub-domains.
+There is an option that allows you to run Django-Tenants with sub-folder instead of sub-domains.
 
 .. note::
 
