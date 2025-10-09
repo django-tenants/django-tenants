@@ -128,6 +128,13 @@ The above behaviour can be changed for multi-tenant setups so that each tenant w
 
     # in settings.py
 
+    STORAGES = {
+        "default": {
+            "BACKEND": "django_tenants.files.storage.TenantFileSystemStorage",
+        },
+    }
+
+    # OR, in the unlikely case you're using django < 4.2
     DEFAULT_FILE_STORAGE = "django_tenants.files.storage.TenantFileSystemStorage"
 
     MULTITENANT_RELATIVE_MEDIA_ROOT = ""  # (default: create sub-directory for each tenant)
