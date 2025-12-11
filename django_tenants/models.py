@@ -152,7 +152,7 @@ class TenantMixin(models.Model):
         if has_schema and schema_exists(self.schema_name) and (self.auto_drop_schema or force_drop):
             self.pre_drop()
             cursor = connection.cursor()
-            cursor.execute('DROP SCHEMA "%s" CASCADE' % self.schema_name)
+            cursor.execute('DROP DATABASE %s CASCADE' % self.schema_name)
 
     def pre_drop(self):
         """
