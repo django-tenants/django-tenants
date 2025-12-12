@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.core import exceptions
 from django.core.management.base import BaseCommand
 from django_tenants.utils import get_tenant_model, schema_rename
 
@@ -18,6 +20,7 @@ class Command(BaseCommand):
         return input(question)
 
     def handle(self, *args, **options):
+        raise exceptions.ImproperlyConfigured("Renaming schema is not supported on MySQL databases.")
         tenant_model = get_tenant_model()
         all_tenants = tenant_model.objects.all()
 

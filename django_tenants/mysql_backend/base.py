@@ -145,12 +145,12 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             # if the next instruction is not a rollback it will just fail also, so
             # we do not have to worry that it's not the good one
             try:
-                cursor_for_search_path.execute('USE %s', [search_paths])
+                cursor_for_search_path.execute(f'USE `{search_paths}`')
             except (django.db.utils.DatabaseError, InternalError):
                 self.search_path_set_schemas = None
             else:
                 self.search_path_set_schemas = search_paths
-            if name or is_psycopg3:
+            if name:
                 cursor_for_search_path.close()
         return cursor
 

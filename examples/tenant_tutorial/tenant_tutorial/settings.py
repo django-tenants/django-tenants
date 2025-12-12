@@ -22,10 +22,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django_tenants.mysql_backend',  # Add 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
         'NAME': os.environ.get('DATABASE_DB', 'tenant_tutorial'),
-        'USER': os.environ.get('DATABASE_USER', 'tenant_tutorial'),
-        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'qwerty'),
-        'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
-        'PORT': os.environ.get('DATABASE_PORT', '5432'),
+        'USER': os.environ.get('DATABASE_USER', 'root'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', ''),
+        'HOST': os.environ.get('DATABASE_HOST', '127.0.0.1'),
+        'PORT': os.environ.get('DATABASE_PORT', '3306'),
     }
 }
 

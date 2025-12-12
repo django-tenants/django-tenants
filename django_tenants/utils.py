@@ -297,7 +297,7 @@ def validate_extra_extensions():
         model = get_tenant_model()
         with connection.cursor() as cursor:
             cursor.execute(
-                'SELECT 1 FROM information_schema.tables WHERE table_name = %s;',
+                'SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = %s;',
                 [model._meta.db_table]
             )
             if cursor.fetchone():
