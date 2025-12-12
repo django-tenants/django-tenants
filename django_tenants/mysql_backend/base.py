@@ -1,35 +1,29 @@
 import re
 import warnings
+
+from MySQLdb._exceptions import InternalError
 from django.conf import settings
 from importlib import import_module
 
 from django.utils.module_loading import import_string
 
-from django_tenants.postgresql_backend.introspection import DatabaseSchemaIntrospection
+from django_tenants.mysql_backend.introspection import DatabaseSchemaIntrospection
 from django_tenants.utils import get_public_schema_name, get_limit_set_calls
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 import django.db.utils
 
-try:
-     from django.db.backends.postgresql.psycopg_any import is_psycopg3
-except ImportError:
-    is_psycopg3 = False
-
-if is_psycopg3:
-    import psycopg
-else:
-    import psycopg2 as psycopg
+"""
+This code is still using some postgres naming, this is because external code is referencing those names.
+Additionally, mysql code is still using SCHEMA naming, though in reality it's using databases.
+"""
 
 
 DatabaseError = django.db.utils.DatabaseError
-IntegrityError = psycopg.IntegrityError
 
-ORIGINAL_BACKEND = getattr(settings, 'ORIGINAL_BACKEND', 'django.db.backends.postgresql')
+ORIGINAL_BACKEND = getattr(settings, 'ORIGINAL_BACKEND', 'django.db.backends.mysql')
 
 original_backend = import_module(ORIGINAL_BACKEND + '.base')
-
-EXTRA_SEARCH_PATHS = getattr(settings, 'PG_EXTRA_SEARCH_PATHS', [])
 
 EXTRA_SET_TENANT_METHOD_PATH = getattr(settings, 'EXTRA_SET_TENANT_METHOD_PATH', None)
 if EXTRA_SET_TENANT_METHOD_PATH:
@@ -37,15 +31,7 @@ if EXTRA_SET_TENANT_METHOD_PATH:
 else:
     EXTRA_SET_TENANT_METHOD = None
 
-# Valid PostgreSQL schema name regex
-# Criteria:
-#  1. Cannot start with 'pg_'
-#  2. Can be any valid character, if quoted
-#  3. Must be between 1 and 63 characters long
-#
-# Reference:
-# https://www.postgresql.org/docs/13/sql-createschema.html
-PGSQL_VALID_SCHEMA_NAME = re.compile(r'^(?!pg_).{1,63}$', re.IGNORECASE)
+PGSQL_VALID_SCHEMA_NAME = re.compile(r'^[A-Za-z0-9_]{1,64}$', re.IGNORECASE)
 
 
 
@@ -55,13 +41,6 @@ def _check_schema_name(name):
 
 
 class DatabaseWrapper(original_backend.DatabaseWrapper):
-    """
-    Adds the capability to manipulate the search_path using set_tenant and set_schema_name
-    """
-    include_public_schema = True
-    # Use a patched version of the DatabaseIntrospection that only returns the table list for the
-    # currently selected schema.
-
     def __init__(self, *args, **kwargs):
         self.search_path_set_schemas = None
         self.tenant = None
@@ -89,7 +68,6 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         """
         self.tenant = tenant
         self.schema_name = tenant.schema_name
-        self.include_public_schema = include_public
         self.set_settings_schema(self.schema_name)
 
         if EXTRA_SET_TENANT_METHOD:
@@ -135,8 +113,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
     def _cursor(self, name=None):
         """
-        Here it happens. We hope every Django db operation using PostgreSQL
-        must go through this to get the cursor handle. We change the path.
+        Here it happens. We hope every Django db operation must go through this to get the cursor handle.
         """
         if name:
             # Only supported and required by Django 1.11 (server-side cursor)
@@ -156,8 +133,8 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
             search_paths = self._get_cursor_search_paths()
 
-            if name or is_psycopg3:
-                # Named cursor can only be used once, psycopg3 and Django 4 have recursion issue
+            if name:
+                # Named cursor can only be used once, Django 4 have recursion issue
                 cursor_for_search_path = self.connection.cursor()
             else:
                 # Reuse
@@ -168,9 +145,8 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             # if the next instruction is not a rollback it will just fail also, so
             # we do not have to worry that it's not the good one
             try:
-                formatted_search_paths = ['\'{}\''.format(s) for s in search_paths]
-                cursor_for_search_path.execute('SET search_path = {0}'.format(','.join(formatted_search_paths)))
-            except (django.db.utils.DatabaseError, psycopg.InternalError):
+                cursor_for_search_path.execute('USE %s', [search_paths])
+            except (django.db.utils.DatabaseError, InternalError):
                 self.search_path_set_schemas = None
             else:
                 self.search_path_set_schemas = search_paths
@@ -180,18 +156,8 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
     def _get_cursor_search_paths(self):
         _check_schema_name(self.schema_name)
-        public_schema_name = get_public_schema_name()
 
-        if self.schema_name == public_schema_name:
-            search_paths = [public_schema_name]
-        elif self.include_public_schema:
-            search_paths = [self.schema_name, public_schema_name]
-        else:
-            search_paths = [self.schema_name]
-
-        search_paths.extend(EXTRA_SEARCH_PATHS)
-
-        return search_paths
+        return self.schema_name
 
 
 class FakeTenant:

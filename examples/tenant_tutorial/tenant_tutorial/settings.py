@@ -20,7 +20,7 @@ sys.path.insert(0, TENANT_APPS_DIR)
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django_tenants.postgresql_backend',  # Add 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+        'ENGINE': 'django_tenants.mysql_backend',  # Add 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
         'NAME': os.environ.get('DATABASE_DB', 'tenant_tutorial'),
         'USER': os.environ.get('DATABASE_USER', 'tenant_tutorial'),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'qwerty'),

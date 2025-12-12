@@ -33,12 +33,14 @@ classifiers = [
 ]
 dependencies = [
   "django>=2.1,<6",
+  "mysqlclient>=2.2.7",
 ]
 
 optional-dependencies.dev = [
   "coverage",
   "gunicorn==23",
   "psycopg>=3.2.1,<3.3",
+  "mysqlclient>=2.2.7,<3.0.0",
 ]
 urls."Homepage" = "https://github.com/django-tenants/django-tenants"
 

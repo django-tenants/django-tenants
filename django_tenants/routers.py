@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.apps import apps as django_apps
-
 from django_tenants.utils import has_multi_type_tenants, get_tenant_types
 
 

@@ -195,7 +195,7 @@ def schema_exists(schema_name, database=get_tenant_database_alias()):
     cursor = _connection.cursor()
 
     # check if this schema already exists in the db
-    sql = 'SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER(%s))'
+    sql = 'SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = %s;'
     cursor.execute(sql, (schema_name, ))
 
     row = cursor.fetchone()
@@ -213,13 +213,12 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
     """
     This renames a schema to a new name. It checks to see if it exists first
     """
-    from django_tenants.postgresql_backend.base import is_valid_schema_name
     _connection = connections[database]
     cursor = _connection.cursor()
 
     if schema_exists(new_schema_name):
         raise ValidationError("New schema name already exists")
-    if not is_valid_schema_name(new_schema_name):
+    if not _connection.is_valid_schema_name(new_schema_name):
         raise ValidationError("Invalid string used for the schema name.")
     sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(connection.ops.quote_name(tenant.schema_name),
                                                   connection.ops.quote_name(new_schema_name))

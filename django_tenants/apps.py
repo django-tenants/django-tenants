@@ -42,5 +42,9 @@ class DjangoTenantsConfig(AppConfig):
         if tenant_sync_router not in settings.DATABASE_ROUTERS:
             raise ImproperlyConfigured("DATABASE_ROUTERS setting must contain "
                                        "'%s'." % tenant_sync_router)
+        if not hasattr(settings, 'TENANT_ENGINE') or settings.TENANT_ENGINE not in ['postgresql', 'mysql']:
+            raise ImproperlyConfigured("TENANT_ENGINE setting must be set to "
+                                       "'postgresql' or 'mysql'.")
 
-        validate_extra_extensions()
+        if settings.TENANT_ENGINE == 'postgresql':
+            validate_extra_extensions()
