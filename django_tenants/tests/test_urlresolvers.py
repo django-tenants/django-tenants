@@ -63,6 +63,7 @@ class URLResolversTestCase(BaseTestCase):
 
         tpp = TenantPrefixPattern()
         for tenant in get_tenant_model().objects.all():
+            connection.set_schema_to_public()
             domain = tenant.domains.first()
             tenant.domain_subfolder = domain.domain  # Normally done by middleware
             connection.set_tenant(tenant)
@@ -74,6 +75,7 @@ class URLResolversTestCase(BaseTestCase):
         from django.db import connection
 
         for tenant in get_tenant_model().objects.all():
+            connection.set_schema_to_public()
             domain = tenant.domains.first()
             tenant.domain_subfolder = domain.domain  # Normally done by middleware
             connection.set_tenant(tenant)

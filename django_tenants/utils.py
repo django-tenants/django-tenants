@@ -4,12 +4,13 @@ from functools import lru_cache, wraps
 from types import ModuleType
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.core.exceptions import ImproperlyConfigured
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.utils.module_loading import import_string
 
 try:
     from django.apps import apps
+
     get_model = apps.get_model
 except ImportError:
     from django.db.models.loading import get_model
@@ -30,7 +31,7 @@ def get_tenant_database_alias():
 
 
 def get_public_schema_name():
-    return getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
+    return getattr(settings, 'PUBLIC_SCHEMA_NAME', settings.DATABASES['default']['NAME'])
 
 
 def get_tenant_types():
@@ -196,37 +197,17 @@ def schema_exists(schema_name, database=get_tenant_database_alias()):
 
     # check if this schema already exists in the db
     sql = 'SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = %s;'
-    cursor.execute(sql, (schema_name, ))
+    cursor.execute(sql, (schema_name,))
 
     row = cursor.fetchone()
     if row:
-        exists = row[0]
+        exists = True
     else:
         exists = False
 
     cursor.close()
 
     return exists
-
-
-def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(), save=True):
-    """
-    This renames a schema to a new name. It checks to see if it exists first
-    """
-    _connection = connections[database]
-    cursor = _connection.cursor()
-
-    if schema_exists(new_schema_name):
-        raise ValidationError("New schema name already exists")
-    if not _connection.is_valid_schema_name(new_schema_name):
-        raise ValidationError("Invalid string used for the schema name.")
-    sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(connection.ops.quote_name(tenant.schema_name),
-                                                  connection.ops.quote_name(new_schema_name))
-    cursor.execute(sql)
-    cursor.close()
-    tenant.schema_name = new_schema_name
-    if save:
-        tenant.save()
 
 
 @lru_cache(maxsize=128)

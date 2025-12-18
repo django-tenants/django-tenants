@@ -41,11 +41,17 @@ SHARED_APPS = (
 )
 
 TENANT_APPS = (
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
     'dts_test_app',
     'dts_multi_type2',
 )
 
-TENANT_APPS_DIR = os.path.join(BASE_DIR, TENANT_APPS[0])
+TENANT_APPS_DIR = os.path.join(BASE_DIR, "dts_test_app")
 sys.path.insert(0, TENANT_APPS_DIR)
 sys.path.insert(0, BASE_DIR)
 
@@ -82,12 +88,12 @@ WSGI_APPLICATION = 'dts_test_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django_tenants.postgresql_backend',
+        'ENGINE': 'django_tenants.mysql_backend',
         'NAME': os.environ.get('DATABASE_DB', 'dts_test_project'),
-        'USER': os.environ.get('DATABASE_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'root'),
-        'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
-        'PORT': os.environ.get('DATABASE_PORT', 5432),
+        'USER': os.environ.get('DATABASE_USER', 'root'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
+        'HOST': os.environ.get('DATABASE_HOST', '127.0.0.1'),
+        'PORT': os.environ.get('DATABASE_PORT', 3306),
     }
 }
 
