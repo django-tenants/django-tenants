@@ -81,6 +81,7 @@ class InteractiveTenantOption:
         parser.add_argument("-s", "--schema", '--schema_name', dest="schema_name", help="specify tenant schema")
 
     def get_tenant_from_options_or_interactive(self, **options):
+        connection.set_schema_to_public()
         TenantModel = get_tenant_model()
         all_tenants = TenantModel.objects.all()
 

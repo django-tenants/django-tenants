@@ -8,7 +8,7 @@ from django.utils.functional import lazy
 from django_tenants.utils import (
     get_tenant_domain_model,
     get_subfolder_prefix,
-    clean_tenant_url, has_multi_type_tenants, get_tenant_types,
+    clean_tenant_url, has_multi_type_tenants, get_tenant_types
 )
 
 
@@ -28,9 +28,13 @@ class TenantPrefixPattern:
         _DomainModel = get_tenant_domain_model()
         subfolder_prefix = get_subfolder_prefix()
         try:
+            tenant = connection.tenant
+            schema_name = connection.schema_name
+            domain_subfolder = connection.tenant.domain_subfolder
+            connection.set_schema_to_public()
             domain = _DomainModel.objects.get(
-                tenant__schema_name=connection.schema_name,
-                domain=connection.tenant.domain_subfolder,
+                tenant__schema_name=schema_name,
+                domain=domain_subfolder,
             )
             return (
                 "{}/{}/".format(subfolder_prefix, domain.domain)
@@ -39,6 +43,8 @@ class TenantPrefixPattern:
             )
         except _DomainModel.DoesNotExist:
             return "/"
+        finally:
+            connection.set_tenant(tenant)
 
     @property
     def regex(self):

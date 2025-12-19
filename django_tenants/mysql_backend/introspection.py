@@ -14,10 +14,10 @@ class DatabaseSchemaIntrospectionSearchPathContext:
     def __enter__(self):
         self.cursor.execute('SELECT DATABASE()')
         self.original_search_path = self.cursor.fetchone()[0]
-        self.cursor.execute('USE %s', [self.connection.schema_name])
+        self.cursor.execute(f'USE `{self.connection.schema_name}`')
 
     def __exit__(self, *args, **kwargs):
-        self.cursor.execute('USE %s', [self.original_search_path])
+        self.cursor.execute(f'USE `{self.original_search_path}`')
 
 
 class DatabaseSchemaIntrospection(DatabaseIntrospection):

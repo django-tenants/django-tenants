@@ -44,8 +44,10 @@ class BaseTestCase(TransactionTestCase):
     @classmethod
     def get_tables_list_in_schema(cls, schema_name):
         cursor = connection.cursor()
-        sql = """SELECT table_name FROM information_schema.tables
-              WHERE table_schema = %s"""
+        sql = """SELECT table_name
+                 FROM information_schema.tables
+                 WHERE table_schema = %s
+                   AND table_type = 'BASE TABLE';"""
         cursor.execute(sql, (schema_name, ))
         return [row[0] for row in cursor.fetchall()]
 

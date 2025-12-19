@@ -22,10 +22,6 @@ class Migration(migrations.Migration):
                 'abstract': False,
             },
         ),
-        migrations.RemoveField(
-            model_name='client',
-            name='domain_urls',
-        ),
         migrations.AddField(
             model_name='domain',
             name='tenant',

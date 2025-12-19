@@ -1,3 +1,4 @@
+from django.db import connection
 from django.test import RequestFactory, Client
 from django_tenants.middleware.main import TenantMainMiddleware
 from django.http import HttpRequest
@@ -13,7 +14,10 @@ class BaseTenantRequestFactory:
 
     def generic(self, *args, **kwargs):
         if "HTTP_HOST" not in kwargs:
+            schema_name = connection.schema_name
+            connection.set_schema_to_public()
             kwargs["HTTP_HOST"] = self.tenant.get_primary_domain().domain
+            connection.set_schema(schema_name)
         request = super().generic(*args, **kwargs)
         # Assign the tenant to the request object
         request.tenant = self.tenant
@@ -31,7 +35,7 @@ class TenantClient(BaseTenantRequestFactory, Client):
         request = HttpRequest()
         request.META['HTTP_HOST'] = self.tenant.get_primary_domain().domain
         request.tenant = self.tenant
-        
+
         # Authenticate using django contrib's authenticate which passes the request on 
         # to custom backends
 
