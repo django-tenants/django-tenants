@@ -1,0 +1,44 @@
+name: Publish to Private PyPI
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build distribution
+        run: python -m build --sdist --wheel
+
+      - name: Publish to Private PyPI
+        # The repository URL and credentials must be stored in GitHub Secrets.
+        # Recommended secrets: PYPI_REPOSITORY_URL, PYPI_USERNAME, PYPI_PASSWORD
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          python -m twine upload --non-interactive --repository-url "${{ secrets.PYPI_REPOSITORY_URL }}" dist/*
+
+      - name: Cleanup
+        run: rm -rf dist build *.egg-info
+
