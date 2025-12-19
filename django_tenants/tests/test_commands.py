@@ -10,20 +10,22 @@ from dts_test_app.models import DummyModel
 class TenantCommandTestCase(FastTenantTestCase):
 
     def test_pass_arguments_to_subcommand(self):
-        DummyModel(name="Schemas are").save()
-        DummyModel(name="awesome!").save()
+        schemas = DummyModel(name="Schemas are")
+        schemas.save()
+        awesome = DummyModel(name="awesome!")
+        awesome.save()
 
         dump_data = [
             {
                 "model": "dts_test_app.dummymodel",
-                "pk": 1,
+                "pk": schemas.id,
                 "fields": {
                     "name": "Schemas are"
                 }
             },
             {
                 "model": "dts_test_app.dummymodel",
-                "pk": 2,
+                "pk": awesome.id,
                 "fields": {
                     "name": "awesome!"
                 }

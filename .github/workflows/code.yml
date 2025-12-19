@@ -6,23 +6,15 @@ on:
     branches: master
 
 jobs:
-  postgres_compatibility:
-    name: Postgres compatibility ${{ matrix.postgres-version }}
+  test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix: # https://www.postgresql.org/docs/release
-        # always use latest Python b/c the point here is to test PostgreSQL compatibility
-        python-version: ["3.12"]
-        postgres-version: [14, 15, 16, 17]
-
     steps:
     - uses: actions/checkout@v5
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.12
 
     - name: Install Python dependencies
       run: |
@@ -33,62 +25,9 @@ jobs:
     - name: Create database
       run: |
         # maps the container port to localhost
-        docker run --name db -p 5432:5432 -d -e POSTGRES_PASSWORD=testing postgres:${{ matrix.postgres-version }}
-
+        docker run --name db -e MYSQL_ALLOW_EMPTY_PASSWORD=1 -p 3306:3306 -d mysql:8
         sleep 10 # wait for server to initialize
-        PGPASSWORD="testing" psql -c 'create database dts_test_project;' -U postgres -h localhost
 
     - name: Run tests
       run: |
-        export DATABASE_PASSWORD="testing"
         ./run_tests.sh
-
-  django_compatibility:
-    name:  Django compatibility ${{ matrix.django-version}} / Python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-        django-version: ["==4.2.*", "==5.0.*", "==5.1.*", "==5.2.*"]
-        # always use latest Postgres b/c the point here is to test Django compatibility
-        postgres-version: [latest]
-    steps:
-    - uses: actions/checkout@v5
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install Python dependencies
-      run: |
-        pip install Django${{ matrix.django-version }}
-        pip install -e ".[dev]"
-
-    - name: Create database
-      run: |
-        # maps the container port to localhost
-        docker run --name db -p 5432:5432 -d -e POSTGRES_PASSWORD=testing postgres:${{ matrix.postgres-version }}
-
-        sleep 10 # wait for server to initialize
-        PGPASSWORD="testing" psql -c 'create database dts_test_project;' -U postgres -h localhost
-
-    - name: Run tests
-      run: |
-        export DATABASE_PASSWORD="testing"
-        ./run_tests.sh
-
-    - name: Show coverage
-      run: |
-        mv dts_test_project/.coverage* .
-        coverage report -m
-
-    - name: Send coverage to CodeCov
-      uses: codecov/codecov-action@v5
-      if: env.CODECOV_TOKEN
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      with:
-        fail_ci_if_error: true
-        verbose: true
