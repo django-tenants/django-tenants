@@ -49,7 +49,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         django-version: ["==4.2.*", "==5.0.*", "==5.1.*", "==5.2.*"]
         # always use latest Postgres b/c the point here is to test Django compatibility
         postgres-version: [latest]
