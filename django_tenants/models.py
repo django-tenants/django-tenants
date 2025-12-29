@@ -4,7 +4,7 @@ from django.core.management import call_command
 from django.db import models, connections, transaction
 from django.urls import reverse
 
-from .postgresql_backend.base import _check_schema_name
+from .mysql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
 from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias
 
