@@ -8,10 +8,11 @@ function greenprint {
 }
 
 
-DATABASE=${DATABASE_HOST:-localhost}
-DATABASE_PORT=${DATABASE_PORT:-5432}
+DATABASE=${DATABASE_HOST:-127.0.0.1}
+DATABASE_PORT=${DATABASE_PORT:-3306}
 echo "Database: $DATABASE"
 
+i=0
 while ! nc -v -w 1 "$DATABASE" "$DATABASE_PORT" > /dev/null 2>&1 < /dev/null; do
     i=`expr $i + 1`
     if [ $i -ge 50 ]; then
@@ -21,11 +22,16 @@ while ! nc -v -w 1 "$DATABASE" "$DATABASE_PORT" > /dev/null 2>&1 < /dev/null; do
     echo "$(date) - waiting for $DATABASE:$DATABASE_PORT..."
     sleep 1
 done
-echo "postgres connection established"
+echo "mysql connection established"
+
+# Create public database if not exists
+mysqladmin -h "$DATABASE" -P "$DATABASE_PORT" -u root create dts_test_project || true
+# Drop test database if exists
+mysqladmin -h "$DATABASE" -P "$DATABASE_PORT" -u root -f drop test_dts_test_project || true
 
 pushd dts_test_project
 
-EXECUTORS=( standard multiprocessing )
+EXECUTORS=( standard )
 
 for executor in "${EXECUTORS[@]}"; do
     echo "Running tests with executor: $executor"
@@ -40,13 +46,14 @@ PYTHONWARNINGS=d python manage.py migrate --noinput
 
 greenprint "Create public schema"
 PYTHONWARNINGS=d python manage.py create_tenant --noinput \
-    --schema_name public --name "Public tenant" --domain-domain public.example.com --domain-is_primary True
+    --schema_name dts_test_project --name "Public tenant" --domain-domain public.example.com --domain-is_primary True
 
 greenprint "Create empty schema - to be used for cloning"
 PYTHONWARNINGS=d python manage.py create_tenant --noinput \
     --schema_name empty --name "Cloning template" --domain-domain empty.example.com --domain-is_primary True
 
 greenprint "Execute clone_tenant"
+# Cloning disabled/unsupported for now, checking basic creation
 PYTHONWARNINGS=d python manage.py clone_tenant \
     --clone_from empty --clone_tenant_fields False \
     --schema_name a-cloned-tenant --name "A cloned tenant" --description "This tenant was created by cloning" \

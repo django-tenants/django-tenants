@@ -19,7 +19,7 @@ class MultiTypeTestCase(BaseTestCase):
         settings.MULTI_TYPE_DATABASE_FIELD = 'type'  # needs to be a char field length depends of the max type value
 
         tenant_types = {
-            "public": {  # this is the name of the public schema from get_public_schema_name
+            get_public_schema_name(): {  # this is the name of the public schema from get_public_schema_name
                 "APPS": ['django_tenants',
                          'customers'],
                 "URLCONF": "dts_test_project.urls",

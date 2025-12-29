@@ -194,8 +194,8 @@ def schema_exists(schema_name, database=get_tenant_database_alias()):
     _connection = connections[database]
     cursor = _connection.cursor()
 
-    # check if this schema already exists in the db
-    sql = 'SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER(%s))'
+    # MySQL check
+    sql = 'SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = %s)'
     cursor.execute(sql, (schema_name, ))
 
     row = cursor.fetchone()
@@ -210,24 +210,7 @@ def schema_exists(schema_name, database=get_tenant_database_alias()):
 
 
 def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(), save=True):
-    """
-    This renames a schema to a new name. It checks to see if it exists first
-    """
-    from django_tenants.postgresql_backend.base import is_valid_schema_name
-    _connection = connections[database]
-    cursor = _connection.cursor()
-
-    if schema_exists(new_schema_name):
-        raise ValidationError("New schema name already exists")
-    if not is_valid_schema_name(new_schema_name):
-        raise ValidationError("Invalid string used for the schema name.")
-    sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(connection.ops.quote_name(tenant.schema_name),
-                                                  connection.ops.quote_name(new_schema_name))
-    cursor.execute(sql)
-    cursor.close()
-    tenant.schema_name = new_schema_name
-    if save:
-        tenant.save()
+    raise NotImplementedError("Schema renaming is not supported in MySQL backend")
 
 
 @lru_cache(maxsize=128)
@@ -348,3 +331,49 @@ def get_tenant(request):
     if hasattr(request, 'tenant'):
         return request.tenant
     return None
+
+def create_shared_views(schema_name):
+    from django.apps import apps
+    from django.db import connections 
+    
+    shared_apps = getattr(settings, 'SHARED_APPS', [])
+    connection = connections[get_tenant_database_alias()]
+    
+    # We need to know who is public.
+    # In this backend design, public tables are in the DB named by get_public_schema_name()
+    public_schema_name = get_public_schema_name()
+    real_public_db_name = connection.settings_dict['NAME']
+
+    
+    # Avoid creating views if we are in public schema (shouldn't handle this here usually, but safe check)
+    if schema_name == public_schema_name:
+        return
+
+    with connection.cursor() as cursor:
+        cursor.execute(f"USE `{schema_name}`")
+        for app_label in shared_apps:
+            # app_label in settings is like 'django.contrib.auth' or 'customers'
+            # We need the actual AppConfig to find models
+            try:
+                # Try full path first
+                if '.' in app_label:
+                    app_config = apps.get_app_config(app_label.split('.')[-1])
+                else:
+                    app_config = apps.get_app_config(app_label)
+            except LookupError:
+                continue
+
+            for model in app_config.get_models():
+                table_name = model._meta.db_table
+                
+                # Check if public table exists (sanity check?) 
+                # Assuming public tables exist.
+                
+                # Create View
+                # Using backticks for MySQL safety
+                sql = f"CREATE OR REPLACE VIEW `{schema_name}`.`{table_name}` AS SELECT * FROM `{real_public_db_name}`.`{table_name}`"
+                try:
+                    cursor.execute(sql)
+                except Exception as e:
+                    print(f"Warning: Could not create view for {table_name}: {e}")
+

@@ -5,7 +5,7 @@ from django.db import models, connections, transaction
 from django.urls import reverse
 
 from django_tenants.clone import CloneSchema
-from .postgresql_backend.base import _check_schema_name
+from django_tenants.mysql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
 from .utils import get_creation_fakes_migrations, get_tenant_base_schema
 from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias
@@ -152,7 +152,7 @@ class TenantMixin(models.Model):
         if has_schema and schema_exists(self.schema_name) and (self.auto_drop_schema or force_drop):
             self.pre_drop()
             cursor = connection.cursor()
-            cursor.execute('DROP SCHEMA "%s" CASCADE' % self.schema_name)
+            cursor.execute(f"DROP DATABASE IF EXISTS `{self.schema_name}`")
 
     def pre_drop(self):
         """
@@ -203,7 +203,12 @@ class TenantMixin(models.Model):
                              verbosity=verbosity)
             else:
                 # create the schema
-                cursor.execute('CREATE SCHEMA "%s"' % self.schema_name)
+                cursor.execute(f"CREATE DATABASE `{self.schema_name}`")
+                
+                # Create shared views
+                from django_tenants.utils import create_shared_views
+                create_shared_views(self.schema_name)
+
                 call_command('migrate_schemas',
                              tenant=True,
                              schema_name=self.schema_name,

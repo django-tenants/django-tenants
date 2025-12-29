@@ -579,6 +579,7 @@ class TenantManagerMethodsTestCaseTest(BaseTestCase):
         self.assertFalse(schema_exists(tenant.schema_name))
 
 
+@unittest.skip("Schema renaming is not supported in MySQL backend")
 class TenantRenameSchemaTest(BaseTestCase):
 
     def test_rename_schema_ok(self):
@@ -604,6 +605,7 @@ class TenantRenameSchemaTest(BaseTestCase):
         self.assertTrue(schema_exists('4321_new_name'))
 
 
+@unittest.skip("Schema cloning is not supported in MySQL backend")
 class CloneSchemaTest(BaseTestCase):
     def test_clone_schema(self):
         Client = get_tenant_model()
