@@ -81,36 +81,6 @@ def get_subfolder_prefix():
     return subfolder_prefix.strip('/ ')
 
 
-def get_creation_fakes_migrations():
-    """
-    If TENANT_CREATION_FAKES_MIGRATIONS, tenants will be created by cloning an
-    existing schema specified by TENANT_CLONE_BASE.
-    """
-    faked = getattr(settings, 'TENANT_CREATION_FAKES_MIGRATIONS', False)
-    if faked:
-        if not getattr(settings, 'TENANT_BASE_SCHEMA', False):
-            raise ImproperlyConfigured(
-                'You must specify a schema name in TENANT_BASE_SCHEMA if '
-                'TENANT_CREATION_FAKES_MIGRATIONS is enabled.'
-            )
-    return faked
-
-
-def get_tenant_base_schema():
-    """
-    If TENANT_CREATION_FAKES_MIGRATIONS, tenants will be created by cloning an
-    existing schema specified by TENANT_CLONE_BASE.
-    """
-    schema = getattr(settings, 'TENANT_BASE_SCHEMA', False)
-    if schema:
-        if not getattr(settings, 'TENANT_CREATION_FAKES_MIGRATIONS', False):
-            raise ImproperlyConfigured(
-                'TENANT_CREATION_FAKES_MIGRATIONS setting must be True to use '
-                'TENANT_BASE_SCHEMA for cloning.'
-            )
-    return schema
-
-
 def get_tenant_migration_order():
     return getattr(settings, 'TENANT_MIGRATION_ORDER', None)
 

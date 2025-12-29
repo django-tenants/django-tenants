@@ -42,9 +42,9 @@ def _check_schema_name(name):
 
 class DatabaseWrapper(original_backend.DatabaseWrapper):
     def __init__(self, *args, **kwargs):
-        self.search_path_set_schemas = None
         self.tenant = None
         self.schema_name = None
+        self.current_schema = None
         super().__init__(*args, **kwargs)
 
         # Use a patched version of the DatabaseIntrospection that only returns the table list for the
@@ -58,7 +58,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         return PGSQL_VALID_SCHEMA_NAME.match(name)
 
     def close(self):
-        self.search_path_set_schemas = None
+        self.current_schema = None
         super().close()
 
     def set_tenant(self, tenant, include_public=True):
@@ -73,7 +73,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         if EXTRA_SET_TENANT_METHOD:
             EXTRA_SET_TENANT_METHOD(self, tenant)
 
-        self.search_path_set_schemas = None
+        self.current_schema = None
 
         # Content type can no longer be cached as public and tenant schemas
         # have different models. If someone wants to change this, the cache
@@ -115,49 +115,18 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         """
         Here it happens. We hope every Django db operation must go through this to get the cursor handle.
         """
-        if name:
-            # Only supported and required by Django 1.11 (server-side cursor)
-            cursor = super()._cursor(name=name)
-        else:
-            cursor = super()._cursor()
+        cursor = super()._cursor(name=name)
 
-        # optionally limit the number of executions - under load, the execution
-        # of `set search_path` can be quite time consuming
-        if (not get_limit_set_calls()) or not self.search_path_set_schemas:
-            # Actual search_path modification for the cursor. Database will
-            # search schemata from left to right when looking for the object
-            # (table, index, sequence, etc.).
-            if not self.schema_name:
-                raise ImproperlyConfigured("Database schema not set. Did you forget "
-                                           "to call set_schema() or set_tenant()?")
-
-            search_paths = self._get_cursor_search_paths()
-
-            if name:
-                # Named cursor can only be used once, Django 4 have recursion issue
-                cursor_for_search_path = self.connection.cursor()
-            else:
-                # Reuse
-                cursor_for_search_path = cursor
-
-            # In the event that an error already happened in this transaction and we are going
-            # to rollback we should just ignore database error when setting the search_path
-            # if the next instruction is not a rollback it will just fail also, so
-            # we do not have to worry that it's not the good one
+        if self.schema_name and self.schema_name != self.current_schema:
             try:
-                cursor_for_search_path.execute(f'USE `{search_paths}`')
+                # Quote name to be safe
+                cursor.execute(f'USE `{self.schema_name}`')
+                self.current_schema = self.schema_name
             except (django.db.utils.DatabaseError, InternalError):
-                self.search_path_set_schemas = None
-            else:
-                self.search_path_set_schemas = search_paths
-            if name:
-                cursor_for_search_path.close()
+                self.schema_name = None
+
         return cursor
 
-    def _get_cursor_search_paths(self):
-        _check_schema_name(self.schema_name)
-
-        return self.schema_name
 
 
 class FakeTenant:

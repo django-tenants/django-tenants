@@ -3,7 +3,6 @@ from django.apps import AppConfig
 from django.core.exceptions import ImproperlyConfigured
 from django_tenants.utils import get_public_schema_name, validate_extra_extensions
 
-
 recommended_config = """
 Warning: The recommend way of setting django tenants up is shown in the documentation.
 Please see https://django-tenants.readthedocs.io/en/latest/install.html?highlight=#configure-tenant-and-shared-applications

@@ -8,8 +8,7 @@ from django.db import connection, transaction
 from django.test.utils import override_settings
 from django.utils.version import get_main_version, get_version_tuple
 
-from django_tenants.clone import CloneSchema
-from django_tenants.signals import schema_migrated, schema_migrate_message, schema_pre_migration
+from django_tenants.signals import schema_migrated, schema_pre_migration
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 
 from django_tenants.migration_executors import get_executor
@@ -191,7 +190,7 @@ class TenantDataAndSettingsTest(BaseTestCase):
         DummyModel(name="awesome!").save()
 
         # switch temporarily to tenant2's path
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(4):
             with tenant_context(tenant2):
                 # add some data, 3 DummyModels for tenant2
                 DummyModel(name="Man,").save()

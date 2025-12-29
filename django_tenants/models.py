@@ -4,10 +4,8 @@ from django.core.management import call_command
 from django.db import models, connections, transaction
 from django.urls import reverse
 
-from django_tenants.clone import CloneSchema
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
-from .utils import get_creation_fakes_migrations, get_tenant_base_schema
 from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias
 
 
@@ -152,7 +150,7 @@ class TenantMixin(models.Model):
         if has_schema and schema_exists(self.schema_name) and (self.auto_drop_schema or force_drop):
             self.pre_drop()
             cursor = connection.cursor()
-            cursor.execute(f'DROP DATABASE {self.schema_name};')
+            cursor.execute('DROP DATABASE IF EXISTS `%s`' % self.schema_name)
 
     def pre_drop(self):
         """
@@ -184,31 +182,14 @@ class TenantMixin(models.Model):
         if check_if_exists and schema_exists(self.schema_name):
             return False
 
-        fake_migrations = get_creation_fakes_migrations()
-
         if sync_schema:
-            if fake_migrations:
-                # copy tables and data from provided model schema
-                base_schema = get_tenant_base_schema()
-                clone_schema = CloneSchema()
-                clone_schema.clone_schema(
-                    base_schema, self.schema_name, self.clone_mode
-                )
-
-                call_command('migrate_schemas',
-                             tenant=True,
-                             fake=True,
-                             schema_name=self.schema_name,
-                             interactive=False,
-                             verbosity=verbosity)
-            else:
-                # create the schema
-                cursor.execute('CREATE DATABASE `%s`' % self.schema_name)
-                call_command('migrate_schemas',
-                             tenant=True,
-                             schema_name=self.schema_name,
-                             interactive=False,
-                             verbosity=verbosity)
+            # create the schema
+            cursor.execute('CREATE DATABASE `%s`' % self.schema_name)
+            call_command('migrate_schemas',
+                         tenant=True,
+                         schema_name=self.schema_name,
+                         interactive=False,
+                         verbosity=verbosity)
 
         connection.set_schema_to_public()
 
