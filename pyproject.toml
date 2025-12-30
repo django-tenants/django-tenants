@@ -5,7 +5,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "django-tenants-mysql"
-version = "3.9.2"
+version = "3.9.3"
 description = "Tenant support for Django using mysql schemas."
 readme = "README.rst"
 license = "MIT"
@@ -55,6 +55,7 @@ include = [
   "django_tenants",
   "django_tenants.files",
   "django_tenants.postgresql_backend",
+  "django_tenants.mysql_backend",
   "django_tenants.management",
   "django_tenants.management.commands",
   "django_tenants.migration_executors",
