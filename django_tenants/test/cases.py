@@ -1,6 +1,6 @@
 from django.core.management import call_command
 from django.conf import settings
-from django.db import connection
+from django.db import connection, connections
 from django.test import TestCase
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name
 
@@ -90,11 +90,7 @@ class TenantTestCase(TestCase):
 class FastTenantTestCase(TenantTestCase):
     """
     A faster variant of `TenantTestCase`: the test schema and its migrations will only be created and ran once.
-
-    WARNING: although this does produce significant improvements in speed it also means that these type of tests
-             are not fully encapsulated and that some state will be shared between tests.
-
-    See: https://github.com/tomturner/django-tenants/issues/100
+    Tests are encapsulated in transaction as regular test, on rollback all dbs are cleared.
     """
 
     @classmethod
@@ -152,11 +148,23 @@ class FastTenantTestCase(TenantTestCase):
         else:
             cls.setup_test_tenant_and_domain()
 
+        cls.cls_atomics = cls._enter_atomics()
         connection.set_tenant(cls.tenant)
+        if cls.fixtures:
+            for db_name in cls._databases_names(include_mirrors=False):
+                try:
+                    call_command("loaddata", *cls.fixtures, **{"verbosity": 0, "database": db_name})
+                except Exception:
+                    cls._rollback_atomics(cls.cls_atomics)
+                    raise
 
     @classmethod
     def tearDownClass(cls):
         connection.set_schema_to_public()
+        cls._rollback_atomics(cls.cls_atomics)
+        for conn in connections.all(initialized_only=True):
+            conn.close()
+
 
     def _fixture_teardown(self):
         if self.flush_data():
