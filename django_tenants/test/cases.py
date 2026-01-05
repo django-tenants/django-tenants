@@ -1,7 +1,7 @@
 from django.core.management import call_command
 from django.conf import settings
 from django.db import connection, connections
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase, TransactionTestCase, modify_settings, override_settings
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name
 
 
@@ -31,6 +31,14 @@ class TenantTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        if cls._overridden_settings:
+            cls._cls_overridden_context = override_settings(**cls._overridden_settings)
+            cls._cls_overridden_context.enable()
+            cls.addClassCleanup(cls._cls_overridden_context.disable)
+        if cls._modified_settings:
+            cls._cls_modified_context = modify_settings(cls._modified_settings)
+            cls._cls_modified_context.enable()
+            cls.addClassCleanup(cls._cls_modified_context.disable)
         cls.sync_shared()
         cls.add_allowed_test_domain()
         cls.tenant = get_tenant_model()(schema_name=cls.get_test_schema_name())
@@ -220,6 +228,15 @@ class FastTenantTestCase(TenantTestCase):
 
     @classmethod
     def setUpClass(cls):
+        if cls._overridden_settings:
+            cls._cls_overridden_context = override_settings(**cls._overridden_settings)
+            cls._cls_overridden_context.enable()
+            cls.addClassCleanup(cls._cls_overridden_context.disable)
+        if cls._modified_settings:
+            cls._cls_modified_context = modify_settings(cls._modified_settings)
+            cls._cls_modified_context.enable()
+            cls.addClassCleanup(cls._cls_modified_context.disable)
+
         cls.add_allowed_test_domain()
         tenant_model = get_tenant_model()
 

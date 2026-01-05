@@ -5,7 +5,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "django-tenants-mysql"
-version = "3.9.5"
+version = "3.9.6"
 description = "Tenant support for Django using mysql schemas."
 readme = "README.rst"
 license = "MIT"
