@@ -56,46 +56,29 @@ class Command(BaseCommand):
                 domain_data[field.attname] = field.clean(input_value, None)
 
         if options['interactive']:
-            while True:
-                for field in self.tenant_fields:
-                    if tenant_data.get(field.attname, '') == '':
-                        input_msg = field.verbose_name
-                        default = field.get_default()
-                        if default:
-                            input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
+            for field in self.tenant_fields:
+                if tenant_data.get(field.attname, '') == '':
+                    input_msg = field.verbose_name
+                    default = field.get_default()
+                    if default:
+                        input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
 
-                        input_value = input(force_str('%s: ' % input_msg)) or default
-                        tenant_data[field.attname] = input_value
-                tenant = self.store_tenant(**tenant_data)
-                if tenant is not None:
-                    break
-                tenant_data = {}
-        else:
-            tenant = self.store_tenant(**tenant_data)
-            if tenant is None:
-                raise CommandError("Missing required fields")
+                    input_value = input(force_str('%s: ' % input_msg)) or default
+                    tenant_data[field.attname] = input_value
+        tenant = self.store_tenant(**tenant_data)
 
+        domain_data['tenant_id'] = tenant.pk
         if options['interactive']:
-            while True:
-                domain_data['tenant_id'] = tenant.pk
-                for field in self.domain_fields:
-                    if domain_data.get(field.attname, '') == '':
-                        input_msg = field.verbose_name
-                        default = field.get_default()
-                        if default:
-                            input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
+            for field in self.domain_fields:
+                if domain_data.get(field.attname, '') == '':
+                    input_msg = field.verbose_name
+                    default = field.get_default()
+                    if default:
+                        input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
 
-                        input_value = input(force_str('%s: ' % input_msg)) or default
-                        domain_data[field.attname] = input_value
-                domain = self.store_tenant_domain(**domain_data)
-                if domain is not None:
-                    break
-                domain_data = {}
-        else:
-            domain_data['tenant_id'] = tenant.pk
-            domain = self.store_tenant_domain(**domain_data)
-            if domain is None:
-                raise CommandError("Missing required domain fields")
+                    input_value = input(force_str('%s: ' % input_msg)) or default
+                    domain_data[field.attname] = input_value
+        domain = self.store_tenant_domain(**domain_data)
 
         if options.get('s', None):
             self.stdout.write("Create superuser for %s" % tenant_data['schema_name'])
@@ -106,10 +89,12 @@ class Command(BaseCommand):
             tenant = get_tenant_model().objects.create(**fields)
             return tenant
         except exceptions.ValidationError as e:
-            self.stderr.write("Error: %s" % '; '.join(e.messages))
-            return None
-        except IntegrityError:
-            return None
+            raise CommandError('; '.join(e.messages))
+        except IntegrityError as e:
+            raise CommandError(
+                "Tenant with this schema_name may already exist. "
+                "Database error: %s" % str(e)
+            )
 
     def store_tenant_domain(self, **fields):
         try:
@@ -117,7 +102,9 @@ class Command(BaseCommand):
             domain.save()
             return domain
         except exceptions.ValidationError as e:
-            self.stderr.write("Error: %s" % '; '.join(e.messages))
-            return None
-        except IntegrityError:
-            return None
+            raise CommandError('; '.join(e.messages))
+        except IntegrityError as e:
+            raise CommandError(
+                "Domain may already exist or violate database constraints. "
+                "Database error: %s" % str(e)
+            )
