@@ -147,6 +147,34 @@ Now run ``migrate_schemas --shared``, this will create the shared apps on the ``
 
    You might need to run ``makemigrations`` and then ``migrate_schemas --shared`` again for your ``app.Models`` to be created in the database.
 
+.. warning::
+
+    **Moving apps between SHARED_APPS and TENANT_APPS**
+
+    When you run ``migrate_schemas``, Django tracks all migrations as "applied" in the
+    ``django_migrations`` table in **every schema**, even though it only creates the actual
+    tables in the appropriate schemas. This means:
+
+    - The public schema shows TENANT_APPS migrations as "applied" (but tables don't exist)
+    - Tenant schemas show SHARED_APPS migrations as "applied" (but tables don't exist)
+
+    **If you move an app** between SHARED_APPS and TENANT_APPS, Django sees the migrations
+    as already "applied" in the destination schemas and won't create the tables.
+
+    **To move an app from TENANT_APPS to SHARED_APPS:**
+
+    1. Move the app from TENANT_APPS to SHARED_APPS in your settings **first**
+    2. ``./manage.py migrate_schemas --schema=public <app> zero --fake``
+    3. ``./manage.py migrate_schemas --shared``
+    4. Migrate any data from tenant schemas to public schema as needed
+
+    **To move an app from SHARED_APPS to TENANT_APPS:**
+
+    1. Move the app from SHARED_APPS to TENANT_APPS in your settings **first**
+    2. ``./manage.py migrate_schemas --tenant <app> zero --fake``
+    3. ``./manage.py migrate_schemas --tenant``
+    4. Migrate any data from public schema to tenant schemas as needed
+
 Lastly, you need to create a tenant whose schema is ``public`` and it's address is your domain URL. Please see the section on :doc:`use <use>`.
 
 You can also specify extra schemas that should be visible to all queries using
