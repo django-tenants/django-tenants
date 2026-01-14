@@ -1,5 +1,5 @@
 breathe==4.36.0
-docutils==0.22.2
+docutils==0.22.4
 Pygments==2.19.2
 pyparsing==3.2.5
 Sphinx==8.2.3
