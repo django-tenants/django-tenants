@@ -13,3 +13,8 @@ django_tenants.egg-info
 .idea/
 dts_test_project/*/media/*/*.txt
 postgres-data/
+
+
+rough
+
+asgi-middleware.rst
