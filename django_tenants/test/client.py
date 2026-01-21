@@ -14,14 +14,16 @@ class BaseTenantRequestFactory:
     def generic(self, *args, **kwargs):
         if "HTTP_HOST" not in kwargs:
             kwargs["HTTP_HOST"] = self.tenant.get_primary_domain().domain
-        request = super().generic(*args, **kwargs)
-        # Assign the tenant to the request object
-        request.tenant = self.tenant
-        return request
+        return super().generic(*args, **kwargs)
 
 
 class TenantRequestFactory(BaseTenantRequestFactory, RequestFactory):
-    pass
+
+    def generic(self, *args, **kwargs):
+        request = super().generic(*args, **kwargs)
+        # Process request using Tenant middleware
+        self.tm.process_request(request)
+        return request
 
 
 class TenantClient(BaseTenantRequestFactory, Client):
