@@ -187,7 +187,7 @@ class TenantMixin(models.Model):
         fake_migrations = get_creation_fakes_migrations()
 
         if sync_schema:
-            if fake_migrations:
+            if fake_migrations and schema_exists(get_tenant_base_schema()):
                 # copy tables and data from provided model schema
                 base_schema = get_tenant_base_schema()
                 clone_schema = CloneSchema()
