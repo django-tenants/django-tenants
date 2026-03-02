@@ -47,6 +47,26 @@ Because you have the tenant middleware installed, any request made to ``tenant.m
 
 Any call to the methods ``filter``, ``get``, ``save``, ``delete`` or any other function involving a database connection will now be done at the tenant's schema, so you shouldn't need to change anything at your views.
 
+Do query under a specific tenant
+---------------------------------
+
+In case you want to explicitly choose which tenant to execute the query, activate the context for that tenant:
+
+.. code-block:: python
+
+    from django_tenants.utils import schema_context
+
+    with schema_context(tenant.schema_name):
+        Order.object.filter(...)
+
+    # Or simpler
+    with tenant:
+        Order.object.filter(...)
+
+
+This is often needed for code in background tasks, Django commands, test cases.
+
+
 Deleting a tenant
 -----------------
 
@@ -129,7 +149,7 @@ Signals
 
 There are number of signals
 
-```post_schema_sync``` will get called after a schema gets created from the save method on the tenant class.
+``post_schema_sync`` will get called after a schema gets created from the save method on the tenant class.
 
 ```schema_needs_to_be_sync``` will get called if the schema needs to be migrated. ```auto_create_schema``` (on the tenant model) has to be set to False for this signal to get called. This signal is very useful when tenants are created via a background process such as celery.
 
