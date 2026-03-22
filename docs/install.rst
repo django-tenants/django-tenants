@@ -346,6 +346,20 @@ To enable tenant aware caching you can set the KEY_FUNCTION setting to use the p
 The REVERSE_KEY_FUNCTION setting is only required if you are using the django-redis cache backend.
 
 
+Using django cache for Tenant Management
+=======
+
+This feature enables caching tenant data to improve performance by reducing database queries. The cache stores data for all tenants using the `TENANTS_CACHE_DATA` constant.
+
+**Configuration**
+
+.. attribute:: TENANT_CACHE_ENABLE
+
+    :Default: ``False``
+
+    To enable tenant caching, set the following constant in your settings.
+
+
 Configuring your Apache Server (optional)
 =========================================
 Here's how you can configure your Apache server to route all subdomains to your django project so you don't have to setup any subdomains manually.

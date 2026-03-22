@@ -7,7 +7,10 @@ from django.utils.module_loading import import_string
 from django.utils.deprecation import MiddlewareMixin
 
 from django_tenants.utils import remove_www, get_public_schema_name, get_tenant_types, \
-    has_multi_type_tenants, get_tenant_domain_model, get_public_schema_urlconf
+    has_multi_type_tenants, get_tenant_domain_model, get_public_schema_urlconf, get_tenant_model
+
+TENANTS_CACHE_DATA = {}
+TENANT_CACHE_ENABLE = getattr(settings, 'TENANT_CACHE_ENABLE', False)
 
 
 class TenantMainMiddleware(MiddlewareMixin):
@@ -20,14 +23,37 @@ class TenantMainMiddleware(MiddlewareMixin):
 
     @staticmethod
     def hostname_from_request(request):
-        """ Extracts hostname from request. Used for custom requests filtering.
-            By default removes the request's port and common prefixes.
+        """Extracts hostname from request. Used for custom requests filtering.
+        By default removes the request's port and common prefixes.
         """
         return remove_www(request.get_host().split(':')[0])
 
+    @staticmethod
+    def get_cached_tenant(domain_model, hostname):
+        """Get cached tenant."""
+        if hostname in TENANTS_CACHE_DATA:
+            tenant = TENANTS_CACHE_DATA[hostname]
+            client_model = get_tenant_model()
+            if isinstance(tenant, client_model):
+                return tenant
+            else:
+                raise domain_model.DoesNotExist()
+        else:
+            try:
+                domain = domain_model.objects.select_related('tenant').get(domain=hostname)
+            except domain_model.DoesNotExist:
+                TENANTS_CACHE_DATA[hostname] = None
+                raise domain_model.DoesNotExist()
+            else:
+                TENANTS_CACHE_DATA[hostname] = domain.tenant
+                return domain.tenant
+
     def get_tenant(self, domain_model, hostname):
-        domain = domain_model.objects.select_related('tenant').get(domain=hostname)
-        return domain.tenant
+        if TENANT_CACHE_ENABLE is True:
+            return self.get_cached_tenant(domain_model, hostname)
+        else:
+            domain = domain_model.objects.select_related('tenant').get(domain=hostname)
+            return domain.tenant
 
     def process_request(self, request):
         # Connection needs first to be at the public schema, as this is where
@@ -38,6 +64,7 @@ class TenantMainMiddleware(MiddlewareMixin):
             hostname = self.hostname_from_request(request)
         except DisallowedHost:
             from django.http import HttpResponseNotFound
+
             return HttpResponseNotFound()
 
         domain_model = get_tenant_domain_model()
@@ -53,8 +80,8 @@ class TenantMainMiddleware(MiddlewareMixin):
         self.setup_url_routing(request)
 
     def no_tenant_found(self, request, hostname):
-        """ What should happen if no tenant is found.
-        This makes it easier if you want to override the default behavior """
+        """What should happen if no tenant is found.
+        This makes it easier if you want to override the default behavior"""
         if hasattr(settings, 'DEFAULT_NOT_FOUND_TENANT_VIEW'):
             view_path = settings.DEFAULT_NOT_FOUND_TENANT_VIEW
             view = import_string(view_path)

@@ -1,8 +1,13 @@
+import importlib
+from unittest.mock import patch
+
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.test import override_settings
 from django.test.client import RequestFactory
 
 from django_tenants.middleware import TenantMainMiddleware, TenantSubfolderMiddleware
+from django_tenants.middleware.main import TENANTS_CACHE_DATA
 from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name
 
@@ -83,6 +88,32 @@ class RoutesTestCase(BaseTestCase):
 
         # request.tenant should also have been set
         self.assertEqual(request.tenant, self.public_tenant)
+
+    @override_settings(TENANT_CACHE_ENABLE=True)
+    def test_tenants_django_cache_enable(self):
+        """
+        Request path should not be altered.
+        """
+        with patch('django_tenants.middleware.main.TENANT_CACHE_ENABLE', True):
+            self.assertDictEqual(TENANTS_CACHE_DATA, {})
+            request = self.factory.get('/any/request/',
+                                       HTTP_HOST=self.tenant_domain)
+            self.tm.process_request(request)
+            self.assertTrue(getattr(settings, 'TENANT_CACHE_ENABLE', False))
+            self.assertDictEqual(TENANTS_CACHE_DATA, {self.tenant_domain: self.tenant})
+
+    def test_tenants_django_cache_disable(self):
+        """
+        Request path should not be altered.
+        """
+        TENANTS_CACHE_DATA.clear()
+        self.assertDictEqual(TENANTS_CACHE_DATA, {})
+        request = self.factory.get('/any/request/',
+                                   HTTP_HOST=self.tenant_domain)
+        self.tm.process_request(request)
+        self.assertTrue(getattr(settings, 'TENANT_CACHE_ENABLE', False) is False)
+
+        self.assertDictEqual(TENANTS_CACHE_DATA, {})
 
 
 class SubfolderRoutesTestCase(BaseTestCase):
