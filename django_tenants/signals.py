@@ -43,6 +43,16 @@ Argument Required = message
 """
 
 
+tenant_transaction_began = Signal()
+tenant_transaction_began.__doc__ = """
+Sent after a transaction has begun and SET LOCAL search_path has been set
+(PgBouncer transaction pooling mode). Use for custom SQL that must run at
+transaction start.
+
+Arguments: connection, schema_name
+"""
+
+
 @receiver(post_delete)
 def tenant_delete_callback(sender, instance, **kwargs):
     if not isinstance(instance, get_tenant_model()):

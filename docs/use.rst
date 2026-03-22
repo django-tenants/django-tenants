@@ -530,6 +530,42 @@ The hook for ensuring the ``search_path`` is set properly happens inside the ``D
 When set, ``django-tenants`` will set the search path only once per request. The default is ``False``.
 
 
+PgBouncer transaction pooling
+-----------------------------
+
+When using PostgreSQL behind PgBouncer (or a similar connection pooler) in **transaction** pooling mode, the server connection is returned to the pool after each transaction. Session-level ``SET search_path`` would then affect the next client using that connection. To support this setup, django-tenants can run every unit of work in an explicit transaction and set the tenant schema with ``SET LOCAL search_path`` so the setting is transaction-scoped and does not leak.
+
+**When to use:** Only when your app connects to PostgreSQL through PgBouncer in **transaction** pooling mode. Do not enable for session pooling or when not using a pooler.
+
+**How to enable:** Set in ``settings.py``:
+
+.. code-block:: python
+
+    TENANT_PGBOUNCER_TRANSACTION_POOLING = True
+
+When enabled:
+
+- Every database operation runs in an explicit transaction (autocommit-mode statements are wrapped in BEGIN/COMMIT).
+- The tenant schema is set with ``SET LOCAL search_path`` at the start of each transaction, and only once per transaction (tracked and cleared on commit/rollback).
+
+**Opt-out:** For code that must not be wrapped (e.g. raw SQL that manages its own transaction, or migrations that need different behavior), use the context manager from ``django_tenants.utils``:
+
+.. code-block:: python
+
+    from django_tenants.utils import disable_transaction_pooling
+
+    with disable_transaction_pooling():
+        cursor.execute("BEGIN; ... COMMIT;")
+
+**Caveats:**
+
+- With pooling enabled, ``run_on_commit`` callbacks run after each single-statement "synthetic" transaction when in autocommit mode. For "only after my explicit atomic" semantics, use an explicit ``transaction.atomic()``.
+- Server-side (named) cursors and nested ``transaction.atomic()`` are handled: the wrapper does not commit in the middle.
+- Migrations and schema clone can use ``disable_transaction_pooling()`` if needed.
+
+**Signal:** When pooling is on, ``tenant_transaction_began`` is sent after ``SET LOCAL search_path`` is run at transaction start (arguments: ``connection``, ``schema_name``). Use it for custom SQL that must run at transaction start.
+
+
 Extra Set Tenant Method
 -----------------------
 

@@ -1,5 +1,6 @@
 import os
-from contextlib import ContextDecorator
+from contextlib import ContextDecorator, contextmanager
+from contextvars import ContextVar
 from functools import lru_cache, wraps
 from types import ModuleType
 
@@ -73,6 +74,46 @@ def get_tenant_type_choices():
 
 def get_limit_set_calls():
     return getattr(settings, 'TENANT_LIMIT_SET_CALLS', False)
+
+
+def get_pgbouncer_transaction_pooling():
+    """
+    When True, enable PgBouncer transaction pooling support: every unit of work
+    runs in an explicit transaction and search_path is set with SET LOCAL
+    so it does not leak to other clients. Only enable when using PgBouncer
+    (or similar) in transaction pooling mode.
+    """
+    return getattr(settings, 'TENANT_PGBOUNCER_TRANSACTION_POOLING', False)
+
+
+# Context var to opt out of transaction pooling behavior (e.g. raw SQL managing
+# its own transaction, or migrations that need different behavior).
+_tenant_disable_transaction_pooling: ContextVar[bool] = ContextVar(
+    'tenant_disable_transaction_pooling', default=False
+)
+
+
+def is_transaction_pooling_disabled():
+    """Return True if the current context has disabled transaction pooling."""
+    return _tenant_disable_transaction_pooling.get()
+
+
+@contextmanager
+def disable_transaction_pooling():
+    """
+    Context manager to disable PgBouncer transaction pooling behavior for a
+    block. Use when code manages its own transactions (e.g. raw SQL with
+    BEGIN/COMMIT) or when migrations need different behavior.
+
+    Example:
+        with disable_transaction_pooling():
+            cursor.execute("BEGIN; ... COMMIT;")
+    """
+    token = _tenant_disable_transaction_pooling.set(True)
+    try:
+        yield
+    finally:
+        _tenant_disable_transaction_pooling.reset(token)
 
 
 def get_subfolder_prefix():
