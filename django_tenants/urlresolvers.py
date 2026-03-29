@@ -22,16 +22,26 @@ reverse_lazy = lazy(reverse, str)
 
 class TenantPrefixPattern:
     converters = {}
+    cached_domain = None
 
     @property
     def tenant_prefix(self):
         _DomainModel = get_tenant_domain_model()
         subfolder_prefix = get_subfolder_prefix()
         try:
-            domain = _DomainModel.objects.get(
-                tenant__schema_name=connection.schema_name,
-                domain=connection.tenant.domain_subfolder,
-            )
+            # Store the domain to avoid multiple DB hits for the same domain in the same request
+            if (self.cached_domain is not None and 
+                    self.cached_domain.domain == connection.tenant.domain_subfolder and 
+                    self.cached_domain.tenant.schema_name == connection.schema_name):
+                domain = self.cached_domain
+
+            else:
+                domain = _DomainModel.objects.get(
+                    tenant__schema_name=connection.schema_name,
+                    domain=connection.tenant.domain_subfolder,
+                )
+                self.cached_domain = domain
+                
             return (
                 "{}/{}/".format(subfolder_prefix, domain.domain)
                 if subfolder_prefix
