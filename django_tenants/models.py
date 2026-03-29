@@ -103,10 +103,16 @@ class TenantMixin(models.Model):
         connection = connections[get_tenant_database_alias()]
         is_new = self._state.adding
         has_schema = hasattr(connection, 'schema_name')
-        if has_schema and is_new and connection.schema_name != get_public_schema_name():
+        if has_schema and is_new and connection.schema_name != get_public_schema_name() and (
+                getattr(settings, "TENANT_ADMIN_SCHEMA") is None
+                or connection.schema_name != getattr(settings, "TENANT_ADMIN_SCHEMA")
+            ):
             raise Exception("Can't create tenant outside the public schema. "
                             "Current schema is %s." % connection.schema_name)
-        elif has_schema and not is_new and connection.schema_name not in (self.schema_name, get_public_schema_name()):
+        elif has_schema and not is_new and connection.schema_name not in (self.schema_name, get_public_schema_name()) and (
+                getattr(settings, "TENANT_ADMIN_SCHEMA") is None
+                or connection.schema_name != getattr(settings, "TENANT_ADMIN_SCHEMA")
+            ):
             raise Exception("Can't update tenant outside it's own schema or "
                             "the public schema. Current schema is %s."
                             % connection.schema_name)
@@ -144,7 +150,10 @@ class TenantMixin(models.Model):
         """ Drops the schema"""
         connection = connections[get_tenant_database_alias()]
         has_schema = hasattr(connection, 'schema_name')
-        if has_schema and connection.schema_name not in (self.schema_name, get_public_schema_name()):
+        if has_schema and connection.schema_name not in (self.schema_name, get_public_schema_name()) and (
+                getattr(settings, "TENANT_ADMIN_SCHEMA") is None
+                or connection.schema_name != getattr(settings, "TENANT_ADMIN_SCHEMA")
+            ):
             raise Exception("Can't delete tenant outside it's own schema or "
                             "the public schema. Current schema is %s."
                             % connection.schema_name)
