@@ -40,7 +40,7 @@ optional-dependencies.dev = [
 urls."Homepage" = "https://github.com/django-tenants/django-tenants"
 
 [tool.setuptools]
-include-package-data = true
+include-package-data = false
 zip-safe = false
 
 [tool.setuptools.packages.find]
@@ -58,16 +58,10 @@ include = [
   "django_tenants.tests",
   "django_tenants.staticfiles",
   "django_tenants.middleware",
-  "docs",
-  "examples",
-  "dts_test_project",
 ]
 
 [tool.setuptools.package-data]
 "django_tenants" = [ "templates/**/*.html" ]
-"docs" = [ "**/*" ]
-"examples" = [ "**/*" ]
-"dts_test_project" = [ "**/*" ]
 
 [tool.setuptools.exclude-package-data]
 "*" = [ "*.pyc", "*.pyo" ]
