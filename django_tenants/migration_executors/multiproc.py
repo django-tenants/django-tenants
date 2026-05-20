@@ -54,6 +54,11 @@ class MultiprocessingExecutor(MigrationExecutor):
                 'TENANT_MULTIPROCESSING_CHUNKS',
                 2
             )
+            maxtasksperchild = getattr(
+                settings,
+                'TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD',
+                None
+            )
 
             from django.db import connections
 
@@ -68,7 +73,7 @@ class MultiprocessingExecutor(MigrationExecutor):
                 self.codename,
                 len(tenants)
             )
-            p = multiprocessing.Pool(processes=processes)
+            p = multiprocessing.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
             p.map(
                 run_migrations_p,
                 enumerate(tenants),
@@ -87,6 +92,11 @@ class MultiprocessingExecutor(MigrationExecutor):
             'TENANT_MULTIPROCESSING_CHUNKS',
             2
         )
+        maxtasksperchild = getattr(
+            settings,
+            'TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD',
+            None
+        )
 
         from django.db import connections
 
@@ -101,7 +111,7 @@ class MultiprocessingExecutor(MigrationExecutor):
             self.codename,
             len(tenants)
         )
-        p = multiprocessing.Pool(processes=processes)
+        p = multiprocessing.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
         p.map(
             run_migrations_p,
             enumerate(tenants),
