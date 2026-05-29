@@ -3,6 +3,7 @@ import os
 from .base import MigrationExecutor
 from .multiproc import MultiprocessingExecutor  # noqa
 from .standard import StandardExecutor
+from .subproc import SubprocessExecutor  # noqa
 
 
 def get_executor(codename=None):
