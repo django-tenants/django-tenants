@@ -6,6 +6,24 @@ from django.conf import settings
 from .base import MigrationExecutor, run_migrations
 
 
+def get_pool():
+    """Return a multiprocessing pool using the ``fork`` start method when available.
+
+    The migration workers rely on inheriting the parent process's already
+    populated Django app registry and settings, which only happens with the
+    ``fork`` start method. Python no longer guarantees ``fork`` as the implicit
+    default (it is deprecated when the parent is multi-threaded), so request it
+    explicitly on platforms that support it (e.g. Linux) and fall back to the
+    default context elsewhere (e.g. Windows, which has no ``fork``).
+    """
+    processes = getattr(settings, 'TENANT_MULTIPROCESSING_MAX_PROCESSES', 2)
+    if 'fork' in multiprocessing.get_all_start_methods():
+        context = multiprocessing.get_context('fork')
+    else:
+        context = multiprocessing.get_context()
+    return context.Pool(processes=processes)
+
+
 def run_migrations_percent(args, options, codename, count, idx_schema_name):
     idx, schema_name = idx_schema_name
     return run_migrations(
@@ -44,11 +62,6 @@ class MultiprocessingExecutor(MigrationExecutor):
             tenants.pop(tenants.index(self.PUBLIC_SCHEMA_NAME))
 
         if tenants:
-            processes = getattr(
-                settings,
-                'TENANT_MULTIPROCESSING_MAX_PROCESSES',
-                2
-            )
             chunks = getattr(
                 settings,
                 'TENANT_MULTIPROCESSING_CHUNKS',
@@ -68,7 +81,7 @@ class MultiprocessingExecutor(MigrationExecutor):
                 self.codename,
                 len(tenants)
             )
-            p = multiprocessing.Pool(processes=processes)
+            p = get_pool()
             p.map(
                 run_migrations_p,
                 enumerate(tenants),
@@ -77,11 +90,6 @@ class MultiprocessingExecutor(MigrationExecutor):
 
     def run_multi_type_migrations(self, tenants):
         tenants = tenants or []
-        processes = getattr(
-            settings,
-            'TENANT_MULTIPROCESSING_MAX_PROCESSES',
-            2
-        )
         chunks = getattr(
             settings,
             'TENANT_MULTIPROCESSING_CHUNKS',
@@ -101,7 +109,7 @@ class MultiprocessingExecutor(MigrationExecutor):
             self.codename,
             len(tenants)
         )
-        p = multiprocessing.Pool(processes=processes)
+        p = get_pool()
         p.map(
             run_migrations_p,
             enumerate(tenants),
