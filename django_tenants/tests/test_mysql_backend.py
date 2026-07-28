@@ -1,9 +1,18 @@
 import unittest
 
+from django.core.exceptions import ValidationError
 from django.db import connection
 from django.test import TransactionTestCase
 
-from django_tenants.utils import FakeTenant, get_public_schema_name
+from django_tenants.utils import (
+    FakeTenant,
+    create_schema_sql,
+    drop_schema_sql,
+    get_public_schema_name,
+    get_schema_name_validator,
+    schema_exists,
+    schema_rename,
+)
 
 mysql_only = unittest.skipUnless(
     connection.vendor == 'mysql',
@@ -76,3 +85,33 @@ class MySQLTenantSwitchingTestCase(TransactionTestCase):
 
         connection.set_schema_to_public()
         self.assertEqual(connection.settings_dict['NAME'], original_name)
+
+
+@mysql_only
+class MySQLUtilsDispatchTestCase(TransactionTestCase):
+    def test_schema_exists_true_for_public(self):
+        self.assertTrue(schema_exists(get_public_schema_name()))
+
+    def test_schema_exists_false_for_missing_database(self):
+        self.assertFalse(schema_exists('does_not_exist_db'))
+
+    def test_schema_rename_raises_not_implemented(self):
+        class _Tenant:
+            schema_name = 'whatever'
+        with self.assertRaises(NotImplementedError):
+            schema_rename(_Tenant(), 'new_name')
+
+    def test_get_schema_name_validator_returns_mysql_validator(self):
+        from django_tenants.mysql_backend.base import _check_schema_name
+        self.assertIs(get_schema_name_validator(), _check_schema_name)
+
+    def test_get_schema_name_validator_rejects_invalid_name(self):
+        validator = get_schema_name_validator()
+        with self.assertRaises(ValidationError):
+            validator('invalid/name')
+
+    def test_create_schema_sql_uses_create_database(self):
+        self.assertEqual(create_schema_sql('my_tenant', connection), 'CREATE DATABASE `my_tenant`')
+
+    def test_drop_schema_sql_uses_drop_database(self):
+        self.assertEqual(drop_schema_sql('my_tenant', connection), 'DROP DATABASE `my_tenant`')
