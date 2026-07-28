@@ -4,12 +4,15 @@ from django.core.exceptions import ValidationError
 from django.db import connection
 from django.test import TransactionTestCase
 
+from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.utils import (
     FakeTenant,
     create_schema_sql,
     drop_schema_sql,
     get_public_schema_name,
     get_schema_name_validator,
+    get_tenant_domain_model,
+    get_tenant_model,
     schema_exists,
     schema_rename,
 )
@@ -115,3 +118,31 @@ class MySQLUtilsDispatchTestCase(TransactionTestCase):
 
     def test_drop_schema_sql_uses_drop_database(self):
         self.assertEqual(drop_schema_sql('my_tenant', connection), 'DROP DATABASE `my_tenant`')
+
+
+@mysql_only
+class MySQLTenantLifecycleTestCase(BaseTestCase):
+    def test_create_and_drop_tenant_creates_real_database(self):
+        Tenant = get_tenant_model()
+        Domain = get_tenant_domain_model()
+
+        tenant = Tenant(schema_name='mysql_lifecycle_test')
+        tenant.save()
+        domain = Domain(tenant=tenant, domain='mysql-lifecycle.test.com')
+        domain.save()
+
+        self.assertTrue(schema_exists('mysql_lifecycle_test'))
+
+        domain.delete()
+        tenant.delete(force_drop=True)
+
+        self.assertFalse(schema_exists('mysql_lifecycle_test'))
+
+    def test_fake_migrations_cloning_raises_not_implemented(self):
+        from django.test.utils import override_settings
+
+        Tenant = get_tenant_model()
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True, TENANT_BASE_SCHEMA=get_public_schema_name()):
+            tenant = Tenant(schema_name='mysql_clone_attempt')
+            with self.assertRaises(NotImplementedError):
+                tenant.save()

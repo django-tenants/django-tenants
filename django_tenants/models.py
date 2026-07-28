@@ -5,10 +5,17 @@ from django.db import models, connections, transaction
 from django.urls import reverse
 
 from django_tenants.clone import CloneSchema
-from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
 from .utils import get_creation_fakes_migrations, get_tenant_base_schema
-from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias
+from .utils import (
+    create_schema_sql,
+    drop_schema_sql,
+    get_public_schema_name,
+    get_schema_name_validator,
+    get_tenant_database_alias,
+    get_tenant_domain_model,
+    schema_exists,
+)
 
 
 class TenantMixin(models.Model):
@@ -37,7 +44,7 @@ class TenantMixin(models.Model):
     """
 
     schema_name = models.CharField(max_length=63, unique=True, db_index=True,
-                                   validators=[_check_schema_name])
+                                   validators=[get_schema_name_validator()])
 
     domain_url = None
     """
@@ -152,7 +159,7 @@ class TenantMixin(models.Model):
         if has_schema and schema_exists(self.schema_name) and (self.auto_drop_schema or force_drop):
             self.pre_drop()
             cursor = connection.cursor()
-            cursor.execute('DROP SCHEMA "%s" CASCADE' % self.schema_name)
+            cursor.execute(drop_schema_sql(self.schema_name, connection))
 
     def pre_drop(self):
         """
@@ -178,7 +185,7 @@ class TenantMixin(models.Model):
 
         # safety check
         connection = connections[get_tenant_database_alias()]
-        _check_schema_name(self.schema_name)
+        get_schema_name_validator()(self.schema_name)
         cursor = connection.cursor()
 
         if check_if_exists and schema_exists(self.schema_name):
@@ -188,6 +195,11 @@ class TenantMixin(models.Model):
 
         if sync_schema:
             if fake_migrations:
+                if connection.vendor == 'mysql':
+                    raise NotImplementedError(
+                        "TENANT_CREATION_FAKES_MIGRATIONS/TENANT_BASE_SCHEMA cloning is "
+                        "not supported on the MySQL backend yet."
+                    )
                 # copy tables and data from provided model schema
                 base_schema = get_tenant_base_schema()
                 clone_schema = CloneSchema()
@@ -203,7 +215,7 @@ class TenantMixin(models.Model):
                              verbosity=verbosity)
             else:
                 # create the schema
-                cursor.execute('CREATE SCHEMA "%s"' % self.schema_name)
+                cursor.execute(create_schema_sql(self.schema_name, connection))
                 call_command('migrate_schemas',
                              tenant=True,
                              schema_name=self.schema_name,
