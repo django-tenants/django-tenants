@@ -1,6 +1,7 @@
 import unittest
 
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.db import connection
 from django.test import TransactionTestCase
 
@@ -146,3 +147,34 @@ class MySQLTenantLifecycleTestCase(BaseTestCase):
             tenant = Tenant(schema_name='mysql_clone_attempt')
             with self.assertRaises(NotImplementedError):
                 tenant.save()
+
+
+@mysql_only
+class MySQLGuardedCommandsTestCase(BaseTestCase):
+    def test_clone_tenant_command_raises_not_implemented(self):
+        Tenant = get_tenant_model()
+        Domain = get_tenant_domain_model()
+        tenant = Tenant(schema_name='mysql_clone_source')
+        tenant.save()
+        Domain(tenant=tenant, domain='mysql-clone-source.test.com').save()
+
+        with self.assertRaises(NotImplementedError):
+            call_command(
+                'clone_tenant',
+                clone_from='mysql_clone_source',
+                clone_tenant_fields=False,
+                schema_name='mysql_clone_target',
+                name='Cloned',
+                domain_domain='mysql-clone-target.test.com',
+                domain_is_primary=True,
+            )
+
+    def test_rename_schema_command_raises_not_implemented(self):
+        Tenant = get_tenant_model()
+        Domain = get_tenant_domain_model()
+        tenant = Tenant(schema_name='mysql_rename_source')
+        tenant.save()
+        Domain(tenant=tenant, domain='mysql-rename-source.test.com').save()
+
+        with self.assertRaises(NotImplementedError):
+            call_command('rename_schema', rename_from='mysql_rename_source', rename_to='mysql_rename_target')
