@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
@@ -147,6 +148,50 @@ class MySQLTenantLifecycleTestCase(BaseTestCase):
             tenant = Tenant(schema_name='mysql_clone_attempt')
             with self.assertRaises(NotImplementedError):
                 tenant.save()
+
+    def test_failed_schema_creation_cleans_up_without_orphaning_bookkeeping_row(self):
+        """
+        Regression test.
+
+        If schema creation fails after the tenant's database has already
+        been created (e.g. migrations raise mid-flight, which is exactly
+        what happens with run_migrations() in
+        migration_executors/base.py - it calls connection.set_tenant()
+        before running migrations and only calls
+        connection.set_schema_to_public() on success), save()'s except
+        handler calls self.delete(force_drop=True) to clean up.
+
+        Previously, _drop_schema() dropped the tenant's database but left
+        the connection's schema_name pointed at it. The subsequent
+        super().delete() call - which deletes this tenant's bookkeeping
+        row, living in the public database - would then fail with
+        django.db.utils.OperationalError: (1046, 'No database selected'),
+        masking the real error and orphaning the customers_client row.
+        """
+        Tenant = get_tenant_model()
+        tenant = Tenant(schema_name='mysql_failed_creation')
+
+        def fake_create_schema(self, *args, **kwargs):
+            # Actually create the underlying database, as the real
+            # create_schema() does before running migrations, then behave
+            # as though the migration step failed with the connection
+            # left pointed at the tenant - exactly what run_migrations()
+            # does before it raises.
+            cursor = connection.cursor()
+            cursor.execute(create_schema_sql(self.schema_name, connection))
+            connection.set_tenant(self)
+            raise RuntimeError("simulated migration failure")
+
+        with mock.patch.object(Tenant, 'create_schema', fake_create_schema):
+            with self.assertRaises(RuntimeError):
+                tenant.save()
+
+        # The tenant's database must have been dropped...
+        self.assertFalse(schema_exists('mysql_failed_creation'))
+        # ...and the bookkeeping row must not be orphaned.
+        self.assertFalse(Tenant.objects.filter(schema_name='mysql_failed_creation').exists())
+        # The connection must be left in a usable state, pointed at public.
+        self.assertEqual(connection.schema_name, get_public_schema_name())
 
 
 @mysql_only

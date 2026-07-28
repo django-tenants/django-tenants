@@ -160,6 +160,13 @@ class TenantMixin(models.Model):
             self.pre_drop()
             cursor = connection.cursor()
             cursor.execute(drop_schema_sql(self.schema_name, connection))
+            # The schema/database we were just connected to no longer
+            # exists. On backends where only one database can be selected
+            # at a time (e.g. MySQL), leaving the connection pointed at it
+            # means the next query - such as deleting this tenant's
+            # bookkeeping row, which lives in the public schema - has
+            # nowhere valid to run. Explicitly return to public.
+            connection.set_schema_to_public()
 
     def pre_drop(self):
         """
