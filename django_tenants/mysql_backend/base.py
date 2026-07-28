@@ -99,7 +99,6 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
     def set_settings_schema(self, schema_name):
         self.settings_dict['SCHEMA'] = schema_name
-        self.settings_dict['NAME'] = schema_name
 
     def get_schema(self):
         warnings.warn("connection.get_schema() is deprecated, use connection.schema_name instead.",

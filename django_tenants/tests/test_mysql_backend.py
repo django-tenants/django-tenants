@@ -52,3 +52,27 @@ class MySQLTenantSwitchingTestCase(TransactionTestCase):
         connection.set_tenant(FakeTenant(schema_name='fake_tenant_db'))
         self.assertEqual(connection.schema_name, 'fake_tenant_db')
         connection.set_schema_to_public()
+
+    def test_set_tenant_does_not_mutate_settings_dict_name(self):
+        """
+        Regression test: settings_dict['NAME'] must never be overwritten by
+        tenant switching. Django's own test-database machinery
+        (BaseDatabaseCreation.create_test_db()/destroy_test_db()) reads and
+        writes connection.settings_dict['NAME'] to track the test database's
+        name across a test run. If set_settings_schema() ever stomps on
+        that key again, it would collide with Django's bookkeeping and
+        could cause the wrong database to be destroyed at teardown.
+        """
+        original_name = connection.settings_dict['NAME']
+
+        connection.set_schema('tenant_switch_test')
+        self.assertEqual(connection.settings_dict['NAME'], original_name)
+
+        connection.set_schema_to_public()
+        self.assertEqual(connection.settings_dict['NAME'], original_name)
+
+        connection.set_tenant(FakeTenant(schema_name='fake_tenant_db'))
+        self.assertEqual(connection.settings_dict['NAME'], original_name)
+
+        connection.set_schema_to_public()
+        self.assertEqual(connection.settings_dict['NAME'], original_name)
