@@ -10,7 +10,8 @@ from django.utils.version import get_main_version, get_version_tuple
 
 from django_tenants.clone import CloneSchema
 from django_tenants.signals import schema_migrated, schema_migrate_message, schema_pre_migration
-from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
+from dts_test_app.models import DummyModel
+from dts_fk_test_app.models import ModelWithFkToPublicUser
 
 from django_tenants.migration_executors import get_executor
 from django_tenants.test.cases import TenantTestCase
@@ -438,6 +439,16 @@ class TestSyncTenantsNoAuth(BaseSyncTest):
 
 
 class SharedAuthTest(BaseTestCase):
+    # BaseTestCase.setUpClass() derives cls.available_apps (used by
+    # TransactionTestCase to temporarily restrict the app registry for the
+    # duration of each test) from these class attributes before setUp()
+    # below gets a chance to override settings.TENANT_APPS. Without
+    # dts_fk_test_app listed here too, Django's app registry silently drops
+    # it for the test, and its migrations never get applied to the tenant
+    # schema created below.
+    TENANT_APPS = ('dts_test_app', 'dts_fk_test_app',
+                   'django.contrib.contenttypes', 'django.contrib.auth', )
+
     def setUp(self):
         super().setUp()
 
@@ -445,7 +456,7 @@ class SharedAuthTest(BaseTestCase):
                                 'customers',
                                 'django.contrib.auth',
                                 'django.contrib.contenttypes', )
-        settings.TENANT_APPS = ('dts_test_app', )
+        settings.TENANT_APPS = ('dts_test_app', 'dts_fk_test_app', )
         settings.INSTALLED_APPS = settings.SHARED_APPS + settings.TENANT_APPS
         self.sync_shared()
         self.public_tenant = get_tenant_model()(schema_name=get_public_schema_name())

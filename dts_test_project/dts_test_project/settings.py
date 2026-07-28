@@ -40,10 +40,15 @@ SHARED_APPS = (
     'django.contrib.staticfiles',
 )
 
+DATABASE_ENGINE = os.environ.get('DATABASE_ENGINE', 'django_tenants.postgresql_backend')
+
 TENANT_APPS = (
     'dts_test_app',
     'dts_multi_type2',
 )
+
+if DATABASE_ENGINE != 'django_tenants.mysql_backend':
+    TENANT_APPS = TENANT_APPS + ('dts_fk_test_app',)
 
 TENANT_APPS_DIR = os.path.join(BASE_DIR, TENANT_APPS[0])
 sys.path.insert(0, TENANT_APPS_DIR)
@@ -79,8 +84,6 @@ WSGI_APPLICATION = 'dts_test_project.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
-
-DATABASE_ENGINE = os.environ.get('DATABASE_ENGINE', 'django_tenants.postgresql_backend')
 
 _DEFAULT_PORTS = {
     'django_tenants.postgresql_backend': 5432,
