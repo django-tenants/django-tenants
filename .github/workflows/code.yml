@@ -43,6 +43,50 @@ jobs:
         export DATABASE_PASSWORD="testing"
         ./run_tests.sh
 
+  mysql_compatibility:
+    name: MySQL compatibility ${{ matrix.mysql-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.13"]
+        mysql-version: ["8.0", "8.4"]
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install MySQL client libraries
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y default-libmysqlclient-dev pkg-config
+
+    - name: Install Python dependencies
+      run: |
+        pip install Django
+        pip install -e ".[dev]"
+
+    - name: Create database
+      run: |
+        docker run --name db -p 3306:3306 -d \
+          -e MYSQL_ROOT_PASSWORD=testing -e MYSQL_DATABASE=public \
+          mysql:${{ matrix.mysql-version }}
+
+        sleep 15 # wait for server to initialize
+        until docker exec db mysqladmin ping -h 127.0.0.1 -u root -ptesting --silent; do sleep 2; done
+
+    - name: Run tests
+      run: |
+        export DATABASE_HOST=127.0.0.1
+        export DATABASE_PORT=3306
+        export DATABASE_USER=root
+        export DATABASE_PASSWORD=testing
+        ./run_tests_mysql.sh
+
   django_compatibility:
     name:  Django compatibility ${{ matrix.django-version}} / Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
