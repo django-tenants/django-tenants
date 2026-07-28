@@ -55,6 +55,62 @@ Make sure you have ``django.template.context_processors.request`` listed under t
         },
     ]
 
+MySQL Support (Beta)
+=====================
+As an alternative to PostgreSQL schemas, ``django-tenants`` supports MySQL by
+giving each tenant its own real MySQL database, plus a shared "public"
+database for ``SHARED_APPS`` tables.
+
+.. code-block:: python
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django_tenants.mysql_backend',
+            'NAME': 'public',
+            # ..
+        }
+    }
+
+The MySQL "public" database (named via ``PUBLIC_SCHEMA_NAME``, default
+``'public'``) must exist before running ``migrate_schemas --shared`` for the
+first time — create it once with ``CREATE DATABASE public;``. Unlike
+PostgreSQL, MySQL doesn't ship a default schema inside every database, so
+this step has no Postgres equivalent.
+
+.. warning::
+
+    **The MySQL backend has no test-database isolation.** Django's
+    ``test_``-prefixed database naming doesn't apply here — the backend
+    always operates on the literal ``public`` database and creates/drops
+    real tenant databases alongside it. Only point ``run_tests_mysql.sh``
+    or ``test_mysql_backend.py`` at a disposable MySQL server (e.g. a CI
+    container), never at one holding real data.
+
+.. warning::
+
+    **Cross-database joins are not supported.** PostgreSQL resolves
+    unqualified table names across both the tenant and public schemas in a
+    single connection via ``search_path``, which lets ``TENANT_APPS``
+    models have foreign keys to ``SHARED_APPS`` models. MySQL has no
+    equivalent — a connection only has one "current" database at a time.
+    Do not add foreign keys from a ``TENANT_APPS`` model to a
+    ``SHARED_APPS`` model when using the MySQL backend.
+
+.. warning::
+
+    The following are not yet supported on the MySQL backend and raise
+    ``NotImplementedError``:
+
+    - Tenant cloning (the ``clone_tenant`` command, and
+      ``TENANT_CREATION_FAKES_MIGRATIONS``/``TENANT_BASE_SCHEMA``)
+    - ``rename_schema`` (MySQL has no ``RENAME DATABASE`` command)
+
+    ``PG_EXTRA_SEARCH_PATHS`` and other PostgreSQL-only settings are not
+    applicable to the MySQL backend.
+
+MariaDB is not tested or officially supported at this time, though the same
+code path may work incidentally.
+
 The Tenant & Domain Model
 =========================
 Now we have to create your tenant model. Your tenant model can contain whichever fields you want, however, you **must** inherit from ``TenantMixin``. This Mixin only has one field ``schema_name`` which is required. You also have to have a table for your domain names for this you **must** inherit from ``DomainMixin`` .

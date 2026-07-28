@@ -40,10 +40,15 @@ SHARED_APPS = (
     'django.contrib.staticfiles',
 )
 
+DATABASE_ENGINE = os.environ.get('DATABASE_ENGINE', 'django_tenants.postgresql_backend')
+
 TENANT_APPS = (
     'dts_test_app',
     'dts_multi_type2',
 )
+
+if DATABASE_ENGINE != 'django_tenants.mysql_backend':
+    TENANT_APPS = TENANT_APPS + ('dts_fk_test_app',)
 
 TENANT_APPS_DIR = os.path.join(BASE_DIR, TENANT_APPS[0])
 sys.path.insert(0, TENANT_APPS_DIR)
@@ -80,14 +85,23 @@ WSGI_APPLICATION = 'dts_test_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 
+_DEFAULT_PORTS = {
+    'django_tenants.postgresql_backend': 5432,
+    'django_tenants.mysql_backend': 3306,
+}
+_DEFAULT_USERS = {
+    'django_tenants.postgresql_backend': 'postgres',
+    'django_tenants.mysql_backend': 'root',
+}
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django_tenants.postgresql_backend',
+        'ENGINE': DATABASE_ENGINE,
         'NAME': os.environ.get('DATABASE_DB', 'dts_test_project'),
-        'USER': os.environ.get('DATABASE_USER', 'postgres'),
+        'USER': os.environ.get('DATABASE_USER', _DEFAULT_USERS.get(DATABASE_ENGINE, 'postgres')),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'root'),
         'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
-        'PORT': os.environ.get('DATABASE_PORT', 5432),
+        'PORT': os.environ.get('DATABASE_PORT', _DEFAULT_PORTS.get(DATABASE_ENGINE, 5432)),
     }
 }
 

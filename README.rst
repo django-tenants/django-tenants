@@ -131,7 +131,11 @@ Your ``DATABASE_ENGINE`` setting needs to be changed to
             'ENGINE': 'django_tenants.postgresql_backend',
             # ..
         }
-    }    
+    }
+
+MySQL is also supported (currently in beta), using isolated databases per
+tenant instead of PostgreSQL schemas — see the `setup`_ section for setup
+and current limitations.
 
 Add the middleware ``django_tenants.middleware.main.TenantMainMiddleware`` to the
 top of ``MIDDLEWARE``, so that each request can be set to use

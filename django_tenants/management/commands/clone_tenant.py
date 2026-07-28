@@ -44,6 +44,11 @@ class Command(BaseCommand):
         return input(question)
 
     def handle(self, *args, **options):
+        if connection.vendor == 'mysql':
+            raise NotImplementedError(
+                "clone_tenant is not supported on the MySQL backend yet: it depends on "
+                "CloneSchema, which is a Postgres-only PL/pgSQL procedure."
+            )
         tenant_model = get_tenant_model()
         all_tenants = tenant_model.objects.all()
         tenant_data = {}
