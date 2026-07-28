@@ -150,6 +150,36 @@ class MySQLTenantLifecycleTestCase(BaseTestCase):
 
 
 @mysql_only
+class MySQLMultiTenantIsolationTestCase(BaseTestCase):
+    def test_data_is_isolated_between_tenant_databases(self):
+        from dts_test_app.models import DummyModel
+
+        Tenant = get_tenant_model()
+        Domain = get_tenant_domain_model()
+
+        tenant1 = Tenant(schema_name='mysql_isolation_1')
+        tenant1.save()
+        self.addCleanup(tenant1.delete, force_drop=True)
+        Domain(tenant=tenant1, domain='mysql-isolation-1.test.com').save()
+
+        tenant2 = Tenant(schema_name='mysql_isolation_2')
+        tenant2.save()
+        self.addCleanup(tenant2.delete, force_drop=True)
+        Domain(tenant=tenant2, domain='mysql-isolation-2.test.com').save()
+
+        connection.set_tenant(tenant1)
+        DummyModel(name='only in tenant 1').save()
+
+        connection.set_tenant(tenant2)
+        self.assertEqual(DummyModel.objects.count(), 0)
+
+        connection.set_tenant(tenant1)
+        self.assertEqual(DummyModel.objects.count(), 1)
+
+        connection.set_schema_to_public()
+
+
+@mysql_only
 class MySQLGuardedCommandsTestCase(BaseTestCase):
     def test_clone_tenant_command_raises_not_implemented(self):
         Tenant = get_tenant_model()
