@@ -22,6 +22,7 @@ done
 echo "mysql connection established"
 
 export DATABASE_ENGINE=django_tenants.mysql_backend
+export DATABASE_DB=public
 
 pushd dts_test_project
 
