@@ -156,7 +156,8 @@ class MySQLGuardedCommandsTestCase(BaseTestCase):
         Domain = get_tenant_domain_model()
         tenant = Tenant(schema_name='mysql_clone_source')
         tenant.save()
-        Domain(tenant=tenant, domain='mysql-clone-source.test.com').save()
+        domain = Domain(tenant=tenant, domain='mysql-clone-source.test.com')
+        domain.save()
 
         with self.assertRaises(NotImplementedError):
             call_command(
@@ -169,12 +170,19 @@ class MySQLGuardedCommandsTestCase(BaseTestCase):
                 domain_is_primary=True,
             )
 
+        domain.delete()
+        tenant.delete(force_drop=True)
+
     def test_rename_schema_command_raises_not_implemented(self):
         Tenant = get_tenant_model()
         Domain = get_tenant_domain_model()
         tenant = Tenant(schema_name='mysql_rename_source')
         tenant.save()
-        Domain(tenant=tenant, domain='mysql-rename-source.test.com').save()
+        domain = Domain(tenant=tenant, domain='mysql-rename-source.test.com')
+        domain.save()
 
         with self.assertRaises(NotImplementedError):
             call_command('rename_schema', rename_from='mysql_rename_source', rename_to='mysql_rename_target')
+
+        domain.delete()
+        tenant.delete(force_drop=True)
