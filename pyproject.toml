@@ -35,6 +35,7 @@ dependencies = [
 optional-dependencies.dev = [
   "coverage",
   "gunicorn==25.1.0",
+  "mysqlclient>=2.2,<2.3",
   "psycopg>=3.2.1,<3.3",
 ]
 urls."Homepage" = "https://github.com/django-tenants/django-tenants"
@@ -47,6 +48,7 @@ zip-safe = false
 include = [
   "django_tenants",
   "django_tenants.files",
+  "django_tenants.mysql_backend",
   "django_tenants.postgresql_backend",
   "django_tenants.management",
   "django_tenants.management.commands",

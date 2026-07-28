@@ -7,7 +7,7 @@ from django.db import connection
 
 from django.template.loaders.cached import Loader as BaseLoader
 
-from django_tenants.postgresql_backend.base import FakeTenant
+from django_tenants.utils import FakeTenant
 
 
 class Loader(BaseLoader):

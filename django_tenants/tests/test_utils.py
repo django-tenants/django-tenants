@@ -7,6 +7,8 @@ from django.core.management.commands.migrate import Command as MigrateCommand
 from django.test.utils import override_settings
 
 from django_tenants.utils import get_tenant
+from django_tenants.postgresql_backend.base import FakeTenant as PostgresFakeTenant
+from django_tenants.utils import FakeTenant
 
 
 class CustomMigrateCommand(MigrateCommand):
@@ -53,3 +55,13 @@ class ConfigStringParsingTestCase(TenantTestCase):
         request = factory.get('/any/request/', HTTP_HOST=tenant_domain)
         tm.process_request(request)
         self.assertEqual(get_tenant(request).schema_name, 'test')
+
+
+class FakeTenantTestCase(TenantTestCase):
+    def test_postgres_backend_uses_shared_fake_tenant(self):
+        self.assertIs(PostgresFakeTenant, FakeTenant)
+
+    def test_fake_tenant_exposes_tenant_type(self):
+        tenant = FakeTenant(schema_name='public', tenant_type='default')
+        self.assertEqual(tenant.schema_name, 'public')
+        self.assertEqual(tenant.get_tenant_type(), 'default')

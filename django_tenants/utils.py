@@ -17,6 +17,22 @@ except ImportError:
 from django.core import mail
 
 
+class FakeTenant:
+    """
+    Database backend wrappers can't import real tenant models (risk of
+    circular imports), so this wraps a schema name in a tenant-like
+    structure for DatabaseWrapper.set_schema()/set_schema_to_public().
+    Shared by every backend so isinstance checks (e.g. the cached
+    template loader) work regardless of which backend is configured.
+    """
+    def __init__(self, schema_name, tenant_type=None):
+        self.schema_name = schema_name
+        self.tenant_type = tenant_type
+
+    def get_tenant_type(self):
+        return self.tenant_type
+
+
 def get_tenant_model():
     return get_model(settings.TENANT_MODEL)
 
@@ -195,7 +211,10 @@ def schema_exists(schema_name, database=get_tenant_database_alias()):
     cursor = _connection.cursor()
 
     # check if this schema already exists in the db
-    sql = 'SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER(%s))'
+    if _connection.vendor == 'mysql':
+        sql = 'SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE LOWER(schema_name) = LOWER(%s))'
+    else:
+        sql = 'SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER(%s))'
     cursor.execute(sql, (schema_name, ))
 
     row = cursor.fetchone()
@@ -213,8 +232,16 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
     """
     This renames a schema to a new name. It checks to see if it exists first
     """
-    from django_tenants.postgresql_backend.base import is_valid_schema_name
     _connection = connections[database]
+
+    if _connection.vendor == 'mysql':
+        raise NotImplementedError(
+            "schema_rename() is not supported on the MySQL backend: MySQL has no "
+            "RENAME DATABASE command. Renaming a tenant requires recreating its "
+            "database and copying every table, which is not yet implemented."
+        )
+
+    from django_tenants.postgresql_backend.base import is_valid_schema_name
     cursor = _connection.cursor()
 
     if schema_exists(new_schema_name):
@@ -228,6 +255,40 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
     tenant.schema_name = new_schema_name
     if save:
         tenant.save()
+
+
+def get_schema_name_validator():
+    """
+    Returns the schema-name-validating function appropriate for the
+    configured tenant database's vendor. Postgres and MySQL have different
+    identifier rules, so this dispatches rather than hardcoding one.
+    """
+    vendor = connections[get_tenant_database_alias()].vendor
+    if vendor == 'mysql':
+        from django_tenants.mysql_backend.base import _check_schema_name
+    else:
+        from django_tenants.postgresql_backend.base import _check_schema_name
+    return _check_schema_name
+
+
+def create_schema_sql(schema_name, connection):
+    """
+    Returns the vendor-appropriate SQL to create a tenant's schema/database.
+    """
+    if connection.vendor == 'mysql':
+        return 'CREATE DATABASE `{0}`'.format(schema_name)
+    return 'CREATE SCHEMA "{0}"'.format(schema_name)
+
+
+def drop_schema_sql(schema_name, connection):
+    """
+    Returns the vendor-appropriate SQL to drop a tenant's schema/database.
+    MySQL has no CASCADE keyword for DROP DATABASE — dropping a database
+    already drops everything inside it.
+    """
+    if connection.vendor == 'mysql':
+        return 'DROP DATABASE `{0}`'.format(schema_name)
+    return 'DROP SCHEMA "{0}" CASCADE'.format(schema_name)
 
 
 @lru_cache(maxsize=128)
@@ -283,6 +344,12 @@ def parse_tenant_config_path(config_path):
 
 
 def validate_extra_extensions():
+    """
+    Postgres-only: validates PG_EXTRA_SEARCH_PATHS. This setting has no
+    MySQL equivalent (MySQL has no search_path/schema-search concept), so
+    there is nothing to dispatch here — this is simply a no-op unless
+    PG_EXTRA_SEARCH_PATHS is configured.
+    """
     skip_validation = getattr(settings, 'SKIP_PG_EXTRA_VALIDATION', False)
     extra_extensions = getattr(settings, 'PG_EXTRA_SEARCH_PATHS', [])
 

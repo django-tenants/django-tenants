@@ -6,7 +6,7 @@ from importlib import import_module
 from django.utils.module_loading import import_string
 
 from django_tenants.postgresql_backend.introspection import DatabaseSchemaIntrospection
-from django_tenants.utils import get_public_schema_name, get_limit_set_calls
+from django_tenants.utils import get_public_schema_name, get_limit_set_calls, FakeTenant
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 import django.db.utils
@@ -191,16 +191,3 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         search_paths.extend(EXTRA_SEARCH_PATHS)
 
         return search_paths
-
-
-class FakeTenant:
-    """
-    We can't import any db model in a backend (apparently?), so this class is used
-    for wrapping schema names in a tenant-like structure.
-    """
-    def __init__(self, schema_name, tenant_type=None):
-        self.schema_name = schema_name
-        self.tenant_type = tenant_type
-
-    def get_tenant_type(self):
-        return self.tenant_type
