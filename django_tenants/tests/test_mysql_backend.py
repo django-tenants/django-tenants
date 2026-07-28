@@ -130,8 +130,13 @@ class MySQLTenantLifecycleTestCase(BaseTestCase):
 
         tenant = Tenant(schema_name='mysql_lifecycle_test')
         tenant.save()
+        # Deleted explicitly below as part of the test itself; registered here too
+        # (guarded against a pk already cleared) so an earlier assertion failure
+        # can't leak the database and bookkeeping row.
+        self.addCleanup(lambda: tenant.delete(force_drop=True) if tenant.pk else None)
         domain = Domain(tenant=tenant, domain='mysql-lifecycle.test.com')
         domain.save()
+        self.addCleanup(lambda: domain.delete() if domain.pk else None)
 
         self.assertTrue(schema_exists('mysql_lifecycle_test'))
 

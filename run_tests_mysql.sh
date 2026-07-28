@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# WARNING: this script migrates into, and creates/drops tenant databases on,
+# the literal "public" database of the MySQL server pointed to by
+# DATABASE_HOST/DATABASE_PORT - there is no test_-prefixed isolation for the
+# MySQL backend. Only run this against a disposable MySQL server/container
+# (e.g. CI), never against one holding real data.
+
 set -e
 
 function greenprint {

@@ -79,6 +79,15 @@ this step has no Postgres equivalent.
 
 .. warning::
 
+    **The MySQL backend has no test-database isolation.** Django's
+    ``test_``-prefixed database naming doesn't apply here — the backend
+    always operates on the literal ``public`` database and creates/drops
+    real tenant databases alongside it. Only point ``run_tests_mysql.sh``
+    or ``test_mysql_backend.py`` at a disposable MySQL server (e.g. a CI
+    container), never at one holding real data.
+
+.. warning::
+
     **Cross-database joins are not supported.** PostgreSQL resolves
     unqualified table names across both the tenant and public schemas in a
     single connection via ``search_path``, which lets ``TENANT_APPS``

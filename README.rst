@@ -133,7 +133,7 @@ Your ``DATABASE_ENGINE`` setting needs to be changed to
         }
     }
 
-MySQL is also supported as of a recent version, using isolated databases per
+MySQL is also supported (currently in beta), using isolated databases per
 tenant instead of PostgreSQL schemas — see the `setup`_ section for setup
 and current limitations.
 
