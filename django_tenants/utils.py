@@ -17,6 +17,22 @@ except ImportError:
 from django.core import mail
 
 
+class FakeTenant:
+    """
+    Database backend wrappers can't import real tenant models (risk of
+    circular imports), so this wraps a schema name in a tenant-like
+    structure for DatabaseWrapper.set_schema()/set_schema_to_public().
+    Shared by every backend so isinstance checks (e.g. the cached
+    template loader) work regardless of which backend is configured.
+    """
+    def __init__(self, schema_name, tenant_type=None):
+        self.schema_name = schema_name
+        self.tenant_type = tenant_type
+
+    def get_tenant_type(self):
+        return self.tenant_type
+
+
 def get_tenant_model():
     return get_model(settings.TENANT_MODEL)
 
