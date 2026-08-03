@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import connection, transaction
+from django.db import connection
 
 from django_tenants.utils import schema_exists
 
@@ -4594,10 +4594,11 @@ class CloneSchema:
             connection.set_schema_to_public()
         cursor = connection.cursor()
 
-
-        # create or update the clone_schema function in the db
+        # create or update the clone_schema function in the db. CREATE OR REPLACE FUNCTION is
+        # idempotent and visible to the statements that follow, inside a transaction or not, so
+        # this needs no commit of its own -- and committing here would raise
+        # TransactionManagementError when the caller is inside an atomic block (#1155, #694).
         self._create_clone_schema_function()
-
 
         if schema_exists(new_schema_name):
             raise ValidationError("New schema name already exists")

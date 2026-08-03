@@ -15,6 +15,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.db import connections
 
 from .base import MigrationExecutor, run_migrations
@@ -52,13 +53,39 @@ def _options_to_argv(options: dict) -> list[str]:
     verbosity = options.get("verbosity", 1)
     if verbosity != 1:
         argv += ["--verbosity", str(verbosity)]
+    # These two decide which settings the child loads at all. A parent invoked as
+    # `manage.py migrate_schemas --settings=myproject.settings.production` would otherwise
+    # spawn children that fall back to DJANGO_SETTINGS_MODULE -- quietly migrating against a
+    # different database than the one asked for.
+    if options.get("settings"):
+        argv += ["--settings", options["settings"]]
+    if options.get("pythonpath"):
+        argv += ["--pythonpath", options["pythonpath"]]
     return argv
 
 
 def _manage_py() -> str:
+    """Locate the manage.py to spawn children with.
+
+    Raises rather than handing subprocess a path that isn't there: when this executor is
+    driven by something other than ``manage.py`` (``django-admin``, ``call_command()`` from
+    application or task code, a test runner) ``sys.argv[0]`` points elsewhere and the cwd
+    fallback need not contain a manage.py. Failing here says what is wrong; failing in the
+    child surfaces as an opaque interpreter error once per tenant.
+    """
     if sys.argv and sys.argv[0].endswith("manage.py"):
-        return str(Path(sys.argv[0]).resolve())
-    return str(Path("manage.py").resolve())
+        candidate = Path(sys.argv[0]).resolve()
+    else:
+        candidate = Path("manage.py").resolve()
+    if not candidate.is_file():
+        raise ImproperlyConfigured(
+            "The subprocess executor spawns 'manage.py migrate_schemas' per tenant, but no "
+            "manage.py could be found (looked for {}). This happens when migrate_schemas is "
+            "not run through manage.py -- via django-admin, or call_command() from "
+            "application code. Use --executor=standard or --executor=multiprocessing "
+            "instead, or run migrate_schemas through manage.py.".format(candidate)
+        )
+    return str(candidate)
 
 
 class SubprocessExecutor(MigrationExecutor):
