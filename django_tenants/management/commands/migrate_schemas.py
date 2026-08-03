@@ -52,6 +52,10 @@ class MigrateSchemasCommand(SyncCommon):
                             help='Creates tables for apps without migrations.')
         parser.add_argument('--check', action='store_true', dest='check_unapplied',
                             help='Exits with a non-zero status if unapplied migrations exist.')
+        parser.add_argument('--parallel', type=int, default=None,
+                            help='Number of tenant migrations to run in parallel. Only used '
+                                 'by --executor=subprocess. Overrides TENANT_SUBPROCESS_PARALLEL '
+                                 '(default: 1).')
 
     def handle(self, *args, **options):
         super().handle(*args, **options)

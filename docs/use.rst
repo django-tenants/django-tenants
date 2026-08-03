@@ -367,6 +367,54 @@ The ``multiprocessing`` executor accepts the following settings:
   sent at once to every worker
 
 
+migrate_schemas with the subprocess executor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``subprocess`` executor spawns a fresh ``python manage.py migrate_schemas
+--schema <name>`` process for each tenant:
+
+.. code-block:: bash
+
+    python manage.py migrate_schemas --executor=subprocess
+
+Use this when a single-process migrate runs out of memory due to accumulated
+per-tenant state — typically at tens of tenants times hundreds of migrations.
+``migrate_schemas`` normally runs every tenant schema inside one long-lived
+Python process, and per-tenant state (project state, ``post_migrate`` signal
+caches, content types and permissions) is never released, so resident memory
+climbs until the OOM killer reaps the process mid-migration.
+
+Unlike ``multiprocessing``, which forks workers from a parent whose memory
+already includes the full migration graph (and grows further via
+copy-on-write), ``subprocess`` starts each tenant from a clean interpreter,
+guaranteeing resident memory returns to baseline between tenants. The public
+schema is migrated in-process (it is a single schema with no per-tenant
+accumulation), and each child runs with ``--executor=standard`` so there is no
+recursive fan-out.
+
+The first child to exit with a non-zero status stops the run and propagates
+that status as the parent's exit code (this also covers ``--check`` signalling
+pending migrations). In parallel mode, not-yet-started tenants are cancelled
+while any in-flight subprocesses are allowed to drain — an in-flight migration
+cannot be safely killed mid-DDL.
+
+Configure parallelism with ``--parallel N`` on the CLI, or with the
+``TENANT_SUBPROCESS_PARALLEL`` setting:
+
+* ``TENANT_SUBPROCESS_PARALLEL`` (default: 1) - number of tenant migrations to
+  run in parallel. ``--parallel N`` on the CLI overrides this setting. Size it
+  to fit available memory on the host running the migrate, since peak memory is
+  roughly ``N`` times the per-tenant peak.
+
+.. code-block:: bash
+
+    python manage.py migrate_schemas --executor=subprocess --parallel=4
+
+.. note::
+
+    The ``subprocess`` executor does not yet support multi-type tenants.
+
+
 tenant_command
 ~~~~~~~~~~~~~~
 
