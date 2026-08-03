@@ -91,6 +91,65 @@ class SubprocessExecutorArgvTests(SimpleTestCase):
         self.assertNotIn("--parallel", cmd)
         self.assertNotIn("5", cmd)
 
+    def test_settings_and_pythonpath_are_forwarded(self):
+        # These decide which settings the child loads at all. Dropping them means a parent run
+        # with --settings=... spawns children that fall back to DJANGO_SETTINGS_MODULE, and
+        # migrate against a different database than the one asked for.
+        executor = make_executor(
+            settings="myproject.settings.production", pythonpath="/srv/app"
+        )
+
+        completed = mock.Mock(returncode=0)
+        with mock.patch(f"{SUBPROC}.subprocess.run", return_value=completed) as run:
+            executor._run_in_subprocess("tenant_a")
+
+        cmd = run.call_args.args[0]
+        self.assertTrue(
+            _contains_subsequence(cmd, ["--settings", "myproject.settings.production"])
+        )
+        self.assertTrue(_contains_subsequence(cmd, ["--pythonpath", "/srv/app"]))
+
+    def test_settings_and_pythonpath_are_omitted_when_unset(self):
+        executor = make_executor()
+
+        completed = mock.Mock(returncode=0)
+        with mock.patch(f"{SUBPROC}.subprocess.run", return_value=completed) as run:
+            executor._run_in_subprocess("tenant_a")
+
+        cmd = run.call_args.args[0]
+        self.assertNotIn("--settings", cmd)
+        self.assertNotIn("--pythonpath", cmd)
+
+
+class ManagePyLookupTests(SimpleTestCase):
+    """``_manage_py()`` must fail loudly rather than hand subprocess a path that isn't there.
+
+    Without this the executor spawns a missing file once per tenant, and the operator sees an
+    opaque interpreter error instead of being told which executor to use.
+    """
+
+    def test_uses_sys_argv_when_run_through_manage_py(self):
+        from django_tenants.migration_executors.subproc import _manage_py
+
+        with mock.patch(f"{SUBPROC}.sys.argv", ["/srv/app/manage.py", "migrate_schemas"]), \
+                mock.patch(f"{SUBPROC}.Path.is_file", return_value=True):
+            self.assertTrue(_manage_py().endswith("manage.py"))
+
+    def test_raises_when_no_manage_py_can_be_found(self):
+        from django.core.exceptions import ImproperlyConfigured
+
+        from django_tenants.migration_executors.subproc import _manage_py
+
+        with mock.patch(f"{SUBPROC}.sys.argv", ["django-admin", "migrate_schemas"]), \
+                mock.patch(f"{SUBPROC}.Path.is_file", return_value=False):
+            with self.assertRaises(ImproperlyConfigured) as ctx:
+                _manage_py()
+
+        message = str(ctx.exception)
+        self.assertIn("manage.py", message)
+        # Must point at the way out, not just report the failure.
+        self.assertIn("--executor=standard", message)
+
 
 class SubprocessExecutorMaxParallelTests(SimpleTestCase):
     def test_cli_value_takes_precedence(self):
