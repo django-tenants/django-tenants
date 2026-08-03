@@ -82,8 +82,8 @@ Here's an example, suppose we have an app named ``customers`` and we want to cre
 Admin Support
 =========================
 TenantAdminMixin is available in order to register the tenant model.
-Here's an example (following the example above), we want to register the ``Client`` model, so we create a the related admin class ``ClientAdmin``.
-The mixin disables save and delete buttons when not in current or public tenant (preventing Exceptions).
+Here's an example (following the example above), we want to register the ``Client`` model, so we create a related admin class ``ClientAdmin``.
+The mixin disables save and delete buttons when not in the current or public tenant (preventing Exceptions).
 
 .. code-block:: python
 
