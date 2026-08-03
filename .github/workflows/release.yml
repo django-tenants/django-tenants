@@ -1,0 +1,76 @@
+name: release
+
+# Publishes to PyPI when a GitHub release is published, using PyPI trusted
+# publishing (OIDC) -- no API token is stored in the repository.
+#
+# One-time setup on PyPI (https://pypi.org/manage/project/django-tenants/settings/publishing/):
+#   Owner:            django-tenants
+#   Repository:       django-tenants
+#   Workflow name:    release.yml
+#   Environment:      pypi
+# The environment name below must match the one configured there.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:  # lets you dry-run the build without publishing
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+
+    - uses: actions/setup-python@v6
+      with:
+        python-version: "3.13"
+
+    - name: Build sdist and wheel
+      run: |
+        python -m pip install --upgrade build twine
+        python -m build
+        python -m twine check --strict dist/*
+
+    # A tag that disagrees with pyproject.toml would publish the wrong version
+    # under the right name, which cannot be undone on PyPI.
+    - name: Check the tag matches the project version
+      if: github.event_name == 'release'
+      run: |
+        project_version=$(python -c "import tomllib,pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+        tag_version="${GITHUB_REF_NAME#v}"
+        echo "pyproject.toml: $project_version"
+        echo "git tag:        $tag_version  (from $GITHUB_REF_NAME)"
+        if [ "$project_version" != "$tag_version" ]; then
+          echo "::error::Tag '$GITHUB_REF_NAME' does not match pyproject.toml version '$project_version'."
+          exit 1
+        fi
+
+    - name: List what will be published
+      run: ls -l dist/
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+        if-no-files-found: error
+
+  pypi:
+    name: Publish to PyPI
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/django-tenants
+    permissions:
+      id-token: write  # required for trusted publishing; nothing else is granted
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: dist
+        path: dist/
+
+    - uses: pypa/gh-action-pypi-publish@release/v1

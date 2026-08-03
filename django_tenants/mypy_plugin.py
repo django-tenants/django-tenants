@@ -21,20 +21,18 @@ from __future__ import annotations
 
 from typing import Callable
 
-from mypy.nodes import MemberExpr
-from mypy.nodes import NameExpr
 from mypy.plugin import ClassDefContext
 from mypy.plugin import Plugin
 from mypy.plugins.common import add_attribute_to_class
 from mypy.types import AnyType
+from mypy.types import Instance
 from mypy.types import TypeOfAny
-from mypy.types import UnionType
 
 HTTPREQUEST_FULLNAME = "django.http.request.HttpRequest"
 TENANT_MIXIN_FULLNAME = "django_tenants.models.TenantMixin"
 
 
-def _resolve_tenant_type(ctx: ClassDefContext) -> AnyType | UnionType:
+def _resolve_tenant_type(ctx: ClassDefContext) -> Instance | AnyType:
     """Try to resolve TenantMixin as the type for ``request.tenant``.
 
     Falls back to ``Any`` if TenantMixin cannot be looked up yet (e.g.

@@ -5,7 +5,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "django-tenants"
-version = "3.10.2"
+version = "3.11.0"
 description = "Tenant support for Django using PostgreSQL schemas."
 readme = "README.rst"
 license = "MIT"
@@ -35,6 +35,7 @@ dependencies = [
 optional-dependencies.dev = [
   "coverage",
   "gunicorn==26.0.0",
+  "mypy",  # django_tenants/mypy_plugin.py imports mypy's plugin API
   "psycopg>=3.2.1,<3.3",
 ]
 urls."Homepage" = "https://github.com/django-tenants/django-tenants"
