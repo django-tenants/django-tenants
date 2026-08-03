@@ -327,6 +327,23 @@ If you put this in the same Django project, you can make a new ``settings_public
 Or you can create a completely separate project for the main website.
 
 
+Mypy Support
+============
+
+django-tenants ships with a mypy plugin that declares the ``tenant`` attribute on ``HttpRequest``. Without it, strict mypy with ``django-stubs >= 6.0`` will report ``attr-defined`` errors on every ``request.tenant`` access.
+
+To enable it, add ``django_tenants.mypy_plugin`` to your mypy plugins in ``pyproject.toml``:
+
+.. code-block:: toml
+
+    [tool.mypy]
+    plugins = [
+        "django_tenants.mypy_plugin",
+    ]
+
+The plugin injects a ``tenant`` attribute (typed as ``TenantMixin``) into ``HttpRequest``, so all subclasses — including DRF's ``Request`` — inherit it automatically.
+
+
 Caching
 =======
 
