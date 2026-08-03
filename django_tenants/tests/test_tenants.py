@@ -652,6 +652,50 @@ class CloneSchemaTest(BaseTestCase):
 
             DummyModel(name='Moderator').save()
 
+    def test_clone_schema_where_an_identity_sequence_name_does_not_match_its_table(self):
+        """
+        Exercises the scenario where a table's IDENTITY sequence is not named after the table
+        that owns it. Postgres derives the sequence name when the column is created and never
+        revisits it, so ``ALTER TABLE ... RENAME`` -- i.e. any Django ``RenameModel`` -- leaves
+        the sequence behind under the table's old name.
+
+        The destination's sequences are created fresh by ``CREATE TABLE ... (LIKE ...
+        INCLUDING ALL)``, so they are named after the *current* table. Assuming the source's
+        sequence name also exists in the destination therefore fails with
+        ``relation "<dest>.<old name>_id_seq" does not exist``.
+        """
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s2')
+        tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='s2.test.com')
+        domain.save()
+
+        with tenant_context(tenant):
+            DummyModel(name='Administrator').save()
+            DummyModel(name='Tester').save()
+
+        table = DummyModel._meta.db_table
+        with connection.cursor() as cursor:
+            # Reproduce the state a historical RenameModel leaves behind: the identity
+            # sequence keeps the name it was given under the model's old table name.
+            cursor.execute(
+                "ALTER SEQUENCE s2.%s RENAME TO legacy_dummy_id_seq" % (table + '_id_seq')
+            )
+
+        clone_schema = CloneSchema()
+        clone_schema.clone_schema(base_schema_name='s2', new_schema_name='d2')
+
+        self.assertTrue(schema_exists('d2'))
+
+        # The clone's sequence must carry the source's last value over, otherwise inserting
+        # into the clone re-uses primary keys that the cloned rows already occupy.
+        with schema_context('d2'):
+            self.assertEqual(DummyModel.objects.count(), 2)
+            moderator = DummyModel(name='Moderator')
+            moderator.save()
+            self.assertEqual(moderator.pk, 3)
+
 
 class SchemaMigratedSignalTest(BaseTestCase):
 

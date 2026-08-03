@@ -2966,15 +2966,26 @@ BEGIN
       IF bDebug THEN RAISE NOTICE 'DEBUG: Section=%',action; END IF;
       cnt := 0;
       setcnt := 0;
-      -- NOTE: we can infer an identity type sequence if it is in the pg_sequences table, but not the information_schema.sequences table.
+      -- NOTE: identity columns are found through pg_depend rather than by name.  A sequence's name is
+      -- derived from its table when the column is created and is never revisited, so ALTER TABLE ...
+      -- RENAME leaves the sequence under the table's old name.  The destination's sequences are made
+      -- fresh by CREATE TABLE ... (LIKE ... INCLUDING ALL) and so are named after the current table:
+      -- the two names diverge for any renamed table, and reusing the source's name would target a
+      -- sequence that does not exist in the destination.  Resolve the destination's own sequence from
+      -- the table and column instead, falling back to the source's name when the destination table is
+      -- absent (DDL-only runs) so the reported SQL still names something.
       FOR object, sq_last_value IN
-        -- Isssue#140
-        -- SELECT sequencename::text, COALESCE(last_value, -999) from pg_sequences where schemaname = quote_ident(source_schema)
-        SELECT sequencename::text, COALESCE(last_value, -999) from pg_sequences where schemaname = source_schema
-        AND NOT EXISTS
-        -- Isssue#140
-        -- (select 1 from information_schema.sequences where sequence_schema = quote_ident(source_schema) and sequence_name = sequencename)
-        (select 1 from information_schema.sequences where sequence_schema = source_schema and sequence_name = sequencename)
+        SELECT COALESCE(
+                 pg_get_serial_sequence(quote_ident(dest_schema) || '.' || quote_ident(t.relname), a.attname),
+                 quote_ident(dest_schema) || '.' || quote_ident(s.relname)
+               )::text,
+               COALESCE(pg_sequence_last_value(s.oid), -999)
+        FROM pg_class s
+        JOIN pg_namespace n ON n.oid = s.relnamespace
+        JOIN pg_depend d ON d.objid = s.oid AND d.classid = 'pg_class'::regclass AND d.deptype IN ('a', 'i')
+        JOIN pg_class t ON t.oid = d.refobjid
+        JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = d.refobjsubid
+        WHERE s.relkind = 'S' AND n.nspname = source_schema AND a.attidentity <> ''
       LOOP
         cnt := cnt + 1;
         IF sq_last_value = -999 THEN
@@ -2982,7 +2993,8 @@ BEGIN
           continue;
         END IF;
         setcnt := setcnt + 1;
-        buffer := quote_ident(dest_schema) || '.' || quote_ident(object);
+        -- already schema-qualified and quoted
+        buffer := object;
         IF bData THEN
           lastsql = 'SELECT setval( ''' || buffer || ''', ' || sq_last_value || ', ' || sq_is_called || ');' ;
           IF bDebugExec THEN RAISE NOTICE 'EXEC: %', lastsql; END IF;
