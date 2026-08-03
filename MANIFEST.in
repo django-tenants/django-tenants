@@ -1,0 +1,5 @@
+graft docs
+graft examples
+graft dts_test_project
+
+global-exclude *.py[cod] __pycache__
