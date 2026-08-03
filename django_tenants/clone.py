@@ -4594,9 +4594,10 @@ class CloneSchema:
             connection.set_schema_to_public()
         cursor = connection.cursor()
 
+
         # create or update the clone_schema function in the db
         self._create_clone_schema_function()
-        transaction.commit()
+
 
         if schema_exists(new_schema_name):
             raise ValidationError("New schema name already exists")
