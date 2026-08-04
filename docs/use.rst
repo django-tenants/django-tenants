@@ -127,9 +127,28 @@ You can also use `tenant_context` as a decorator.
     def my_func():
       # All commands in this function are ran under the schema from the `tenant` object
 
+.. function:: get_current_tenant
+
+Returns the tenant the connection is currently set to, or ``None``. Unlike ``get_tenant(request)``
+it takes no request, so it also works deep inside helper functions, in Celery tasks, and under
+``tenant_context()`` / ``schema_context()``.
+
+.. code-block:: python
+
+    from django_tenants.utils import get_current_tenant
+
+    def send_welcome_email(user):
+        tenant = get_current_tenant()   # no request needed
+        ...
+
+``tenant_context()`` sets the real tenant instance, so that is what comes back.
+``schema_context()`` only ever knows a schema name, so there a ``FakeTenant`` is returned --
+read its ``schema_name`` rather than expecting model fields, or use ``tenant_context()`` when
+you need the model instance.
+
 .. function:: @tenant_migration
 
-This decorator allows the flexibility to have data migrations (using ``migrations.RunPython``) execute specifically under a tenant or public schema for apps in both tenant/public INSTALLED_APPS. 
+This decorator allows the flexibility to have data migrations (using ``migrations.RunPython``) execute specifically under a tenant or public schema for apps in both tenant/public INSTALLED_APPS.
 It accepts boolean kwargs ``tenant_schema`` or ``public_schema`` - the default beign ``tenant_schema=True`` and ``public_schema=False``.
 
 .. code-block:: python

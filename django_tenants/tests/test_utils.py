@@ -6,7 +6,7 @@ from django_tenants.test.cases import TenantTestCase
 from django.core.management.commands.migrate import Command as MigrateCommand
 from django.test.utils import override_settings
 
-from django_tenants.utils import get_tenant
+from django_tenants.utils import get_current_tenant, get_tenant
 
 
 class CustomMigrateCommand(MigrateCommand):
@@ -53,3 +53,20 @@ class ConfigStringParsingTestCase(TenantTestCase):
         request = factory.get('/any/request/', HTTP_HOST=tenant_domain)
         tm.process_request(request)
         self.assertEqual(get_tenant(request).schema_name, 'test')
+
+    def test_get_current_tenant(self):
+        # The point of get_current_tenant (issue #1217) is that it takes no request, so it
+        # works from anywhere the connection is already set -- helpers, tasks, signals.
+        self.assertEqual(get_current_tenant().schema_name, self.tenant.schema_name)
+
+    def test_get_current_tenant_follows_schema_context(self):
+        with utils.schema_context(utils.get_public_schema_name()):
+            self.assertEqual(
+                get_current_tenant().schema_name, utils.get_public_schema_name()
+            )
+        # and is restored on the way out
+        self.assertEqual(get_current_tenant().schema_name, self.tenant.schema_name)
+
+    def test_get_current_tenant_returns_the_instance_under_tenant_context(self):
+        with utils.tenant_context(self.tenant):
+            self.assertEqual(get_current_tenant(), self.tenant)

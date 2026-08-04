@@ -348,3 +348,17 @@ def get_tenant(request):
     if hasattr(request, 'tenant'):
         return request.tenant
     return None
+
+
+def get_current_tenant(database=None):
+    """Return the tenant the connection is currently set to, or None.
+
+    Unlike :func:`get_tenant` this takes no request, so it also works deep inside helper
+    functions, in Celery tasks, and under ``tenant_context()`` / ``schema_context()``.
+
+    ``tenant_context()`` sets the real tenant instance, so that is what comes back.
+    ``schema_context()`` only ever knows a schema name, so there a ``FakeTenant`` is
+    returned -- read its ``schema_name`` rather than expecting model fields, or use
+    ``tenant_context()`` when you need the model instance.
+    """
+    return getattr(connections[database or get_tenant_database_alias()], 'tenant', None)

@@ -44,8 +44,6 @@ def _options_to_argv(options: dict) -> list[str]:
         argv.append("--check")
     if options.get("plan"):
         argv.append("--plan")
-    if options.get("list"):
-        argv.append("--list")
     if not options.get("load_initial_data", True):
         argv.append("--no-initial-data")
     if options.get("database"):
