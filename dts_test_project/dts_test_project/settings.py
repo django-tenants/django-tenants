@@ -57,8 +57,16 @@ MULTITENANT_STATICFILES_DIRS = [
     os.path.join(TENANT_APPS_DIR, "tenants/%s/static")
 ]
 
-STATICFILES_STORAGE = "django_tenants.staticfiles.storage.TenantStaticFilesStorage"
-DEFAULT_FILE_STORAGE = "django_tenants.files.storage.TenantFileSystemStorage"
+# STATICFILES_STORAGE and DEFAULT_FILE_STORAGE were deprecated in Django 4.2 and removed in
+# 5.1, where they are ignored -- so the tenant-aware backends silently were not in use.
+STORAGES = {
+    "default": {
+        "BACKEND": "django_tenants.files.storage.TenantFileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django_tenants.staticfiles.storage.TenantStaticFilesStorage",
+    },
+}
 
 MULTITENANT_TEMPLATE_DIRS = [
     os.path.join(TENANT_APPS_DIR, "tenants/%s/templates")
