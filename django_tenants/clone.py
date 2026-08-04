@@ -425,7 +425,8 @@ $$
 
     -- Issue#27: set owner ACL info
     IF aclownercnt = 1 OR acldclcnt = 1 THEN
-        v_acl = 'ALTER TABLE IF EXISTS ' || quote_ident(in_schema) || '.' || quote_ident(in_table) || ' OWNER TO ' || v_owner || ';' || E'\n' || E'\n';
+        -- Issue#1189: v_owner is raw from pg_get_userbyid, so quote it.
+        v_acl = 'ALTER TABLE IF EXISTS ' || quote_ident(in_schema) || '.' || quote_ident(in_table) || ' OWNER TO ' || quote_ident(v_owner) || ';' || E'\n' || E'\n';
     END IF;
 
     -- Issue#35: add all other ACL info if directed
@@ -1439,7 +1440,9 @@ BEGIN
         -- Issue#131: double quote schema names
         -- EXECUTE 'CREATE SCHEMA ' || quote_ident(dest_schema) || ' AUTHORIZATION ' || buffer;
         -- EXECUTE 'CREATE SCHEMA ' || quote_ident(dest_schema) || ' AUTHORIZATION ' || quote_ident(buffer);
-        lastsql = 'CREATE SCHEMA ' || quote_ident(dest_schema) || ' AUTHORIZATION ' || buffer;
+        -- Issue#1189: quote the role, as the bDDLOnly branch above already does. An unquoted
+        -- role name containing a hyphen (or anything else needing quoting) is a syntax error.
+        lastsql = 'CREATE SCHEMA ' || quote_ident(dest_schema) || ' AUTHORIZATION ' || quote_ident(buffer);
         IF bDebugExec THEN RAISE NOTICE 'EXEC: %',lastsql; END IF;
         EXECUTE lastsql;
         lastsql = '';
@@ -1748,7 +1751,7 @@ BEGIN
       RAISE INFO '%', 'CREATE SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ';';
       IF NOT bNoOwner THEN
         -- Fixed Issue#108: double-quote roles in case they have special characters
-        RAISE INFO '%', 'ALTER  SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ' OWNER TO ' || seqowner || ';';
+        RAISE INFO '%', 'ALTER  SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ' OWNER TO ' || quote_ident(seqowner) || ';';
       END IF;
     ELSE
       lastsql = 'CREATE SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ';';
@@ -1759,7 +1762,9 @@ BEGIN
 
       -- issue#95
       IF NOT bNoOwner THEN
-        lastsql = 'ALTER SEQUENCE '  || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ' OWNER TO ' || seqowner;
+        -- Issue#1189: seqowner comes back raw from pg_get_userbyid, unlike tblowner which the
+        -- SELECT already double-quotes, so it needs quoting here.
+        lastsql = 'ALTER SEQUENCE '  || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ' OWNER TO ' || quote_ident(seqowner);
         -- RAISE NOTICE 'DEBUGGGG: EXEC: %', lastsql;
         IF bDebugExec THEN RAISE NOTICE 'EXEC: %', lastsql; END IF;
         -- Fixed Issue#108: double-quote roles in case they have special characters

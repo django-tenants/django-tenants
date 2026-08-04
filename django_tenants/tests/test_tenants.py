@@ -696,6 +696,78 @@ class CloneSchemaTest(BaseTestCase):
             moderator.save()
             self.assertEqual(moderator.pk, 3)
 
+    def test_clone_schema_inside_an_atomic_block(self):
+        """``clone_schema`` must be callable from inside ``transaction.atomic()``.
+
+        It used to call ``transaction.commit()``, which raises
+        ``TransactionManagementError`` inside an atomic block -- so cloning was impossible
+        from anything that wraps its work in a transaction: the Django admin's
+        ``save_model``, a view under ``ATOMIC_REQUESTS``, or a plain ``TestCase``.
+        See issues #1155 and #694.
+        """
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s3')
+        tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='s3.test.com')
+        domain.save()
+
+        with tenant_context(tenant):
+            DummyModel(name='Administrator').save()
+
+        with transaction.atomic():
+            CloneSchema().clone_schema(base_schema_name='s3', new_schema_name='d3')
+
+        self.assertTrue(schema_exists('d3'))
+        with schema_context('d3'):
+            self.assertTrue(DummyModel.objects.filter(name='Administrator').exists())
+
+    def test_clone_schema_owned_by_a_role_whose_name_needs_quoting(self):
+        """Role names are interpolated into DDL and must be quoted.
+
+        A role containing a hyphen is a syntax error unquoted, so cloning a schema owned by
+        one failed on ``CREATE SCHEMA ... AUTHORIZATION``. See issue #1189.
+        """
+        role = 'dts-role-with-hyphen'
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute('CREATE ROLE "%s"' % role)
+            except Exception as e:  # noqa: BLE001 - needs CREATEROLE, which not every CI user has
+                self.skipTest('cannot create a test role: %s' % e)
+        self.addCleanup(self._drop_role, role)
+
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s4')
+        tenant.save()
+        get_tenant_domain_model()(tenant=tenant, domain='s4.test.com').save()
+
+        with tenant_context(tenant):
+            DummyModel(name='Administrator').save()
+
+        with connection.cursor() as cursor:
+            cursor.execute('ALTER SCHEMA s4 OWNER TO "%s"' % role)
+            # A standalone sequence too: seqowner comes back unquoted from pg_get_userbyid,
+            # where tblowner is already double-quoted by its SELECT. An identity sequence
+            # cannot be reowned separately from its table, hence a free-standing one.
+            cursor.execute('CREATE SEQUENCE s4.standalone_seq')
+            cursor.execute('ALTER SEQUENCE s4.standalone_seq OWNER TO "%s"' % role)
+
+        CloneSchema().clone_schema(base_schema_name='s4', new_schema_name='d4')
+
+        self.assertTrue(schema_exists('d4'))
+        with schema_context('d4'):
+            self.assertTrue(DummyModel.objects.filter(name='Administrator').exists())
+
+    @staticmethod
+    def _drop_role(role):
+        connection.set_schema_to_public()
+        with connection.cursor() as cursor:
+            for schema in ('s4', 'd4'):
+                cursor.execute('DROP SCHEMA IF EXISTS %s CASCADE' % schema)
+            cursor.execute('REASSIGN OWNED BY "%s" TO CURRENT_USER' % role)
+            cursor.execute('DROP OWNED BY "%s"' % role)
+            cursor.execute('DROP ROLE IF EXISTS "%s"' % role)
+
 
 class SchemaMigratedSignalTest(BaseTestCase):
 
