@@ -486,6 +486,20 @@ If the command you need to run on all tenants should not be run on the public te
 
     ./manage.py all_tenants_command --no-public loaddata
 
+It can also be called from Python:
+
+.. code-block:: python
+
+    from django.core.management import call_command
+
+    call_command('all_tenants_command', 'loaddata', 'fixture.json')
+    call_command('all_tenants_command', 'loaddata', 'fixture.json', no_public=True)
+
+Options belonging to the wrapped command, such as ``--indent=4``, can only be given on the command
+line -- ``call_command`` validates its keyword arguments against ``all_tenants_command`` itself, so
+it rejects any option that command does not declare. Pass positional arguments as above, or use
+``call_command`` on the wrapped command inside ``tenant_context()`` if you need its options.
+
 
 
 create_tenant_superuser
