@@ -17,7 +17,6 @@ classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Environment :: Web Environment",
   "Framework :: Django",
-  "Framework :: Django :: 4.2",
   "Framework :: Django :: 5.2",
   "Framework :: Django :: 6.0",
   "Framework :: Django :: 6.1",
@@ -30,7 +29,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-  "django>=2.1,<6.2",
+  "django>=5.2,<6.2",
 ]
 
 optional-dependencies.dev = [

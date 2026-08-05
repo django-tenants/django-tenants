@@ -11,10 +11,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 import django.db.utils
 
-try:
-     from django.db.backends.postgresql.psycopg_any import is_psycopg3
-except ImportError:
-    is_psycopg3 = False
+from django.db.backends.postgresql.psycopg_any import is_psycopg3
 
 if is_psycopg3:
     import psycopg
