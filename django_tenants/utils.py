@@ -190,12 +190,24 @@ def django_is_in_test_mode():
     return hasattr(mail, 'outbox')
 
 
-def schema_exists(schema_name, database=get_tenant_database_alias()):
+def schema_exists(schema_name, database=get_tenant_database_alias(), case_sensitive=True):
+    """
+    Checks whether `schema_name` exists in the database.
+
+    PostgreSQL schema names are case sensitive -- `CREATE SCHEMA "C2"` and
+    `CREATE SCHEMA "c2"` create two distinct schemas -- so the comparison is
+    exact by default. Pass `case_sensitive=False` to ask the different question
+    of whether any schema would collide with `schema_name` ignoring case, which
+    is what the tenant uniqueness checks need. See #846.
+    """
     _connection = connections[database]
     cursor = _connection.cursor()
 
     # check if this schema already exists in the db
-    sql = 'SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER(%s))'
+    if case_sensitive:
+        sql = 'SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = %s)'
+    else:
+        sql = 'SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER(%s))'
     cursor.execute(sql, (schema_name, ))
 
     row = cursor.fetchone()
@@ -217,7 +229,9 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
     _connection = connections[database]
     cursor = _connection.cursor()
 
-    if schema_exists(new_schema_name):
+    # A name differing only in case collides too -- django-tenants treats such
+    # names as the same tenant, so renaming 'c2' to 'C2' is refused. #846
+    if schema_exists(new_schema_name, database=database, case_sensitive=False):
         raise ValidationError("New schema name already exists")
     if not is_valid_schema_name(new_schema_name):
         raise ValidationError("Invalid string used for the schema name.")
