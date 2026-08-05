@@ -134,9 +134,6 @@ The above behaviour can be changed for multi-tenant setups so that each tenant w
         },
     }
 
-    # OR, in the unlikely case you're using django < 4.2
-    DEFAULT_FILE_STORAGE = "django_tenants.files.storage.TenantFileSystemStorage"
-
     MULTITENANT_RELATIVE_MEDIA_ROOT = ""  # (default: create sub-directory for each tenant)
 
 The path specified in ``MULTITENANT_RELATIVE_MEDIA_ROOT`` tells ``TenantFileSystemStorage`` where in ``MEDIA_ROOT`` the tenant's files should be saved. The default behaviour is to just create a sub-directory for each tenant in ``MEDIA_ROOT``.
