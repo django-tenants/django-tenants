@@ -43,6 +43,11 @@ Now we can create our first real tenant.
     domain.is_primary = True
     domain.save()
 
+Schema names may contain upper case characters, but two tenants whose schema names differ only in
+case are not allowed -- creating a tenant ``Tenant1`` when ``tenant1`` already exists raises a
+``ValidationError``. PostgreSQL would treat those as two separate schemas, while django-tenants
+treats the names as the same tenant, so allowing both leaves two tenants fighting over one schema.
+
 Because you have the tenant middleware installed, any request made to ``tenant.my-domain.com`` will now automatically set your PostgreSQL's ``search_path`` to ``tenant1, public``, making shared apps available too. The tenant will be made available at ``request.tenant``. By the way, the current schema is also available at ``connection.schema_name``, which is useful, for example, if you want to hook to any of django's signals.
 
 Any call to the methods ``filter``, ``get``, ``save``, ``delete`` or any other function involving a database connection will now be done at the tenant's schema, so you shouldn't need to change anything at your views.

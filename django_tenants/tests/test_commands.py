@@ -10,7 +10,7 @@ from django.db import connection
 from django_tenants.management.commands.all_tenants_command import Command as AllTenantsCommand
 from django_tenants.test.cases import FastTenantTestCase
 from django_tenants.tests.testcases import BaseTestCase
-from django_tenants.utils import get_tenant_model, get_public_schema_name
+from django_tenants.utils import get_tenant_model, get_public_schema_name, schema_exists
 from dts_test_app.models import DummyModel
 
 
@@ -205,3 +205,53 @@ class AllTenantsCommandTestCase(BaseTestCase):
 
         self.assertEqual(raised.exception.code, 0)
         self.assertIn('--no-public', help_text.getvalue())
+
+
+class DeleteTenantCommandTestCase(BaseTestCase):
+    """
+    Confirming the prompt has to actually delete the tenant. #1058
+    """
+
+    def create_tenant(self, schema_name='delete_test'):
+        tenant = get_tenant_model()(schema_name=schema_name)
+        tenant.save()
+        self.assertTrue(schema_exists(schema_name))
+        return tenant
+
+    def test_answering_yes_at_the_first_prompt_deletes_the_tenant(self):
+        tenant = self.create_tenant()
+
+        with mock.patch('builtins.input', return_value='yes'):
+            call_command('delete_tenant', schema_name=tenant.schema_name, stderr=io.StringIO())
+
+        self.assertFalse(get_tenant_model().objects.filter(pk=tenant.pk).exists())
+        self.assertFalse(schema_exists(tenant.schema_name))
+
+    def test_answering_no_keeps_the_tenant(self):
+        tenant = self.create_tenant()
+        stderr = io.StringIO()
+
+        with mock.patch('builtins.input', return_value='no'):
+            call_command('delete_tenant', schema_name=tenant.schema_name, stderr=stderr)
+
+        self.assertIn('Canceled', stderr.getvalue())
+        self.assertTrue(get_tenant_model().objects.filter(pk=tenant.pk).exists())
+        self.assertTrue(schema_exists(tenant.schema_name))
+
+    def test_unrecognised_answer_is_reprompted_until_valid(self):
+        tenant = self.create_tenant()
+
+        with mock.patch('builtins.input', side_effect=['maybe', '', 'yes']) as mocked_input:
+            call_command('delete_tenant', schema_name=tenant.schema_name, stderr=io.StringIO())
+
+        self.assertEqual(mocked_input.call_count, 3)
+        self.assertFalse(schema_exists(tenant.schema_name))
+
+    def test_noinput_deletes_without_prompting(self):
+        tenant = self.create_tenant()
+
+        with mock.patch('builtins.input', side_effect=AssertionError('should not prompt')):
+            call_command('delete_tenant', schema_name=tenant.schema_name, interactive=False,
+                         stderr=io.StringIO())
+
+        self.assertFalse(schema_exists(tenant.schema_name))

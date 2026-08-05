@@ -4617,7 +4617,9 @@ class CloneSchema:
         # TransactionManagementError when the caller is inside an atomic block (#1155, #694).
         self._create_clone_schema_function()
 
-        if schema_exists(new_schema_name):
+        # Ignore case: a clone target differing only in case from an existing
+        # schema would leave two tenants fighting over one schema. #846
+        if schema_exists(new_schema_name, case_sensitive=False):
             raise ValidationError("New schema name already exists")
 
         sql = "SELECT clone_schema(%(base_schema)s, %(new_schema)s, %(clone_mode)s)"
