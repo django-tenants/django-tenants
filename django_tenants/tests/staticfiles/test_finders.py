@@ -1,5 +1,6 @@
 import os
 
+import django
 from django.conf import settings
 from django.db import connection
 
@@ -128,7 +129,11 @@ class TenantFileSystemFinderTestCase(TenantTestCase):
         self.assertEqual(os.path.normcase(found), os.path.normcase(self.test_file_path))
 
     def test_find_all(self):
-        found = self.finder.find(self.source_path, all=True)
+        # Django 5.2 renamed this keyword from `all` to `find_all`, keeping the old
+        # spelling working via **kwargs, and 6.1 dropped **kwargs -- so `all=True`
+        # is a TypeError there. Pick whichever the running version accepts.
+        kwarg = 'find_all' if django.VERSION >= (5, 2) else 'all'
+        found = self.finder.find(self.source_path, **{kwarg: True})
         found = [os.path.normcase(f) for f in found]
 
         self.assertEqual(found, [os.path.normcase(self.test_file_path)])
