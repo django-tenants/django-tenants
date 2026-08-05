@@ -189,20 +189,23 @@ class TenantDataAndSettingsTest(BaseTestCase):
         DummyModel(name="Schemas are").save()
         DummyModel(name="awesome!").save()
 
-        # switch temporarily to tenant2's path
-        with self.assertNumQueries(3):
+        # switch temporarily to tenant2's path.
+        # TENANT_LIMIT_SET_CALLS is off, so each of the 3 inserts is preceded by its
+        # own `SET search_path` -- 6 statements, not 3. The SET was always issued;
+        # it is now run on the caller's cursor on every driver, so it is counted.
+        with self.assertNumQueries(6):
             with tenant_context(tenant2):
                 # add some data, 3 DummyModels for tenant2
                 DummyModel(name="Man,").save()
                 DummyModel(name="testing").save()
                 DummyModel(name="is great!").save()
 
-        # we should be back to tenant1's path, test what we have
-        with self.assertNumQueries(1):
+        # we should be back to tenant1's path, test what we have (SET + COUNT)
+        with self.assertNumQueries(2):
             self.assertEqual(2, DummyModel.objects.count())
 
-        # switch back to tenant2's path
-        with self.assertNumQueries(1):
+        # switch back to tenant2's path (SET + COUNT)
+        with self.assertNumQueries(2):
             with tenant_context(tenant2):
                 self.assertEqual(3, DummyModel.objects.count())
 
@@ -228,8 +231,10 @@ class TenantDataAndSettingsTest(BaseTestCase):
         with self.assertNumQueries(0):
             connection.set_tenant(tenant1)
 
-        # switch temporarily to tenant2's path
-        with self.assertNumQueries(3):
+        # switch temporarily to tenant2's path.
+        # TENANT_LIMIT_SET_CALLS is on, so the SET runs once for the first cursor
+        # after set_tenant cleared the cache, then the 3 inserts: 4 statements.
+        with self.assertNumQueries(4):
             with tenant_context(tenant2):
                 DummyModel(name="Man,").save()
                 DummyModel(name="testing").save()
@@ -239,14 +244,16 @@ class TenantDataAndSettingsTest(BaseTestCase):
         with self.assertNumQueries(0):
             connection.set_tenant(tenant1)
 
-        with self.assertNumQueries(1):
+        # set_tenant cleared the cache, so this re-issues the SET (SET + COUNT)
+        with self.assertNumQueries(2):
             self.assertEqual(0, DummyModel.objects.count())
 
         # 0 queries as search path not set here
         with self.assertNumQueries(0):
             connection.set_tenant(tenant2)
 
-        with self.assertNumQueries(1):
+        # as above: SET + COUNT
+        with self.assertNumQueries(2):
             self.assertEqual(3, DummyModel.objects.count())
 
         self.created = [domain2, domain1, tenant2, tenant1]
