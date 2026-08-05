@@ -1,11 +1,13 @@
+import contextlib
 import io
 import json
 from unittest import mock
 
 from django.core.management import call_command
-from django.core.management.base import CommandError
+from django.core.management.base import BaseCommand, CommandError, OutputWrapper
 from django.db import connection
 
+from django_tenants.management.commands.all_tenants_command import Command as AllTenantsCommand
 from django_tenants.test.cases import FastTenantTestCase
 from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.utils import get_tenant_model, get_public_schema_name
@@ -122,3 +124,84 @@ class AllTenantsCommandTestCase(BaseTestCase):
     def test_unknown_command_raises_command_error(self):
         with self.assertRaisesRegex(CommandError, 'Unknown command'):
             call_command('all_tenants_command', 'no_such_command', stdout=io.StringIO())
+
+    # The command line goes through run_from_argv() rather than handle(), so it
+    # needs driving separately from the call_command() tests above.
+
+    def run_from_argv(self, *args):
+        """
+        Runs the command the way manage.py does, capturing its own output.
+        """
+        command = AllTenantsCommand()
+        stdout, stderr = io.StringIO(), io.StringIO()
+        command.stdout, command.stderr = OutputWrapper(stdout), OutputWrapper(stderr)
+        command.run_from_argv(['manage.py', 'all_tenants_command', *args])
+        return stdout.getvalue(), stderr.getvalue()
+
+    @staticmethod
+    def wrapped_command(calls):
+        """
+        Stands in for the wrapped command class that run_from_argv() loads.
+        """
+        class Wrapped(BaseCommand):
+            def run_from_argv(self, argv):
+                calls.append((argv, connection.schema_name))
+
+        return Wrapped()
+
+    def test_command_line_runs_the_wrapped_command_on_every_tenant(self):
+        calls = []
+
+        with mock.patch('django_tenants.management.commands.all_tenants_command.load_command_class',
+                        return_value=self.wrapped_command(calls)):
+            self.run_from_argv('dumpdata', '--indent=4')
+
+        self.assertCountEqual([schema for _, schema in calls],
+                              [get_public_schema_name(), 'all_tenants_test'])
+        # The wrapped command's own options are handed straight through.
+        for argv, _ in calls:
+            self.assertEqual(argv, ['manage.py', 'dumpdata', '--indent=4'])
+
+    def test_command_line_no_public_is_stripped_from_anywhere(self):
+        calls = []
+
+        with mock.patch('django_tenants.management.commands.all_tenants_command.load_command_class',
+                        return_value=self.wrapped_command(calls)):
+            self.run_from_argv('dumpdata', '--no-public', 'dts_test_app.DummyModel')
+
+        self.assertEqual([schema for _, schema in calls], ['all_tenants_test'])
+        self.assertEqual(calls[0][0], ['manage.py', 'dumpdata', 'dts_test_app.DummyModel'])
+
+    def test_command_line_uses_an_already_loaded_command(self):
+        calls = []
+        loaded = self.wrapped_command(calls)
+
+        # get_commands() hands back a BaseCommand instance rather than an app
+        # label when a command is already loaded.
+        with mock.patch('django_tenants.management.commands.all_tenants_command.get_commands',
+                        return_value={'preloaded': loaded}):
+            self.run_from_argv('preloaded')
+
+        self.assertEqual(len(calls), 2)
+
+    def test_command_line_unknown_command_exits_non_zero(self):
+        with self.assertRaises(SystemExit) as raised:
+            _, stderr = self.run_from_argv('no_such_command')
+
+        self.assertEqual(raised.exception.code, 1)
+
+    def test_command_line_without_a_command_name_reports_usage(self):
+        # Falls back to Django's parser, which exits 2 on a missing argument.
+        with self.assertRaises(SystemExit) as raised:
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.run_from_argv()
+
+        self.assertEqual(raised.exception.code, 2)
+
+    def test_command_line_help_is_not_treated_as_a_command_name(self):
+        with self.assertRaises(SystemExit) as raised:
+            with contextlib.redirect_stdout(io.StringIO()) as help_text:
+                self.run_from_argv('--help')
+
+        self.assertEqual(raised.exception.code, 0)
+        self.assertIn('--no-public', help_text.getvalue())
