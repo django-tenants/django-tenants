@@ -20,6 +20,7 @@ classifiers = [
   "Framework :: Django :: 4.2",
   "Framework :: Django :: 5.2",
   "Framework :: Django :: 6.0",
+  "Framework :: Django :: 6.1",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.10",
@@ -29,7 +30,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-  "django>=2.1,<6.1",
+  "django>=2.1,<6.2",
 ]
 
 optional-dependencies.dev = [

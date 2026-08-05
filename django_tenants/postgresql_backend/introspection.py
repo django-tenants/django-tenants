@@ -1,3 +1,9 @@
+# Import the backend's base module before its introspection module. On Django 6.1
+# `django.db.backends.postgresql.introspection` imports `psycopg_version` from
+# `...postgresql.base`, which in turn imports `...postgresql.introspection` -- so
+# importing introspection first leaves base half-initialised and the cycle raises
+# ImportError. Django itself never hits this because base is always imported first.
+import django.db.backends.postgresql.base  # noqa: F401
 from django.db.backends.postgresql.introspection import DatabaseIntrospection
 
 
