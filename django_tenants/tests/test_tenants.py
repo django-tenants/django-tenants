@@ -3,6 +3,7 @@ from unittest import mock
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.db import connection, transaction
 from django.test.utils import override_settings
@@ -603,6 +604,70 @@ class TenantRenameSchemaTest(BaseTestCase):
         schema_rename(tenant=Client.objects.filter(pk=tenant.pk).first(), new_schema_name='4321_new_name')
         self.assertFalse(schema_exists('1234_test'))
         self.assertTrue(schema_exists('4321_new_name'))
+
+
+class TenantSchemaNameCaseTest(BaseTestCase):
+    """
+    Schema names that differ only in case must not produce two tenants. #846
+    """
+
+    def test_tenant_differing_only_in_case_is_rejected(self):
+        Client = get_tenant_model()
+        tenant = Client(schema_name='case_test')
+        tenant.save()
+
+        with self.assertRaises(ValidationError):
+            Client(schema_name='CASE_TEST').save()
+
+        self.assertEqual(Client.objects.filter(schema_name__iexact='case_test').count(), 1)
+
+    def test_saving_an_existing_tenant_does_not_collide_with_itself(self):
+        Client = get_tenant_model()
+        tenant = Client(schema_name='case_test')
+        tenant.save()
+
+        # The check runs on insert only, so re-saving must not see the tenant's
+        # own row as a duplicate of itself.
+        tenant.save()
+
+        self.assertEqual(Client.objects.filter(schema_name='case_test').count(), 1)
+
+    def test_tenants_that_already_collide_can_still_be_saved(self):
+        Client = get_tenant_model()
+        Client(schema_name='case_test').save()
+
+        # Simulate a database that already holds a colliding pair from before the
+        # check existed -- upgrading must not lock anyone out of their own tenant.
+        other = Client(schema_name='case_test_2')
+        other.save()
+        Client.objects.filter(pk=other.pk).update(schema_name='CASE_TEST')
+
+        other = Client.objects.get(pk=other.pk)
+        other.auto_create_schema = False
+        other.save()
+
+        self.assertEqual(Client.objects.filter(schema_name__iexact='case_test').count(), 2)
+
+    def test_schema_exists_is_case_sensitive_by_default(self):
+        Client = get_tenant_model()
+        Client(schema_name='case_test').save()
+
+        # PostgreSQL created "case_test", not "CASE_TEST" -- they are distinct
+        # schemas, so the default comparison must not conflate them.
+        self.assertTrue(schema_exists('case_test'))
+        self.assertFalse(schema_exists('CASE_TEST'))
+        self.assertTrue(schema_exists('CASE_TEST', case_sensitive=False))
+
+    def test_rename_schema_to_name_differing_only_in_case_is_rejected(self):
+        Client = get_tenant_model()
+        tenant = Client(schema_name='case_test')
+        tenant.save()
+
+        with self.assertRaisesRegex(ValidationError, 'New schema name already exists'):
+            schema_rename(tenant=Client.objects.filter(pk=tenant.pk).first(),
+                          new_schema_name='CASE_TEST')
+
+        self.assertTrue(schema_exists('case_test'))
 
 
 class CloneSchemaTest(BaseTestCase):
