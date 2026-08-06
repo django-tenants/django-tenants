@@ -15,7 +15,6 @@ from django_tenants.utils import (
 def run_migrations(args, options, executor_codename, schema_name, tenant_type='',
                    allow_atomic=True, idx=None, count=None):
     from django.core.management import color
-    from django.core.management.base import OutputWrapper
     from django.db import connections
     style = color.color_style()
 
@@ -50,13 +49,11 @@ def run_migrations(args, options, executor_codename, schema_name, tenant_type=''
     migration_recorder = MigrationRecorder(connection)
     migration_recorder.ensure_schema()
     connection.set_schema(schema_name, tenant_type=tenant_type)
-                       
-    stdout = OutputWrapper(sys.stdout)
-    stdout.style_func = style_func
-    stderr = OutputWrapper(sys.stderr)
-    stderr.style_func = style_func
+
+    stdout = LinePrefixStream(sys.stdout, style_func)
+    stderr = LinePrefixStream(sys.stderr, style_func)
     if int(options.get('verbosity', 1)) >= 1:
-        stdout.write(style.NOTICE("=== Starting migration"))
+        sys.stdout.write(style_func(style.NOTICE("=== Starting migration")) + "\n")
     migrate_command_class = get_tenant_base_migrate_command_class()
     migrate_command_class(stdout=stdout, stderr=stderr).execute(*args, **options)
 
@@ -90,3 +87,22 @@ class MigrationExecutor:
 
     def run_multi_type_migrations(self, tenants):
         raise NotImplementedError
+
+class LinePrefixStream:
+    def __init__(self, stream, prefix_func):
+        self._stream = stream
+        self._prefix_func = prefix_func
+        self._buffer = ""
+
+    def write(self, s):
+        self._buffer += s
+        while "\n" in self._buffer:
+            line, self._buffer = self._buffer.split("\n", 1)
+            self._stream.write(self._prefix_func(line) + "\n")
+        return len(s)
+
+    def flush(self):
+        self._stream.flush()
+
+    def isatty(self):
+        return hasattr(self._stream, "isatty") and self._stream.isatty()
