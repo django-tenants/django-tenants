@@ -10,7 +10,9 @@ jobs:
     name: Postgres compatibility ${{ matrix.postgres-version }}
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      # one unsupported server should not cancel the others, or a single old
+      # version going out of support hides the results for every newer one
+      fail-fast: false
       matrix: # https://www.postgresql.org/docs/release
         # always use latest Python b/c the point here is to test PostgreSQL compatibility
         python-version: ["3.13"]
@@ -26,8 +28,15 @@ jobs:
 
     - name: Install Python dependencies
       run: |
-        # always use latest Django b/c the point here is to test PostgreSQL compatibility
-        pip install Django
+        # always use latest Django b/c the point here is to test PostgreSQL
+        # compatibility -- except that each Django series drops the servers it no
+        # longer supports, so an older server gets the newest series that still
+        # takes it. Django 6.1 requires PostgreSQL 15 or later.
+        if [ "${{ matrix.postgres-version }}" -lt 15 ]; then
+          pip install "Django<6.1"
+        else
+          pip install Django
+        fi
         pip install -e ".[dev]"
 
     - name: Create database
