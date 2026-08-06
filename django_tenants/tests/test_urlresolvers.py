@@ -1,11 +1,9 @@
-import sys
-from importlib import import_module
-
 from django.conf import settings
 from django.urls import reverse
 
 from django_tenants.tests.testcases import BaseTestCase
-from django_tenants.urlresolvers import TenantPrefixPattern, get_subfolder_urlconf
+from django_tenants.urlresolvers import get_subfolder_urlconf
+
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model
 
 
@@ -27,11 +25,8 @@ class URLResolversTestCase(BaseTestCase):
             """
             Reverses `name` in the urlconf returned from `tenant`.
             """
-
-            urlconf_path = get_subfolder_urlconf(tenant)
-            urlconf = import_module(urlconf_path)
+            urlconf = get_subfolder_urlconf(tenant)
             reverse_response = reverse(name, urlconf=urlconf)
-            del sys.modules[urlconf_path]  # required to simulate new thread next time
             return reverse_response
 
         cls.reverser = reverser_func
@@ -61,13 +56,15 @@ class URLResolversTestCase(BaseTestCase):
     def test_tenant_prefix(self):
         from django.db import connection
 
-        tpp = TenantPrefixPattern()
         for tenant in get_tenant_model().objects.all():
             domain = tenant.domains.first()
             tenant.domain_subfolder = domain.domain  # Normally done by middleware
             connection.set_tenant(tenant)
+            subfolder_url_conf = get_subfolder_urlconf(tenant)
+            url_resolver = subfolder_url_conf.urlpatterns[0]
             self.assertEqual(
-                tpp.tenant_prefix, "clients/{}/".format(tenant.domain_subfolder)
+                url_resolver.pattern.describe(),
+                "'clients/{}/'".format(tenant.domain_subfolder),
             )
 
     def test_prefixed_reverse(self):
