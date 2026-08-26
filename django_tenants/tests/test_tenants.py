@@ -259,6 +259,40 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
         self.created = [domain2, domain1, tenant2, tenant1]
 
+    @override_settings(TENANT_LIMIT_SET_CALLS=True)
+    def test_savepoint_rollback_reissues_search_path(self):
+        """ROLLBACK TO SAVEPOINT reverts a SET issued after the savepoint; the cached
+        search_path must not outlive it."""
+        tenant1 = get_tenant_model()(schema_name='tenant1')
+        tenant1.save()
+
+        domain1 = get_tenant_domain_model()(tenant=tenant1, domain='something.test.com')
+        domain1.save()
+
+        connection.set_schema_to_public()
+
+        tenant2 = get_tenant_model()(schema_name='tenant2')
+        tenant2.save()
+
+        domain2 = get_tenant_domain_model()(tenant=tenant2, domain='example.com')
+        domain2.save()
+
+        connection.set_tenant(tenant1)
+        DummyModel(name="tenant1 row").save()
+
+        with transaction.atomic():
+            with self.assertRaises(ValueError):
+                with transaction.atomic():          # savepoint
+                    connection.set_tenant(tenant2)  # SET is issued after the savepoint
+                    DummyModel(name="tenant2 row").save()
+                    raise ValueError
+
+            # search_path is back on tenant1. Without clearing the cache this reads
+            # tenant1's row while the connection says tenant2.
+            self.assertEqual(0, DummyModel.objects.count())
+
+        self.created = [domain2, domain1, tenant2, tenant1]
+
     def test_switching_tenant_without_previous_tenant(self):
         tenant = get_tenant_model()(schema_name='test')
         tenant.save()

@@ -93,6 +93,15 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         self._setting_search_path = False
         super().rollback()
 
+    @async_unsafe
+    def savepoint_rollback(self, sid):
+        super().savepoint_rollback(sid)
+        # ROLLBACK TO SAVEPOINT reverts a SET issued after the savepoint, same as ROLLBACK
+        # does. Cleared after the rollback, not before: getting the cursor for it goes
+        # through _cursor(), so clearing first would issue a SET the rollback then discards.
+        self.search_path_set_schemas = None
+        self._setting_search_path = False
+
     def set_tenant(self, tenant, include_public=True):
         """
         Main API method to current database schema,
