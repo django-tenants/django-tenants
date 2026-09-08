@@ -74,6 +74,7 @@ Contents
    
    install
    use
+   security
    examples
    files
    test
