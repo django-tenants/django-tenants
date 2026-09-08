@@ -835,6 +835,52 @@ class CloneSchemaTest(BaseTestCase):
             cursor.execute('DROP ROLE IF EXISTS "%s"' % role)
 
 
+class TenantBaseSchemaTest(BaseTestCase):
+    """Creating a tenant by cloning a template schema, with TENANT_CREATION_FAKES_MIGRATIONS."""
+
+    def setUp(self):
+        super().setUp()
+        self.created = []
+        self.template = self.create_tenant('template')
+
+    def tearDown(self):
+        connection.set_schema_to_public()
+        for tenant in reversed(self.created):
+            tenant.delete(force_drop=True)
+
+        super().tearDown()
+
+    def create_tenant(self, schema_name):
+        tenant = get_tenant_model()(schema_name=schema_name)
+        tenant.save(verbosity=0)
+        self.created.append(tenant)
+        return tenant
+
+    def test_tenant_is_cloned_from_the_template(self):
+        with tenant_context(self.template):
+            DummyModel(name='from the template').save()
+
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True, TENANT_BASE_SCHEMA='template'):
+            tenant = self.create_tenant('cloned')
+
+        with tenant_context(tenant):
+            self.assertTrue(DummyModel.objects.filter(name='from the template').exists())
+
+    def test_tenant_runs_its_migrations_when_the_template_does_not_exist(self):
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True,
+                               TENANT_BASE_SCHEMA='no_such_template'):
+            self.create_tenant('migrated')
+
+        self.assertIn('dts_test_app_dummymodel', self.get_tables_list_in_schema('migrated'))
+
+    def test_the_public_schema_is_not_cloned_from_a_tenant_template(self):
+        """The public schema holds the shared apps, so no tenant template matches it."""
+        public_tenant = get_tenant_model()(schema_name=get_public_schema_name())
+
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True, TENANT_BASE_SCHEMA='template'):
+            self.assertFalse(public_tenant.get_base_schema())
+
+
 class SchemaMigratedSignalTest(BaseTestCase):
 
     def setUp(self):

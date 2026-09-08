@@ -248,6 +248,8 @@ Optional Settings
 
     The name of the schema to use as a template for creating new tenants. Only used when ``TENANT_CREATION_FAKES_MIGRATIONS`` is enabled.
 
+    With multi-types tenants each type can name a template of its own, under ``TENANT_TYPES[type]['BASE_SCHEMA']``, and the types that don't fall back to this setting. See :ref:`multi-types-base-schema`.
+
 
 .. attribute:: TENANT_SYNC_ROUTER
 

@@ -295,6 +295,36 @@ That's all you need to add the multiple types.
 
 There is an example project called ```tenant_multi_types```
 
+.. _multi-types-base-schema:
+
+A template schema per type
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``TENANT_CREATION_FAKES_MIGRATIONS`` creates a tenant by cloning a template schema instead of running its migrations. Each type has its own apps, so one template can't serve them all -- a type2 tenant cloned from a type1 template would get the type1 tables. Give each type a template of its own with ``BASE_SCHEMA``.
+
+.. code-block:: python
+
+    TENANT_CREATION_FAKES_MIGRATIONS = True
+
+    TENANT_TYPES = {
+        "public": {
+            "APPS": [...],
+            "URLCONF": "tenant_multi_types_tutorial.urls_public",
+        },
+        "type1": {
+            "APPS": [...],
+            "URLCONF": "tenant_multi_types_tutorial.urls_type1",
+            "BASE_SCHEMA": "type1_template",
+        },
+        "type2": {
+            "APPS": [...],
+            "URLCONF": "tenant_multi_types_tutorial.urls_type2",
+            "BASE_SCHEMA": "type2_template",
+        }
+    }
+
+The template schemas are ordinary tenants of their type, so create them the way you create any other tenant and keep them migrated. Any type without a ``BASE_SCHEMA`` uses ``TENANT_BASE_SCHEMA``, and a type with neither runs its migrations as usual.
+
 Other settings
 --------------
 
