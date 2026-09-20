@@ -1,3 +1,4 @@
+import contextvars
 import re
 import warnings
 from django.conf import settings
@@ -55,32 +56,77 @@ def _check_schema_name(name):
         raise ValidationError("Invalid string used for the schema name.")
 
 
+# Per-request tenant state. django-bolt (and async stacks generally) spread
+# database work across multiple threads, so thread-local instance attributes
+# cannot reach the thread that actually runs a query. ContextVars propagate
+# across those threads (asgiref copies/restores the context at sync<->async
+# boundaries), so the currently selected tenant is carried per-request without
+# leaking between concurrent requests.
+_TENANT_CONTEXTVAR = contextvars.ContextVar("django_tenants.tenant", default=None)
+_SCHEMA_NAME_CONTEXTVAR = contextvars.ContextVar("django_tenants.schema_name", default=None)
+_INCLUDE_PUBLIC_SCHEMA_CONTEXTVAR = contextvars.ContextVar(
+    "django_tenants.include_public_schema", default=True
+)
+
+
 class DatabaseWrapper(original_backend.DatabaseWrapper):
     """
     Adds the capability to manipulate the search_path using set_tenant and set_schema_name
     """
-    include_public_schema = True
     # Use a patched version of the DatabaseIntrospection that only returns the table list for the
     # currently selected schema.
+
+    @property
+    def include_public_schema(self):
+        return _INCLUDE_PUBLIC_SCHEMA_CONTEXTVAR.get()
+
+    @include_public_schema.setter
+    def include_public_schema(self, value):
+        _INCLUDE_PUBLIC_SCHEMA_CONTEXTVAR.set(value)
+
+    @property
+    def tenant(self):
+        return _TENANT_CONTEXTVAR.get()
+
+    @tenant.setter
+    def tenant(self, value):
+        _TENANT_CONTEXTVAR.set(value)
+
+    @property
+    def schema_name(self):
+        return _SCHEMA_NAME_CONTEXTVAR.get()
+
+    @schema_name.setter
+    def schema_name(self, value):
+        _SCHEMA_NAME_CONTEXTVAR.set(value)
 
     def __init__(self, *args, **kwargs):
         self.search_path_set_schemas = None
         # Guards against re-entering _cursor() while we are obtaining a cursor to
         # set the search_path with. See _handle_search_path().
         self._setting_search_path = False
-        self.tenant = None
-        self.schema_name = None
         super().__init__(*args, **kwargs)
 
         # Use a patched version of the DatabaseIntrospection that only returns the table list for the
         # currently selected schema.
         self.introspection = DatabaseSchemaIntrospection(self)
 
-        self.set_schema_to_public()
+        # A connection may be created lazily in the thread that runs the query
+        # (e.g. an async handler), after the tenant was already resolved in a
+        # different thread of the same request. In that case the ContextVar
+        # already carries the tenant and we must not clobber it by resetting to
+        # public. Only fall back to public when no tenant is selected yet.
+        if self.schema_name is None:
+            self.set_schema_to_public()
 
     def close(self):
         self.search_path_set_schemas = None
         self._setting_search_path = False
+        # Drop the per-request tenant state so a closed/reopened connection in a
+        # later request does not inherit the previous request's tenant.
+        _TENANT_CONTEXTVAR.set(None)
+        _SCHEMA_NAME_CONTEXTVAR.set(None)
+        _INCLUDE_PUBLIC_SCHEMA_CONTEXTVAR.set(True)
         super().close()
 
     @async_unsafe
