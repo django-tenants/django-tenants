@@ -441,6 +441,16 @@ The ``multiprocessing`` executor accepts the following settings:
   connection pool)
 * ``TENANT_MULTIPROCESSING_CHUNKS`` (default: 2) - number of migrations to be
   sent at once to every worker
+* ``TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD`` (default: ``None``) - number
+  of tasks a worker completes before it is replaced with a fresh process, to
+  release memory that builds up across tenants. It is passed to
+  ``multiprocessing.Pool`` as ``maxtasksperchild``; ``None`` keeps each worker
+  for the whole run. Each task is one chunk of
+  ``TENANT_MULTIPROCESSING_CHUNKS`` tenants, so a worker is recycled after
+  ``TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD`` x
+  ``TENANT_MULTIPROCESSING_CHUNKS`` tenants (with the defaults, a setting of 1
+  recycles it every 2 tenants). If memory still runs out, see the
+  ``subprocess`` executor below, which starts every tenant in a clean process.
 
 
 migrate_schemas with the subprocess executor
