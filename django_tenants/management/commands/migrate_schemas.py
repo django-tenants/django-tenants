@@ -1,3 +1,5 @@
+from django.db.migrations.autodetector import MigrationAutodetector
+
 from django_tenants.migration_executors import get_executor
 from django_tenants.utils import get_tenant_model, get_public_schema_name, schema_exists, get_tenant_database_alias, \
     has_multi_type_tenants, get_multi_type_database_field_name, get_tenant_migration_order
@@ -14,6 +16,7 @@ else:
 
 
 class MigrateSchemasCommand(SyncCommon):
+    autodetector = MigrationAutodetector
     help = "Updates database schema. Manages both apps with migrations and those without."
 
     def add_arguments(self, parser):
@@ -38,8 +41,8 @@ class MigrateSchemasCommand(SyncCommon):
                             help='Detect if tables already exist and fake-apply initial migrations if so. Make sure '
                                  'that the current database schema matches your initial migration before using this '
                                  'flag. Django will only check for an existing table name.')
-        parser.add_argument('--list', '-l', action='store_true', dest='list', default=False,
-                            help='Show a list of all known migrations and which are applied')
+        # No --list: Django moved that functionality to `showmigrations` long ago, and nothing
+        # here ever read the flag, so it silently did nothing. See issue #794.
         parser.add_argument('--plan', action='store_true',
                             help='Shows a list of the migration actions that will be performed.',
         )
@@ -49,6 +52,10 @@ class MigrateSchemasCommand(SyncCommon):
                             help='Creates tables for apps without migrations.')
         parser.add_argument('--check', action='store_true', dest='check_unapplied',
                             help='Exits with a non-zero status if unapplied migrations exist.')
+        parser.add_argument('--parallel', type=int, default=None,
+                            help='Number of tenant migrations to run in parallel. Only used '
+                                 'by --executor=subprocess. Overrides TENANT_SUBPROCESS_PARALLEL '
+                                 '(default: 1).')
 
     def handle(self, *args, **options):
         super().handle(*args, **options)

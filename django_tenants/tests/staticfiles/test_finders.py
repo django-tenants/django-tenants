@@ -128,7 +128,9 @@ class TenantFileSystemFinderTestCase(TenantTestCase):
         self.assertEqual(os.path.normcase(found), os.path.normcase(self.test_file_path))
 
     def test_find_all(self):
-        found = self.finder.find(self.source_path, all=True)
+        # `find_all` is the spelling from Django 5.2 onwards; the older `all`
+        # keyword was removed in 6.1.
+        found = self.finder.find(self.source_path, find_all=True)
         found = [os.path.normcase(f) for f in found]
 
         self.assertEqual(found, [os.path.normcase(self.test_file_path)])

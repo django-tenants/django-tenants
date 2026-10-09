@@ -84,7 +84,7 @@ http://customer.example.com. Any request incoming at
 and make the tenant available at the request. If no tenant is found, a
 404 error is raised. This also means you should have a tenant for your
 main domain, typically using the ``public`` schema. For more information
-please read the `setup`_ section.
+please read the `installation`_ section.
 
 What can this app do?
 ---------------------
@@ -288,9 +288,9 @@ If this project helped you reduce development time, you can give me cake :)
 .. _PostgreSQL schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
 .. _PostgreSQL’s official documentation on schemas: http://www.postgresql.org/docs/9.1/static/ddl-schemas.html
 .. _Multi-Tenant Data Architecture: https://web.archive.org/web/20160311212239/https://msdn.microsoft.com/en-us/library/aa479086.aspx
-.. _setup: https://django-tenants.readthedocs.org/en/latest/install.html
-.. _examples: https://django-tenants.readthedocs.org/en/latest/examples.html
-.. _django-tenants.readthedocs.org: https://django-tenants.readthedocs.org/en/latest/
+.. _installation: https://django-tenants.readthedocs.io/en/latest/install.html
+.. _examples: https://django-tenants.readthedocs.io/en/latest/examples.html
+.. _django-tenants.readthedocs.org: https://django-tenants.readthedocs.io/en/latest/
 .. _django-tenant-schemas: http://github.com/bernardopires/django-tenant-schemas
 .. _django-schemata: https://github.com/tuttle/django-schemata
 .. _docker-compose: https://docs.docker.com/engine/reference/run/

@@ -10,29 +10,34 @@ jobs:
     name: Postgres compatibility ${{ matrix.postgres-version }}
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
-      matrix:
+      # one unsupported server should not cancel the others, or a single old
+      # version going out of support hides the results for every newer one
+      fail-fast: false
+      matrix: # https://www.postgresql.org/docs/release
         # always use latest Python b/c the point here is to test PostgreSQL compatibility
-        python-version: ["3.11"]
-        postgres-version: [12, 13, 14, 15, 16]
+        python-version: ["3.13"]
+        postgres-version: [14, 15, 16, 17]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install Django
-      run: |
-        # always use latest Django b/c the point here is to test PostgreSQL compatibility
-        pip install Django
-
     - name: Install Python dependencies
       run: |
-        pip install psycopg2 coverage
-        python setup.py develop
+        # always use latest Django b/c the point here is to test PostgreSQL
+        # compatibility -- except that each Django series drops the servers it no
+        # longer supports, so an older server gets the newest series that still
+        # takes it. Django 6.1 requires PostgreSQL 15 or later.
+        if [ "${{ matrix.postgres-version }}" -lt 15 ]; then
+          pip install "Django<6.1"
+        else
+          pip install Django
+        fi
+        pip install -e ".[dev]"
 
     - name: Create database
       run: |
@@ -48,31 +53,48 @@ jobs:
         ./run_tests.sh
 
   django_compatibility:
-    name:  Django compatibility ${{ matrix.django-version}} / Python ${{ matrix.python-version }}
+    name:  Django compatibility ${{ matrix.django-version}} / Python ${{ matrix.python-version }} / ${{ matrix.psycopg-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
-        django-version: ["==4.1.*", "==4.2.*", "==5.0.*"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        django-version: ["==5.2.*", "==6.0.*", "==6.1.*"]
+        # both drivers: the backend supports psycopg2 as a fallback, so it needs testing
+        psycopg-version: ["psycopg[binary]", "psycopg2-binary"]
         # always use latest Postgres b/c the point here is to test Django compatibility
         postgres-version: [latest]
         exclude:
-          - python-version: "3.12"
-            django-version: "==4.1.*"
+          - django-version: "==6.0.*"
+            python-version: "3.10"
+          - django-version: "==6.0.*"
+            python-version: "3.11"
+          # Django 6.1 requires Python 3.12+
+          - django-version: "==6.1.*"
+            python-version: "3.10"
+          - django-version: "==6.1.*"
+            python-version: "3.11"
+
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Install Python dependencies
       run: |
-        pip install psycopg2 coverage setuptools
-        pip install Django${{ matrix.django-version }}
-        python setup.py develop
+        # --pre so a not-yet-final Django series resolves to its release candidate.
+        # Whether pip falls back to a pre-release on its own is pip-version dependent,
+        # and an ==X.Y.* specifier still keeps other series on their final releases.
+        pip install --pre Django${{ matrix.django-version }}
+        pip install -e ".[dev]"
+        # installed last so it wins over whichever driver ".[dev]" resolved
+        pip install "${{ matrix.psycopg-version }}"
+        if [ "${{ matrix.psycopg-version }}" = "psycopg2-binary" ]; then
+          pip uninstall -y psycopg
+        fi
 
     - name: Create database
       run: |
@@ -93,7 +115,7 @@ jobs:
         coverage report -m
 
     - name: Send coverage to CodeCov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v7
       if: env.CODECOV_TOKEN
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
