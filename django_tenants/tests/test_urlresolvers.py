@@ -98,10 +98,10 @@ class URLResolversTestCase(SubfolderTenantsTestCase):
             domain = tenant.domains.first()
             tenant.domain_subfolder = domain.domain  # Normally done by middleware
             connection.set_tenant(tenant)
-            for name, path in self.paths.items():
+            for name, url_path in self.paths.items():
                 self.assertEqual(
                     self.reverser(name, tenant),
-                    "/clients/{}{}".format(domain.domain, path),
+                    "/clients/{}{}".format(domain.domain, url_path),
                 )
 
     def test_reverse_without_a_subfolder_tenant(self):
