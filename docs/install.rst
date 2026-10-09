@@ -110,6 +110,13 @@ To make use of shared and tenant-specific applications, there are two settings c
 
     INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
+.. warning::
+
+    Keep ``django.contrib.auth`` and ``django.contrib.sessions`` at the same
+    level (both shared, or both tenant-specific). Putting sessions in
+    ``SHARED_APPS`` while auth lives only in ``TENANT_APPS`` lets a session from
+    one tenant impersonate a user on another. See :doc:`security`.
+
 You also have to set where your tenant & domain models are located.
 
 .. code-block:: python
@@ -348,6 +355,10 @@ To enable tenant aware caching you can set the KEY_FUNCTION setting to use the p
 
 
 The REVERSE_KEY_FUNCTION setting is only required if you are using the django-redis cache backend.
+
+This matters for security as well: a shared cache (or cache-backed sessions)
+without a tenant-aware key function can leak data across tenants. See
+:doc:`security`.
 
 
 Configuring your Apache Server (optional)
