@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.db import models, connections, transaction
 from django.urls import reverse
@@ -7,7 +8,7 @@ from django.urls import reverse
 from django_tenants.clone import CloneSchema
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
-from .utils import get_creation_fakes_migrations, get_tenant_base_schema
+from .utils import get_creation_fakes_migrations, get_tenant_base_schema, has_multi_type_tenants
 from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias
 
 
@@ -27,6 +28,13 @@ class TenantMixin(models.Model):
     """
     Set this flag to false on a parent class if you don't want the schema
     to be automatically created upon save.
+    """
+
+    clone_mode = "DATA"
+    """
+    One of "DATA", "NODATA".
+    When using TENANT_BASE_SCHEMA, controls whether only the database
+    structure will be copied, or if data will be copied along with it.
     """
 
     schema_name = models.CharField(max_length=63, unique=True, db_index=True,
@@ -92,6 +100,29 @@ class TenantMixin(models.Model):
         connection = connections[get_tenant_database_alias()]
         connection.set_schema_to_public()
 
+    def _check_schema_name_is_unique(self):
+        """
+        Rejects a schema name that only differs in case from an existing tenant's.
+
+        The unique constraint on schema_name is case sensitive, as are PostgreSQL
+        schema names themselves, but django-tenants treats names that differ only
+        in case as the same tenant -- see schema_exists() and schema_rename().
+        Without this check, creating a tenant 'C2' alongside an existing 'c2' is
+        accepted by the database and leaves two tenants fighting over one schema.
+        #846
+
+        Only called when adding a tenant, which is the only way to introduce a
+        collision -- renames go through schema_rename(), which checks for itself.
+        Saves on tenants that already collide are left alone so that upgrading
+        doesn't lock anyone out of their own data. Since the row does not exist
+        yet there is nothing to exclude from the query.
+        """
+        if self.__class__.objects.filter(schema_name__iexact=self.schema_name).exists():
+            raise ValidationError(
+                "A tenant with the schema name '%s' already exists. Schema names are "
+                "compared ignoring case." % self.schema_name
+            )
+
     def save(self, verbosity=1, *args, **kwargs):
         connection = connections[get_tenant_database_alias()]
         is_new = self._state.adding
@@ -103,6 +134,9 @@ class TenantMixin(models.Model):
             raise Exception("Can't update tenant outside it's own schema or "
                             "the public schema. Current schema is %s."
                             % connection.schema_name)
+
+        if is_new:
+            self._check_schema_name_is_unique()
 
         super().save(*args, **kwargs)
 
@@ -178,13 +212,15 @@ class TenantMixin(models.Model):
             return False
 
         fake_migrations = get_creation_fakes_migrations()
+        base_schema = self.get_base_schema() if fake_migrations else False
 
         if sync_schema:
-            if fake_migrations:
+            if base_schema and schema_exists(base_schema):
                 # copy tables and data from provided model schema
-                base_schema = get_tenant_base_schema()
                 clone_schema = CloneSchema()
-                clone_schema.clone_schema(base_schema, self.schema_name)
+                clone_schema.clone_schema(
+                    base_schema, self.schema_name, self.clone_mode
+                )
 
                 call_command('migrate_schemas',
                              tenant=True,
@@ -231,6 +267,21 @@ class TenantMixin(models.Model):
         :return: str
         """
         return getattr(self, settings.MULTI_TYPE_DATABASE_FIELD)
+
+    def get_base_schema(self):
+        """
+        The template schema this tenant is cloned from, or False for none.
+
+        Multi type tenants get the template of their own type, since a type1
+        template holds none of a type2 tenant's tables. #533
+        """
+        if self.schema_name == get_public_schema_name():
+            # the public schema holds the shared apps, no tenant template matches it
+            return False
+
+        tenant_type = self.get_tenant_type() if has_multi_type_tenants() else None
+
+        return get_tenant_base_schema(tenant_type)
 
 
 class DomainMixin(models.Model):

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python3 setup.py develop
+pip install -e .
 
 echo "docker attach the tty in order to manage this"
 while true; do
