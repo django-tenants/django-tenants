@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import connection, transaction
+from django.db import connection
 
 from django_tenants.utils import schema_exists
 
@@ -425,7 +425,8 @@ $$
 
     -- Issue#27: set owner ACL info
     IF aclownercnt = 1 OR acldclcnt = 1 THEN
-        v_acl = 'ALTER TABLE IF EXISTS ' || quote_ident(in_schema) || '.' || quote_ident(in_table) || ' OWNER TO ' || v_owner || ';' || E'\n' || E'\n';
+        -- Issue#1189: v_owner is raw from pg_get_userbyid, so quote it.
+        v_acl = 'ALTER TABLE IF EXISTS ' || quote_ident(in_schema) || '.' || quote_ident(in_table) || ' OWNER TO ' || quote_ident(v_owner) || ';' || E'\n' || E'\n';
     END IF;
 
     -- Issue#35: add all other ACL info if directed
@@ -974,7 +975,7 @@ $$
           -- Issue#25: see if partial index or not
 					select CASE WHEN i.indpred IS NOT NULL THEN True ELSE False END INTO v_partial
 					FROM pg_index i JOIN pg_class c1 ON (i.indexrelid = c1.oid) JOIN pg_class c2 ON (i.indrelid = c2.oid)
-					WHERE c1.relnamespace::regnamespace::text = in_schema AND c2.relnamespace::regnamespace::text = in_schema AND c2.relname = in_table AND c1.relname = v_indexrec.indexname;
+					WHERE c1.relnamespace::regnamespace::text = quote_ident(in_schema) AND c2.relnamespace::regnamespace::text = quote_ident(in_schema) AND c2.relname = in_table AND c1.relname = v_indexrec.indexname;
           IF v_partial THEN
               -- Put tablespace def before WHERE CLAUSE
               v_temp = v_indexrec.indexdef;
@@ -1439,7 +1440,9 @@ BEGIN
         -- Issue#131: double quote schema names
         -- EXECUTE 'CREATE SCHEMA ' || quote_ident(dest_schema) || ' AUTHORIZATION ' || buffer;
         -- EXECUTE 'CREATE SCHEMA ' || quote_ident(dest_schema) || ' AUTHORIZATION ' || quote_ident(buffer);
-        lastsql = 'CREATE SCHEMA ' || quote_ident(dest_schema) || ' AUTHORIZATION ' || buffer;
+        -- Issue#1189: quote the role, as the bDDLOnly branch above already does. An unquoted
+        -- role name containing a hyphen (or anything else needing quoting) is a syntax error.
+        lastsql = 'CREATE SCHEMA ' || quote_ident(dest_schema) || ' AUTHORIZATION ' || quote_ident(buffer);
         IF bDebugExec THEN RAISE NOTICE 'EXEC: %',lastsql; END IF;
         EXECUTE lastsql;
         lastsql = '';
@@ -1748,7 +1751,7 @@ BEGIN
       RAISE INFO '%', 'CREATE SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ';';
       IF NOT bNoOwner THEN
         -- Fixed Issue#108: double-quote roles in case they have special characters
-        RAISE INFO '%', 'ALTER  SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ' OWNER TO ' || seqowner || ';';
+        RAISE INFO '%', 'ALTER  SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ' OWNER TO ' || quote_ident(seqowner) || ';';
       END IF;
     ELSE
       lastsql = 'CREATE SEQUENCE ' || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ';';
@@ -1759,7 +1762,9 @@ BEGIN
 
       -- issue#95
       IF NOT bNoOwner THEN
-        lastsql = 'ALTER SEQUENCE '  || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ' OWNER TO ' || seqowner;
+        -- Issue#1189: seqowner comes back raw from pg_get_userbyid, unlike tblowner which the
+        -- SELECT already double-quotes, so it needs quoting here.
+        lastsql = 'ALTER SEQUENCE '  || quote_ident(dest_schema) || '.' || quote_ident(seqname) || ' OWNER TO ' || quote_ident(seqowner);
         -- RAISE NOTICE 'DEBUGGGG: EXEC: %', lastsql;
         IF bDebugExec THEN RAISE NOTICE 'EXEC: %', lastsql; END IF;
         -- Fixed Issue#108: double-quote roles in case they have special characters
@@ -2966,15 +2971,26 @@ BEGIN
       IF bDebug THEN RAISE NOTICE 'DEBUG: Section=%',action; END IF;
       cnt := 0;
       setcnt := 0;
-      -- NOTE: we can infer an identity type sequence if it is in the pg_sequences table, but not the information_schema.sequences table.
+      -- NOTE: identity columns are found through pg_depend rather than by name.  A sequence's name is
+      -- derived from its table when the column is created and is never revisited, so ALTER TABLE ...
+      -- RENAME leaves the sequence under the table's old name.  The destination's sequences are made
+      -- fresh by CREATE TABLE ... (LIKE ... INCLUDING ALL) and so are named after the current table:
+      -- the two names diverge for any renamed table, and reusing the source's name would target a
+      -- sequence that does not exist in the destination.  Resolve the destination's own sequence from
+      -- the table and column instead, falling back to the source's name when the destination table is
+      -- absent (DDL-only runs) so the reported SQL still names something.
       FOR object, sq_last_value IN
-        -- Isssue#140
-        -- SELECT sequencename::text, COALESCE(last_value, -999) from pg_sequences where schemaname = quote_ident(source_schema)
-        SELECT sequencename::text, COALESCE(last_value, -999) from pg_sequences where schemaname = source_schema
-        AND NOT EXISTS
-        -- Isssue#140
-        -- (select 1 from information_schema.sequences where sequence_schema = quote_ident(source_schema) and sequence_name = sequencename)
-        (select 1 from information_schema.sequences where sequence_schema = source_schema and sequence_name = sequencename)
+        SELECT COALESCE(
+                 pg_get_serial_sequence(quote_ident(dest_schema) || '.' || quote_ident(t.relname), a.attname),
+                 quote_ident(dest_schema) || '.' || quote_ident(s.relname)
+               )::text,
+               COALESCE(pg_sequence_last_value(s.oid), -999)
+        FROM pg_class s
+        JOIN pg_namespace n ON n.oid = s.relnamespace
+        JOIN pg_depend d ON d.objid = s.oid AND d.classid = 'pg_class'::regclass AND d.deptype IN ('a', 'i')
+        JOIN pg_class t ON t.oid = d.refobjid
+        JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = d.refobjsubid
+        WHERE s.relkind = 'S' AND n.nspname = source_schema AND a.attidentity <> ''
       LOOP
         cnt := cnt + 1;
         IF sq_last_value = -999 THEN
@@ -2982,7 +2998,8 @@ BEGIN
           continue;
         END IF;
         setcnt := setcnt + 1;
-        buffer := quote_ident(dest_schema) || '.' || quote_ident(object);
+        -- already schema-qualified and quoted
+        buffer := object;
         IF bData THEN
           lastsql = 'SELECT setval( ''' || buffer || ''', ' || sq_last_value || ', ' || sq_is_called || ');' ;
           IF bDebugExec THEN RAISE NOTICE 'EXEC: %', lastsql; END IF;
@@ -4594,11 +4611,15 @@ class CloneSchema:
             connection.set_schema_to_public()
         cursor = connection.cursor()
 
-        # create or update the clone_schema function in the db
+        # create or update the clone_schema function in the db. CREATE OR REPLACE FUNCTION is
+        # idempotent and visible to the statements that follow, inside a transaction or not, so
+        # this needs no commit of its own -- and committing here would raise
+        # TransactionManagementError when the caller is inside an atomic block (#1155, #694).
         self._create_clone_schema_function()
-        transaction.commit()
 
-        if schema_exists(new_schema_name):
+        # Ignore case: a clone target differing only in case from an existing
+        # schema would leave two tenants fighting over one schema. #846
+        if schema_exists(new_schema_name, case_sensitive=False):
             raise ValidationError("New schema name already exists")
 
         sql = "SELECT clone_schema(%(base_schema)s, %(new_schema)s, %(clone_mode)s)"

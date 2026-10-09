@@ -29,15 +29,15 @@ class Command(InteractiveTenantOption, BaseCommand):
         schema_name = tenant.schema_name
         if options["interactive"]:
             self.print_warning(f"Warning you are about to delete '{schema_name}' there is no undo.")
-            result = input(f"Are you sure you want to delete '{schema_name}'?")
-            while len(result) < 1 or result.lower() not in ["yes", "no"]:
+            result = input(f"Are you sure you want to delete '{schema_name}' [yes/no]? ")
+            while result.lower() not in ["yes", "no"]:
                 result = input("Please answer yes or no: ")
-                if result.lower() == "yes":
-                    self.delete_tenant(tenant)
-                elif result.lower() == "no":
-                    self.stderr.write("Canceled")
-        else:
-            self.delete_tenant(tenant)
+
+            if result.lower() == "no":
+                self.stderr.write("Canceled")
+                return
+
+        self.delete_tenant(tenant)
 
     def delete_tenant(self, tenant):
         self.print_info(f"Deleting '{tenant.schema_name}'" )

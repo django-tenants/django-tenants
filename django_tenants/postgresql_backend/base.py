@@ -9,12 +9,10 @@ from django_tenants.postgresql_backend.introspection import DatabaseSchemaIntros
 from django_tenants.utils import get_public_schema_name, get_limit_set_calls
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.utils.asyncio import async_unsafe
 import django.db.utils
 
-try:
-     from django.db.backends.postgresql.psycopg_any import is_psycopg3
-except ImportError:
-    is_psycopg3 = False
+from django.db.backends.postgresql.psycopg_any import is_psycopg3
 
 if is_psycopg3:
     import psycopg
@@ -67,6 +65,9 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
     def __init__(self, *args, **kwargs):
         self.search_path_set_schemas = None
+        # Guards against re-entering _cursor() while we are obtaining a cursor to
+        # set the search_path with. See _handle_search_path().
+        self._setting_search_path = False
         self.tenant = None
         self.schema_name = None
         super().__init__(*args, **kwargs)
@@ -79,7 +80,18 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
 
     def close(self):
         self.search_path_set_schemas = None
+        self._setting_search_path = False
         super().close()
+
+    @async_unsafe
+    def rollback(self):
+        # A session-level `SET` is transactional in PostgreSQL: aborting the
+        # transaction that issued it reverts the search_path. Forget the cached
+        # value so the next cursor re-issues it rather than trusting a setting the
+        # database has already discarded.
+        self.search_path_set_schemas = None
+        self._setting_search_path = False
+        super().rollback()
 
     def set_tenant(self, tenant, include_public=True):
         """
@@ -143,42 +155,60 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         else:
             cursor = super()._cursor()
 
-        # optionally limit the number of executions - under load, the execution
-        # of `set search_path` can be quite time consuming
-        if (not get_limit_set_calls()) or not self.search_path_set_schemas:
-            # Actual search_path modification for the cursor. Database will
-            # search schemata from left to right when looking for the object
-            # (table, index, sequence, etc.).
-            if not self.schema_name:
-                raise ImproperlyConfigured("Database schema not set. Did you forget "
-                                           "to call set_schema() or set_tenant()?")
+        # A named cursor can only execute one statement, so it cannot carry the
+        # `SET search_path` and we have to open a throwaway cursor for it. An
+        # unnamed one can, and reusing it keeps the statement visible to Django's
+        # cursor wrapper -- and therefore to assertNumQueries -- on every driver.
+        self._handle_search_path(cursor if name is None else None)
 
-            search_paths = self._get_cursor_search_paths()
-
-            if name or is_psycopg3:
-                # Named cursor can only be used once, psycopg3 and Django 4 have recursion issue
-                cursor_for_search_path = self.connection.cursor()
-            else:
-                # Reuse
-                cursor_for_search_path = cursor
-
-            # In the event that an error already happened in this transaction and we are going
-            # to rollback we should just ignore database error when setting the search_path
-            # if the next instruction is not a rollback it will just fail also, so
-            # we do not have to worry that it's not the good one
-            try:
-                formatted_search_paths = ['\'{}\''.format(s) for s in search_paths]
-                cursor_for_search_path.execute('SET search_path = {0}'.format(','.join(formatted_search_paths)))
-            except (django.db.utils.DatabaseError, psycopg.InternalError):
-                self.search_path_set_schemas = None
-            else:
-                self.search_path_set_schemas = search_paths
-            if name or is_psycopg3:
-                cursor_for_search_path.close()
         return cursor
 
+    def _handle_search_path(self, cursor=None):
+        """
+        Issue `SET search_path` for the currently selected schema. Database will
+        search schemata from left to right when looking for the object
+        (table, index, sequence, etc.).
+
+        Pass the cursor to run it on, or None to have one opened and closed here.
+        """
+        # Obtaining a cursor below can re-enter _cursor(); this flag makes that
+        # re-entry a no-op instead of infinite recursion. Previously this was
+        # avoided by never reusing the caller's cursor on psycopg3, which made the
+        # statement invisible to Django's cursor wrapper on that driver only.
+        if self._setting_search_path:
+            return
+
+        # optionally limit the number of executions - under load, the execution
+        # of `set search_path` can be quite time consuming
+        if get_limit_set_calls() and self.search_path_set_schemas:
+            return
+
+        if not self.schema_name:
+            raise ImproperlyConfigured("Database schema not set. Did you forget "
+                                       "to call set_schema() or set_tenant()?")
+
+        search_paths = self._get_cursor_search_paths()
+
+        self._setting_search_path = True
+        cursor_for_search_path = self.connection.cursor() if cursor is None else cursor
+
+        # In the event that an error already happened in this transaction and we are going
+        # to rollback we should just ignore database error when setting the search_path
+        # if the next instruction is not a rollback it will just fail also, so
+        # we do not have to worry that it's not the good one
+        try:
+            formatted_search_paths = ['\'{}\''.format(s) for s in search_paths]
+            cursor_for_search_path.execute('SET search_path = {0}'.format(','.join(formatted_search_paths)))
+        except (django.db.utils.DatabaseError, psycopg.InternalError):
+            self.search_path_set_schemas = None
+        else:
+            self.search_path_set_schemas = search_paths
+        finally:
+            self._setting_search_path = False
+            if cursor is None:
+                cursor_for_search_path.close()
+
     def _get_cursor_search_paths(self):
-        _check_schema_name(self.schema_name)
         public_schema_name = get_public_schema_name()
 
         if self.schema_name == public_schema_name:
@@ -189,6 +219,11 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
             search_paths = [self.schema_name]
 
         search_paths.extend(EXTRA_SEARCH_PATHS)
+
+        # Every part is interpolated into the SET statement, so validate all of
+        # them -- not just self.schema_name -- including PG_EXTRA_SEARCH_PATHS.
+        for search_path in search_paths:
+            _check_schema_name(search_path)
 
         return search_paths
 
