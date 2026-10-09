@@ -1,15 +1,34 @@
-import sys
-from importlib import import_module
-
+from asgiref.sync import async_to_sync
 from django.conf import settings
-from django.urls import reverse
+from django.db import connection
+from django.http import HttpResponse, HttpResponseNotFound
+from django.test import AsyncClient, Client, override_settings
+from django.urls import path, reverse
 
 from django_tenants.tests.testcases import BaseTestCase
-from django_tenants.urlresolvers import TenantPrefixPattern, get_subfolder_urlconf
+from django_tenants.urlresolvers import get_subfolder_urlconf
+
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model
 
 
-class URLResolversTestCase(BaseTestCase):
+def whoami(request):
+    return HttpResponse("{} {}".format(connection.schema_name, reverse("whoami")))
+
+
+def custom_404(request, exception):
+    return HttpResponseNotFound("custom 404")
+
+
+# The root URLConf for the request tests below.
+urlpatterns = [path("whoami/", whoami, name="whoami")]
+handler404 = custom_404
+
+
+class SubfolderTenantsTestCase(BaseTestCase):
+    """
+    Three tenants, each with a domain used as its subfolder.
+    """
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -27,11 +46,8 @@ class URLResolversTestCase(BaseTestCase):
             """
             Reverses `name` in the urlconf returned from `tenant`.
             """
-
-            urlconf_path = get_subfolder_urlconf(tenant)
-            urlconf = import_module(urlconf_path)
+            urlconf = get_subfolder_urlconf(tenant)
             reverse_response = reverse(name, urlconf=urlconf)
-            del sys.modules[urlconf_path]  # required to simulate new thread next time
             return reverse_response
 
         cls.reverser = reverser_func
@@ -58,16 +74,21 @@ class URLResolversTestCase(BaseTestCase):
             tenant.delete(force_drop=True)
         super().tearDown()
 
+
+
+class URLResolversTestCase(SubfolderTenantsTestCase):
     def test_tenant_prefix(self):
         from django.db import connection
 
-        tpp = TenantPrefixPattern()
         for tenant in get_tenant_model().objects.all():
             domain = tenant.domains.first()
             tenant.domain_subfolder = domain.domain  # Normally done by middleware
             connection.set_tenant(tenant)
+            subfolder_url_conf = get_subfolder_urlconf(tenant)
+            url_resolver = subfolder_url_conf.urlpatterns[0]
             self.assertEqual(
-                tpp.tenant_prefix, "clients/{}/".format(tenant.domain_subfolder)
+                url_resolver.pattern.describe(),
+                "'clients/{}/'".format(tenant.domain_subfolder),
             )
 
     def test_prefixed_reverse(self):
@@ -77,24 +98,55 @@ class URLResolversTestCase(BaseTestCase):
             domain = tenant.domains.first()
             tenant.domain_subfolder = domain.domain  # Normally done by middleware
             connection.set_tenant(tenant)
-            for name, path in self.paths.items():
+            for name, url_path in self.paths.items():
                 self.assertEqual(
                     self.reverser(name, tenant),
-                    "/clients/{}{}".format(domain.domain, path),
+                    "/clients/{}{}".format(domain.domain, url_path),
                 )
 
-    def test_tenant_prefix_without_a_subfolder_tenant(self):
+    def test_reverse_without_a_subfolder_tenant(self):
         """
         schema_context() and set_schema_to_public() leave a FakeTenant, which has
         no domain_subfolder. Creating a tenant from a subfolder request does that,
-        and the next reverse() raised AttributeError. #1005
+        and the next reverse() raised AttributeError. The prefix no longer comes
+        from the connection. #1005
         """
-        from django.db import connection
-
         from django_tenants.utils import schema_context
 
-        tpp = TenantPrefixPattern()
-        with schema_context("tenant1"):
-            self.assertEqual(tpp.tenant_prefix, "/")
+        tenant = get_tenant_model().objects.get(schema_name="tenant1")
+        tenant.domain_subfolder = "tenant1"  # Normally done by middleware
+        with schema_context("tenant2"):
+            self.assertEqual(self.reverser("public", tenant), "/clients/tenant1/public/")
         connection.set_schema_to_public()
-        self.assertEqual(tpp.tenant_prefix, "/")
+        self.assertEqual(self.reverser("public", tenant), "/clients/tenant1/public/")
+
+@override_settings(
+    ROOT_URLCONF=__name__,
+    MIDDLEWARE=["django_tenants.middleware.subfolder.TenantSubfolderMiddleware"],
+)
+class SubfolderRequestTestCase(SubfolderTenantsTestCase):
+    """
+    Requests through TenantSubfolderMiddleware, which builds the URLConf.
+    """
+
+    def test_asgi_request_resolves_under_its_tenant(self):
+        """
+        Under ASGI the URL is resolved on the event loop, not the thread the
+        middleware set the tenant on, so a prefix read from the connection was
+        lost. #820
+        """
+        async_client = AsyncClient()
+
+        async def fetch(subfolder):
+            return await async_client.get("/clients/{}/whoami/".format(subfolder))
+
+        for subfolder in ("tenant1", "tenant2", "tenant1"):
+            response = async_to_sync(fetch)(subfolder)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.content.decode(), "{0} /clients/{0}/whoami/".format(subfolder))
+
+    def test_root_urlconf_error_handlers_are_used(self):
+        response = Client().get("/clients/tenant1/missing/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.content.decode(), "custom 404")
