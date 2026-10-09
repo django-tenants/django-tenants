@@ -80,27 +80,47 @@ def get_subfolder_prefix():
     return subfolder_prefix.strip('/ ')
 
 
+def get_type_base_schemas():
+    """
+    The per tenant type template schemas, as TENANT_TYPES[type]['BASE_SCHEMA'].
+
+    Only the types that name one; falling back to TENANT_BASE_SCHEMA for the
+    others is get_tenant_base_schema's.
+    """
+    if not has_multi_type_tenants():
+        return {}
+    return {tenant_type: config['BASE_SCHEMA']
+            for tenant_type, config in get_tenant_types().items()
+            if config.get('BASE_SCHEMA')}
+
+
 def get_creation_fakes_migrations():
     """
     If TENANT_CREATION_FAKES_MIGRATIONS, tenants will be created by cloning an
-    existing schema specified by TENANT_CLONE_BASE.
+    existing schema specified by TENANT_BASE_SCHEMA.
     """
     faked = getattr(settings, 'TENANT_CREATION_FAKES_MIGRATIONS', False)
     if faked:
-        if not getattr(settings, 'TENANT_BASE_SCHEMA', False):
+        if not getattr(settings, 'TENANT_BASE_SCHEMA', False) and not get_type_base_schemas():
             raise ImproperlyConfigured(
-                'You must specify a schema name in TENANT_BASE_SCHEMA if '
-                'TENANT_CREATION_FAKES_MIGRATIONS is enabled.'
+                'You must specify a schema name in TENANT_BASE_SCHEMA, or one per tenant type in '
+                "TENANT_TYPES[type]['BASE_SCHEMA'], if TENANT_CREATION_FAKES_MIGRATIONS is enabled."
             )
     return faked
 
 
-def get_tenant_base_schema():
+def get_tenant_base_schema(tenant_type=None):
     """
     If TENANT_CREATION_FAKES_MIGRATIONS, tenants will be created by cloning an
-    existing schema specified by TENANT_CLONE_BASE.
+    existing schema specified by TENANT_BASE_SCHEMA.
+
+    Multi type tenants don't share their apps, so a single template can't serve
+    every type. Each type names its own under TENANT_TYPES[type]['BASE_SCHEMA'],
+    and the types that don't fall back to TENANT_BASE_SCHEMA. #533
     """
-    schema = getattr(settings, 'TENANT_BASE_SCHEMA', False)
+    schema = get_type_base_schemas().get(
+        tenant_type, getattr(settings, 'TENANT_BASE_SCHEMA', False)
+    )
     if schema:
         if not getattr(settings, 'TENANT_CREATION_FAKES_MIGRATIONS', False):
             raise ImproperlyConfigured(

@@ -239,7 +239,7 @@ Optional Settings
 
     Sets if the schemas will be copied from an existing "template" schema instead of running migrations. Useful in the cases where migrations can not be faked and need to be ran individually, or when running migrations takes a long time. Be aware that setting this to `True` may significantly slow down the process of creating tenants.
 
-    When using this option, you must also specify which schema to use as template, under ``TENANT_BASE_SCHEMA``.
+    When using this option, you must also specify which schema to use as template, under ``TENANT_BASE_SCHEMA`` -- or, with multi-types tenants, one per type under ``TENANT_TYPES[type]['BASE_SCHEMA']`` (see :ref:`multi-types-base-schema`).
 
 
 .. attribute:: TENANT_BASE_SCHEMA
@@ -247,6 +247,8 @@ Optional Settings
     :Default: ``None``
 
     The name of the schema to use as a template for creating new tenants. Only used when ``TENANT_CREATION_FAKES_MIGRATIONS`` is enabled.
+
+    With multi-types tenants each type can name a template of its own, under ``TENANT_TYPES[type]['BASE_SCHEMA']``, and the types that don't fall back to this setting. See :ref:`multi-types-base-schema`.
 
 
 .. attribute:: TENANT_SYNC_ROUTER
