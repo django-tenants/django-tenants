@@ -675,7 +675,7 @@ The hook for ensuring the ``search_path`` is set properly happens inside the ``D
     #in settings.py:
     TENANT_LIMIT_SET_CALLS = True
 
-When set, ``django-tenants`` will set the search path only once per request. The default is ``False``.
+When set, ``django-tenants`` will set the search path only once per request. The default is ``False``. A rollback, including a rollback to a savepoint, makes it set the path again, since PostgreSQL undoes a ``SET`` made inside the rolled-back work.
 
 
 Extra Set Tenant Method
