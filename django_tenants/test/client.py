@@ -1,12 +1,11 @@
 from django.test import RequestFactory, Client
-from django_tenants.middleware.main import TenantMainMiddleware
 from django.http import HttpRequest
 from django.contrib.auth import authenticate
 
+from django_tenants.utils import remove_www
+
 
 class BaseTenantRequestFactory:
-    tm = TenantMainMiddleware(lambda r: r)
-
     def __init__(self, tenant, **defaults):
         super().__init__(**defaults)
         self.tenant = tenant
@@ -21,8 +20,11 @@ class TenantRequestFactory(BaseTenantRequestFactory, RequestFactory):
 
     def generic(self, *args, **kwargs):
         request = super().generic(*args, **kwargs)
-        # Process request using Tenant middleware
-        self.tm.process_request(request)
+        # Set what TenantMainMiddleware would, without looking the domain up:
+        # the request carries the factory's tenant, and its domain_url is the
+        # host the request was made to.
+        self.tenant.domain_url = remove_www(request.META['HTTP_HOST'].split(':')[0])
+        request.tenant = self.tenant
         return request
 
 
