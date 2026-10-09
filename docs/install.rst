@@ -110,6 +110,13 @@ To make use of shared and tenant-specific applications, there are two settings c
 
     INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
+.. warning::
+
+    Keep ``django.contrib.auth`` and ``django.contrib.sessions`` at the same
+    level (both shared, or both tenant-specific). Putting sessions in
+    ``SHARED_APPS`` while auth lives only in ``TENANT_APPS`` lets a session from
+    one tenant impersonate a user on another. See :doc:`security`.
+
 You also have to set where your tenant & domain models are located.
 
 .. code-block:: python
@@ -239,7 +246,7 @@ Optional Settings
 
     Sets if the schemas will be copied from an existing "template" schema instead of running migrations. Useful in the cases where migrations can not be faked and need to be ran individually, or when running migrations takes a long time. Be aware that setting this to `True` may significantly slow down the process of creating tenants.
 
-    When using this option, you must also specify which schema to use as template, under ``TENANT_BASE_SCHEMA``.
+    When using this option, you must also specify which schema to use as template, under ``TENANT_BASE_SCHEMA`` -- or, with multi-types tenants, one per type under ``TENANT_TYPES[type]['BASE_SCHEMA']`` (see :ref:`multi-types-base-schema`).
 
 
 .. attribute:: TENANT_BASE_SCHEMA
@@ -247,6 +254,8 @@ Optional Settings
     :Default: ``None``
 
     The name of the schema to use as a template for creating new tenants. Only used when ``TENANT_CREATION_FAKES_MIGRATIONS`` is enabled.
+
+    With multi-types tenants each type can name a template of its own, under ``TENANT_TYPES[type]['BASE_SCHEMA']``, and the types that don't fall back to this setting. See :ref:`multi-types-base-schema`.
 
 
 .. attribute:: TENANT_SYNC_ROUTER
@@ -346,6 +355,10 @@ To enable tenant aware caching you can set the KEY_FUNCTION setting to use the p
 
 
 The REVERSE_KEY_FUNCTION setting is only required if you are using the django-redis cache backend.
+
+This matters for security as well: a shared cache (or cache-backed sessions)
+without a tenant-aware key function can leak data across tenants. See
+:doc:`security`.
 
 
 Configuring your Apache Server (optional)
