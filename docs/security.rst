@@ -27,6 +27,11 @@ level: both shared, or both tenant-specific. Mixing them is unsafe.
 .. [*] Safe with the database session backend. Cache- or file-backed sessions
    need extra care -- see :ref:`non-database-sessions` below.
 
+"Safe" here means one tenant's session cannot be read as another tenant's user.
+With ``django.contrib.auth`` in ``SHARED_APPS`` an account exists on every tenant,
+so you still need to check that the user belongs to the tenant -- see the global
+accounts setup below.
+
 You may list both apps in **both** ``SHARED_APPS`` and ``TENANT_APPS``. Tables
 are then created in public and in every tenant. On a tenant request the search
 path prefers the tenant schema, so that tenant uses its own session and user
@@ -39,15 +44,25 @@ Django's session stores a user primary key (for example ``_auth_user_id``).
 That key is only meaningful relative to the ``User`` table the request will
 load.
 
-If sessions are shared (one cookie / one session store for every host) while
-each tenant has its own ``User`` table, the same session id resolves to
-**different users** on different tenants -- often users that happen to share
-the same primary key. A visitor who logs in on ``tenant-a.example.com`` can
-then open ``tenant-b.example.com`` and be treated as whoever has that id there.
+If sessions are shared (one session store for every host) while each tenant has
+its own ``User`` table, the same session id resolves to **different users** on
+different tenants -- often users that happen to share the same primary key. The
+session cookie reaches another tenant either because ``SESSION_COOKIE_DOMAIN`` is
+set to the parent domain, or simply because the visitor sends their own cookie to
+the other host, which takes no effort. A visitor who logs in on
+``tenant-a.example.com`` can then present that session on ``tenant-b.example.com``
+and be loaded as whoever has that id there.
 
-The session **storage** backend does not fix this. A shared cookie plus
-tenant-specific users is enough; database, cache, and file sessions are all
-vulnerable in that configuration.
+Django usually catches this: the session also stores a hash of the user's
+password hash, and a session whose hash does not match is logged out. But that
+check only holds while the two users' stored password hashes differ. It does not
+when tenants are cloned from a template that already contains users (for example
+with ``TENANT_CREATION_FAKES_MIGRATIONS``), or with a custom user model without
+``get_session_auth_hash``. Do not rely on it.
+
+The session **storage** backend does not fix this. A session store shared by
+every tenant plus tenant-specific users is enough; database, cache, and file
+sessions are all vulnerable in that configuration.
 
 Recommended setups
 ------------------
