@@ -84,7 +84,8 @@ def get_type_base_schemas():
     """
     The per tenant type template schemas, as TENANT_TYPES[type]['BASE_SCHEMA'].
 
-    Types that don't name one fall back to TENANT_BASE_SCHEMA.
+    Only the types that name one; falling back to TENANT_BASE_SCHEMA for the
+    others is get_tenant_base_schema's.
     """
     if not has_multi_type_tenants():
         return {}
@@ -102,8 +103,8 @@ def get_creation_fakes_migrations():
     if faked:
         if not getattr(settings, 'TENANT_BASE_SCHEMA', False) and not get_type_base_schemas():
             raise ImproperlyConfigured(
-                'You must specify a schema name in TENANT_BASE_SCHEMA if '
-                'TENANT_CREATION_FAKES_MIGRATIONS is enabled.'
+                'You must specify a schema name in TENANT_BASE_SCHEMA, or one per tenant type in '
+                "TENANT_TYPES[type]['BASE_SCHEMA'], if TENANT_CREATION_FAKES_MIGRATIONS is enabled."
             )
     return faked
 

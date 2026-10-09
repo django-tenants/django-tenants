@@ -325,6 +325,8 @@ A template schema per type
 
 The template schemas are ordinary tenants of their type, so create them the way you create any other tenant and keep them migrated. Any type without a ``BASE_SCHEMA`` uses ``TENANT_BASE_SCHEMA``, and a type with neither runs its migrations as usual.
 
+The public schema is never cloned, so a ``BASE_SCHEMA`` on the public type is ignored. And a tenant whose template schema doesn't exist yet runs its migrations instead -- which is how the templates themselves can be created while ``TENANT_CREATION_FAKES_MIGRATIONS`` is already on.
+
 Other settings
 --------------
 
