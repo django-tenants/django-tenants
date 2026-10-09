@@ -26,7 +26,7 @@ Then you can run
 
 .. code-block:: bash
 
-    docker-compose run web bash
+    docker-compose run -p 8088:8088 web bash
 
     cd examples/tenant_tutorial
 

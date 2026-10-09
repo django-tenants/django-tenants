@@ -43,14 +43,41 @@ Now we can create our first real tenant.
     domain.is_primary = True
     domain.save()
 
+Schema names may contain upper case characters, but two tenants whose schema names differ only in
+case are not allowed -- creating a tenant ``Tenant1`` when ``tenant1`` already exists raises a
+``ValidationError``. PostgreSQL would treat those as two separate schemas, while django-tenants
+treats the names as the same tenant, so allowing both leaves two tenants fighting over one schema.
+
 Because you have the tenant middleware installed, any request made to ``tenant.my-domain.com`` will now automatically set your PostgreSQL's ``search_path`` to ``tenant1, public``, making shared apps available too. The tenant will be made available at ``request.tenant``. By the way, the current schema is also available at ``connection.schema_name``, which is useful, for example, if you want to hook to any of django's signals.
 
 Any call to the methods ``filter``, ``get``, ``save``, ``delete`` or any other function involving a database connection will now be done at the tenant's schema, so you shouldn't need to change anything at your views.
 
+Do query under a specific tenant
+---------------------------------
+
+In case you want to explicitly choose which tenant to execute the query, activate the context for that tenant:
+
+.. code-block:: python
+
+    from django_tenants.utils import schema_context
+
+    with schema_context(tenant.schema_name):
+        Order.object.filter(...)
+
+    # Or simpler
+    with tenant:
+        Order.object.filter(...)
+
+
+This is often needed for code in background tasks, Django commands, test cases.
+
+
 Deleting a tenant
 -----------------
 
-You can delete tenants by just deleting the entry via the Django ORM. There is a flag that can set on the tenant model called ``auto_drop_schema``. The default for ``auto_drop_schema`` is False. WARNING SETTING ``AUTO_DROP_SCHEMA`` TO TRUE WITH DELETE WITH TENANT!
+You can delete tenants by just deleting the entry via the Django ORM. There is a flag that can set on the tenant model called ``auto_drop_schema``. The default for ``auto_drop_schema`` is False. 
+
+WARNING SETTING ``AUTO_DROP_SCHEMA`` TO TRUE WILL DELETE THE SCHEMA WITH THE TENANT!
 
 
 Utils
@@ -105,9 +132,28 @@ You can also use `tenant_context` as a decorator.
     def my_func():
       # All commands in this function are ran under the schema from the `tenant` object
 
+.. function:: get_current_tenant
+
+Returns the tenant the connection is currently set to, or ``None``. Unlike ``get_tenant(request)``
+it takes no request, so it also works deep inside helper functions, in Celery tasks, and under
+``tenant_context()`` / ``schema_context()``.
+
+.. code-block:: python
+
+    from django_tenants.utils import get_current_tenant
+
+    def send_welcome_email(user):
+        tenant = get_current_tenant()   # no request needed
+        ...
+
+``tenant_context()`` sets the real tenant instance, so that is what comes back.
+``schema_context()`` only ever knows a schema name, so there a ``FakeTenant`` is returned --
+read its ``schema_name`` rather than expecting model fields, or use ``tenant_context()`` when
+you need the model instance.
+
 .. function:: @tenant_migration
 
-This decorator allows the flexibility to have data migrations (using ``migrations.RunPython``) execute specifically under a tenant or public schema for apps in both tenant/public INSTALLED_APPS. 
+This decorator allows the flexibility to have data migrations (using ``migrations.RunPython``) execute specifically under a tenant or public schema for apps in both tenant/public INSTALLED_APPS.
 It accepts boolean kwargs ``tenant_schema`` or ``public_schema`` - the default beign ``tenant_schema=True`` and ``public_schema=False``.
 
 .. code-block:: python
@@ -127,11 +173,13 @@ Signals
 
 There are number of signals
 
-```post_schema_sync``` will get called after a schema gets created from the save method on the tenant class.
+``post_schema_sync`` will get called after a schema gets created from the save method on the tenant class.
 
 ```schema_needs_to_be_sync``` will get called if the schema needs to be migrated. ```auto_create_schema``` (on the tenant model) has to be set to False for this signal to get called. This signal is very useful when tenants are created via a background process such as celery.
 
 ```schema_migrated``` will get called once migrations finish running for a schema.
+
+```schema_pre_migration``` will get called just before migrations start running for a schema.
 
 ```schema_migrate_message``` will get called after each migration with the message of the migration. This signal is very useful when for process / status bars.
 
@@ -152,6 +200,12 @@ Example
         client = kwargs['tenant']
 
         # send email to client to as tenant is ready to use
+
+    @receiver(schema_pre_migration, sender=run_migrations)
+    def handle_schema_pre_migration(sender, **kwargs):
+        schema_name = kwargs['schema_name']
+
+        # write some logs
 
     @receiver(schema_migrated, sender=run_migrations)
     def handle_schema_migrated(sender, **kwargs):
@@ -241,12 +295,45 @@ That's all you need to add the multiple types.
 
 There is an example project called ```tenant_multi_types```
 
+.. _multi-types-base-schema:
+
+A template schema per type
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``TENANT_CREATION_FAKES_MIGRATIONS`` creates a tenant by cloning a template schema instead of running its migrations. Each type has its own apps, so one template can't serve them all -- a type2 tenant cloned from a type1 template would get the type1 tables. Give each type a template of its own with ``BASE_SCHEMA``.
+
+.. code-block:: python
+
+    TENANT_CREATION_FAKES_MIGRATIONS = True
+
+    TENANT_TYPES = {
+        "public": {
+            "APPS": [...],
+            "URLCONF": "tenant_multi_types_tutorial.urls_public",
+        },
+        "type1": {
+            "APPS": [...],
+            "URLCONF": "tenant_multi_types_tutorial.urls_type1",
+            "BASE_SCHEMA": "type1_template",
+        },
+        "type2": {
+            "APPS": [...],
+            "URLCONF": "tenant_multi_types_tutorial.urls_type2",
+            "BASE_SCHEMA": "type2_template",
+        }
+    }
+
+The template schemas are ordinary tenants of their type, so create them the way you create any other tenant and keep them migrated. Any type without a ``BASE_SCHEMA`` uses ``TENANT_BASE_SCHEMA``, and a type with neither runs its migrations as usual.
+
+The public schema is never cloned, so a ``BASE_SCHEMA`` on the public type is ignored. And a tenant whose template schema doesn't exist yet runs its migrations instead -- which is how the templates themselves can be created while ``TENANT_CREATION_FAKES_MIGRATIONS`` is already on.
+
 Other settings
 --------------
 
 By default if no tenant is found it will raise an error Http404 however you add ```SHOW_PUBLIC_IF_NO_TENANT_FOUND``` to
 the setting it will display the the public tenant. This will not work for subfolders.
 
+```DEFAULT_NOT_FOUND_TENANT_VIEW``` If set, specifies a path to a view (function-based or class-based) that will handle requests when no tenant is found for the current domain. It uses the public schema `DEFAULT_NOT_FOUND_TENANT_VIEW='myapp.views.my_view'`
 
 Admin
 ~~~~~
@@ -356,6 +443,54 @@ The ``multiprocessing`` executor accepts the following settings:
   sent at once to every worker
 
 
+migrate_schemas with the subprocess executor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``subprocess`` executor spawns a fresh ``python manage.py migrate_schemas
+--schema <name>`` process for each tenant:
+
+.. code-block:: bash
+
+    python manage.py migrate_schemas --executor=subprocess
+
+Use this when a single-process migrate runs out of memory due to accumulated
+per-tenant state — typically at tens of tenants times hundreds of migrations.
+``migrate_schemas`` normally runs every tenant schema inside one long-lived
+Python process, and per-tenant state (project state, ``post_migrate`` signal
+caches, content types and permissions) is never released, so resident memory
+climbs until the OOM killer reaps the process mid-migration.
+
+Unlike ``multiprocessing``, which forks workers from a parent whose memory
+already includes the full migration graph (and grows further via
+copy-on-write), ``subprocess`` starts each tenant from a clean interpreter,
+guaranteeing resident memory returns to baseline between tenants. The public
+schema is migrated in-process (it is a single schema with no per-tenant
+accumulation), and each child runs with ``--executor=standard`` so there is no
+recursive fan-out.
+
+The first child to exit with a non-zero status stops the run and propagates
+that status as the parent's exit code (this also covers ``--check`` signalling
+pending migrations). In parallel mode, not-yet-started tenants are cancelled
+while any in-flight subprocesses are allowed to drain — an in-flight migration
+cannot be safely killed mid-DDL.
+
+Configure parallelism with ``--parallel N`` on the CLI, or with the
+``TENANT_SUBPROCESS_PARALLEL`` setting:
+
+* ``TENANT_SUBPROCESS_PARALLEL`` (default: 1) - number of tenant migrations to
+  run in parallel. ``--parallel N`` on the CLI overrides this setting. Size it
+  to fit available memory on the host running the migrate, since peak memory is
+  roughly ``N`` times the per-tenant peak.
+
+.. code-block:: bash
+
+    python manage.py migrate_schemas --executor=subprocess --parallel=4
+
+.. note::
+
+    The ``subprocess`` executor does not yet support multi-type tenants.
+
+
 tenant_command
 ~~~~~~~~~~~~~~
 
@@ -388,6 +523,20 @@ If the command you need to run on all tenants should not be run on the public te
 
     ./manage.py all_tenants_command --no-public loaddata
 
+It can also be called from Python:
+
+.. code-block:: python
+
+    from django.core.management import call_command
+
+    call_command('all_tenants_command', 'loaddata', 'fixture.json')
+    call_command('all_tenants_command', 'loaddata', 'fixture.json', no_public=True)
+
+Options belonging to the wrapped command, such as ``--indent=4``, can only be given on the command
+line -- ``call_command`` validates its keyword arguments against ``all_tenants_command`` itself, so
+it rejects any option that command does not declare. Pass positional arguments as above, or use
+``call_command`` on the wrapped command inside ``tenant_context()`` if you need its options.
+
 
 
 create_tenant_superuser
@@ -409,9 +558,11 @@ The command ``create_tenant`` creates a new schema
 
     ./manage.py create_tenant --domain-domain=newtenant.net --schema_name=new_tenant --name=new_tenant --description="New tenant"
 
-The argument are dynamic depending on the fields that are in the ``TenantMixin`` model.
+The arguments are dynamic depending on the fields that are in the ``TenantMixin`` model.
 For example if you have a field in the ``TenantMixin`` model called company you will be able to set this using --company=MyCompany.
-If no argument are specified for a field then you be prompted for the values.
+If a field name conflicts with an existing Django management command option (e.g. ``version``),
+it will be automatically prefixed with ``tenant-`` (e.g. ``--tenant-version``).
+If no arguments are specified for a field then you will be prompted for the values.
 There is an additional argument of -s which sets up a superuser for that tenant.
 
 
@@ -471,6 +622,28 @@ If it find a schema that doesn't exist it will create it.
 .. code-block:: bash
 
     ./manage.py create_missing_schemas
+
+create_domain
+~~~~~~~~~~~~~
+
+The command ``create_domain`` adds a domain to an existing tenant.
+
+.. code-block:: bash
+
+    ./manage.py create_domain     
+    ./manage.py create_domain --schema_name=tenant1 --domain-domain=tenant1.my-domain.com
+    ./manage.py create_domain -s=tenant1 -d=tenant1.my-domain.com --is_primary=True --no-input
+
+delete_domain
+~~~~~~~~~~~~~
+
+The command ``delete_domain`` deletes a domain on a tenant.
+
+.. code-block:: bash
+
+    ./manage.py delete_domain     
+    ./manage.py delete_domain --schema_name=tenant1 --domain-domain=tenant1.my-domain.com
+    ./manage.py delete_domain -s=tenant1 -d=tenant1.my-domain.com
 
 PostGIS
 -------

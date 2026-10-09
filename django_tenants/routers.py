@@ -20,7 +20,12 @@ class TenantSyncRouter(object):
         We check the presence of the app's name or the full path to the apps's
         AppConfig class.
         https://docs.djangoproject.com/en/1.8/ref/applications/#configuring-applications
+
+        We also short-circut check for 'django_cache' app in case someone is using
+        Django's DatabaseCache backend and needs to create a cache table
         """
+        if app_label == 'django_cache':
+            return True
         appconfig = django_apps.get_app_config(app_label)
         appconfig_full_name = '{}.{}'.format(
             appconfig.__module__, appconfig.__class__.__name__)
