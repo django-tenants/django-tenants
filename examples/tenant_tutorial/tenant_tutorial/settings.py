@@ -207,6 +207,11 @@ LOGGING = {
     }
 }
 
-DEFAULT_FILE_STORAGE = "django_tenants.files.storage.TenantFileSystemStorage"
+# DEFAULT_FILE_STORAGE was deprecated in Django 4.2 and removed in 5.1.
+STORAGES = {
+    "default": {
+        "BACKEND": "django_tenants.files.storage.TenantFileSystemStorage",
+    },
+}
 MULTITENANT_RELATIVE_MEDIA_ROOT = "uploaded_files"
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'

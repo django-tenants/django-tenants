@@ -3,10 +3,10 @@ from unittest import mock
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.db import connection, transaction
 from django.test.utils import override_settings
-from django.utils.version import get_main_version, get_version_tuple
 
 from django_tenants.clone import CloneSchema
 from django_tenants.signals import schema_migrated, schema_migrate_message, schema_pre_migration
@@ -190,20 +190,23 @@ class TenantDataAndSettingsTest(BaseTestCase):
         DummyModel(name="Schemas are").save()
         DummyModel(name="awesome!").save()
 
-        # switch temporarily to tenant2's path
-        with self.assertNumQueries(3):
+        # switch temporarily to tenant2's path.
+        # TENANT_LIMIT_SET_CALLS is off, so each of the 3 inserts is preceded by its
+        # own `SET search_path` -- 6 statements, not 3. The SET was always issued;
+        # it is now run on the caller's cursor on every driver, so it is counted.
+        with self.assertNumQueries(6):
             with tenant_context(tenant2):
                 # add some data, 3 DummyModels for tenant2
                 DummyModel(name="Man,").save()
                 DummyModel(name="testing").save()
                 DummyModel(name="is great!").save()
 
-        # we should be back to tenant1's path, test what we have
-        with self.assertNumQueries(1):
+        # we should be back to tenant1's path, test what we have (SET + COUNT)
+        with self.assertNumQueries(2):
             self.assertEqual(2, DummyModel.objects.count())
 
-        # switch back to tenant2's path
-        with self.assertNumQueries(1):
+        # switch back to tenant2's path (SET + COUNT)
+        with self.assertNumQueries(2):
             with tenant_context(tenant2):
                 self.assertEqual(3, DummyModel.objects.count())
 
@@ -229,8 +232,10 @@ class TenantDataAndSettingsTest(BaseTestCase):
         with self.assertNumQueries(0):
             connection.set_tenant(tenant1)
 
-        # switch temporarily to tenant2's path
-        with self.assertNumQueries(3):
+        # switch temporarily to tenant2's path.
+        # TENANT_LIMIT_SET_CALLS is on, so the SET runs once for the first cursor
+        # after set_tenant cleared the cache, then the 3 inserts: 4 statements.
+        with self.assertNumQueries(4):
             with tenant_context(tenant2):
                 DummyModel(name="Man,").save()
                 DummyModel(name="testing").save()
@@ -240,14 +245,16 @@ class TenantDataAndSettingsTest(BaseTestCase):
         with self.assertNumQueries(0):
             connection.set_tenant(tenant1)
 
-        with self.assertNumQueries(1):
+        # set_tenant cleared the cache, so this re-issues the SET (SET + COUNT)
+        with self.assertNumQueries(2):
             self.assertEqual(0, DummyModel.objects.count())
 
         # 0 queries as search path not set here
         with self.assertNumQueries(0):
             connection.set_tenant(tenant2)
 
-        with self.assertNumQueries(1):
+        # as above: SET + COUNT
+        with self.assertNumQueries(2):
             self.assertEqual(3, DummyModel.objects.count())
 
         self.created = [domain2, domain1, tenant2, tenant1]
@@ -384,15 +391,10 @@ class TestSyncTenantsWithAuth(BaseSyncTest):
                    'django.contrib.sessions', )  # 1 table
     TENANT_APPS = ('django.contrib.sessions', )  # 1 table
 
-    if get_version_tuple(get_main_version()) < (5, 2):
-        def _pre_setup(self):
-            self.sync_shared()
-            super()._pre_setup()
-    else:
-        @classmethod
-        def _pre_setup(cls):
-            cls.sync_shared()
-            super()._pre_setup()
+    @classmethod
+    def _pre_setup(cls):
+        cls.sync_shared()
+        super()._pre_setup()
 
     def test_tenant_apps_and_shared_apps_can_have_the_same_apps(self):
         """
@@ -604,6 +606,70 @@ class TenantRenameSchemaTest(BaseTestCase):
         self.assertTrue(schema_exists('4321_new_name'))
 
 
+class TenantSchemaNameCaseTest(BaseTestCase):
+    """
+    Schema names that differ only in case must not produce two tenants. #846
+    """
+
+    def test_tenant_differing_only_in_case_is_rejected(self):
+        Client = get_tenant_model()
+        tenant = Client(schema_name='case_test')
+        tenant.save()
+
+        with self.assertRaises(ValidationError):
+            Client(schema_name='CASE_TEST').save()
+
+        self.assertEqual(Client.objects.filter(schema_name__iexact='case_test').count(), 1)
+
+    def test_saving_an_existing_tenant_does_not_collide_with_itself(self):
+        Client = get_tenant_model()
+        tenant = Client(schema_name='case_test')
+        tenant.save()
+
+        # The check runs on insert only, so re-saving must not see the tenant's
+        # own row as a duplicate of itself.
+        tenant.save()
+
+        self.assertEqual(Client.objects.filter(schema_name='case_test').count(), 1)
+
+    def test_tenants_that_already_collide_can_still_be_saved(self):
+        Client = get_tenant_model()
+        Client(schema_name='case_test').save()
+
+        # Simulate a database that already holds a colliding pair from before the
+        # check existed -- upgrading must not lock anyone out of their own tenant.
+        other = Client(schema_name='case_test_2')
+        other.save()
+        Client.objects.filter(pk=other.pk).update(schema_name='CASE_TEST')
+
+        other = Client.objects.get(pk=other.pk)
+        other.auto_create_schema = False
+        other.save()
+
+        self.assertEqual(Client.objects.filter(schema_name__iexact='case_test').count(), 2)
+
+    def test_schema_exists_is_case_sensitive_by_default(self):
+        Client = get_tenant_model()
+        Client(schema_name='case_test').save()
+
+        # PostgreSQL created "case_test", not "CASE_TEST" -- they are distinct
+        # schemas, so the default comparison must not conflate them.
+        self.assertTrue(schema_exists('case_test'))
+        self.assertFalse(schema_exists('CASE_TEST'))
+        self.assertTrue(schema_exists('CASE_TEST', case_sensitive=False))
+
+    def test_rename_schema_to_name_differing_only_in_case_is_rejected(self):
+        Client = get_tenant_model()
+        tenant = Client(schema_name='case_test')
+        tenant.save()
+
+        with self.assertRaisesRegex(ValidationError, 'New schema name already exists'):
+            schema_rename(tenant=Client.objects.filter(pk=tenant.pk).first(),
+                          new_schema_name='CASE_TEST')
+
+        self.assertTrue(schema_exists('case_test'))
+
+
 class CloneSchemaTest(BaseTestCase):
     def test_clone_schema(self):
         Client = get_tenant_model()
@@ -651,6 +717,200 @@ class CloneSchemaTest(BaseTestCase):
             self.assertTrue(DummyModel.objects.filter(name='Tester').exists())
 
             DummyModel(name='Moderator').save()
+
+    def test_clone_schema_where_an_identity_sequence_name_does_not_match_its_table(self):
+        """
+        Exercises the scenario where a table's IDENTITY sequence is not named after the table
+        that owns it. Postgres derives the sequence name when the column is created and never
+        revisits it, so ``ALTER TABLE ... RENAME`` -- i.e. any Django ``RenameModel`` -- leaves
+        the sequence behind under the table's old name.
+
+        The destination's sequences are created fresh by ``CREATE TABLE ... (LIKE ...
+        INCLUDING ALL)``, so they are named after the *current* table. Assuming the source's
+        sequence name also exists in the destination therefore fails with
+        ``relation "<dest>.<old name>_id_seq" does not exist``.
+        """
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s2')
+        tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='s2.test.com')
+        domain.save()
+
+        with tenant_context(tenant):
+            DummyModel(name='Administrator').save()
+            DummyModel(name='Tester').save()
+
+        table = DummyModel._meta.db_table
+        with connection.cursor() as cursor:
+            # Reproduce the state a historical RenameModel leaves behind: the identity
+            # sequence keeps the name it was given under the model's old table name.
+            cursor.execute(
+                "ALTER SEQUENCE s2.%s RENAME TO legacy_dummy_id_seq" % (table + '_id_seq')
+            )
+
+        clone_schema = CloneSchema()
+        clone_schema.clone_schema(base_schema_name='s2', new_schema_name='d2')
+
+        self.assertTrue(schema_exists('d2'))
+
+        # The clone's sequence must carry the source's last value over, otherwise inserting
+        # into the clone re-uses primary keys that the cloned rows already occupy.
+        with schema_context('d2'):
+            self.assertEqual(DummyModel.objects.count(), 2)
+            moderator = DummyModel(name='Moderator')
+            moderator.save()
+            self.assertEqual(moderator.pk, 3)
+
+    def test_clone_schema_inside_an_atomic_block(self):
+        """``clone_schema`` must be callable from inside ``transaction.atomic()``.
+
+        It used to call ``transaction.commit()``, which raises
+        ``TransactionManagementError`` inside an atomic block -- so cloning was impossible
+        from anything that wraps its work in a transaction: the Django admin's
+        ``save_model``, a view under ``ATOMIC_REQUESTS``, or a plain ``TestCase``.
+        See issues #1155 and #694.
+        """
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s3')
+        tenant.save()
+
+        domain = get_tenant_domain_model()(tenant=tenant, domain='s3.test.com')
+        domain.save()
+
+        with tenant_context(tenant):
+            DummyModel(name='Administrator').save()
+
+        with transaction.atomic():
+            CloneSchema().clone_schema(base_schema_name='s3', new_schema_name='d3')
+
+        self.assertTrue(schema_exists('d3'))
+        with schema_context('d3'):
+            self.assertTrue(DummyModel.objects.filter(name='Administrator').exists())
+
+    def test_clone_schema_owned_by_a_role_whose_name_needs_quoting(self):
+        """Role names are interpolated into DDL and must be quoted.
+
+        A role containing a hyphen is a syntax error unquoted, so cloning a schema owned by
+        one failed on ``CREATE SCHEMA ... AUTHORIZATION``. See issue #1189.
+        """
+        role = 'dts-role-with-hyphen'
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute('CREATE ROLE "%s"' % role)
+            except Exception as e:  # noqa: BLE001 - needs CREATEROLE, which not every CI user has
+                self.skipTest('cannot create a test role: %s' % e)
+        self.addCleanup(self._drop_role, role)
+
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s4')
+        tenant.save()
+        get_tenant_domain_model()(tenant=tenant, domain='s4.test.com').save()
+
+        with tenant_context(tenant):
+            DummyModel(name='Administrator').save()
+
+        with connection.cursor() as cursor:
+            cursor.execute('ALTER SCHEMA s4 OWNER TO "%s"' % role)
+            # A standalone sequence too: seqowner comes back unquoted from pg_get_userbyid,
+            # where tblowner is already double-quoted by its SELECT. An identity sequence
+            # cannot be reowned separately from its table, hence a free-standing one.
+            cursor.execute('CREATE SEQUENCE s4.standalone_seq')
+            cursor.execute('ALTER SEQUENCE s4.standalone_seq OWNER TO "%s"' % role)
+
+        CloneSchema().clone_schema(base_schema_name='s4', new_schema_name='d4')
+
+        self.assertTrue(schema_exists('d4'))
+        with schema_context('d4'):
+            self.assertTrue(DummyModel.objects.filter(name='Administrator').exists())
+
+    def test_clone_schema_whose_name_needs_quoting_with_a_partial_index(self):
+        """A partial index in a schema whose name needs quoting.
+
+        pg_get_tabledef() -- used for a table with a column CREATE TABLE LIKE cannot copy, such as a
+        user-defined type -- decided whether an index was partial by comparing
+        ``relnamespace::regnamespace::text``, which quotes a hyphenated name, with the raw schema
+        name. It never matched, the index's TABLESPACE was put after its WHERE, and the clone failed
+        with: syntax error at or near "TABLESPACE".
+        """
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s5-hyphen')
+        tenant.save()
+        get_tenant_domain_model()(tenant=tenant, domain='s5.test.com').save()
+
+        with connection.cursor() as cursor:
+            # An enum is information_schema's USER-DEFINED, which sends the table through pg_get_tabledef().
+            cursor.execute('CREATE TYPE "s5-hyphen".flag_kind AS ENUM (\'a\', \'b\')')
+            cursor.execute(
+                'CREATE TABLE "s5-hyphen".flagged (id serial PRIMARY KEY, kind "s5-hyphen".flag_kind, flag boolean)'
+            )
+            cursor.execute('CREATE UNIQUE INDEX flagged_one_flag ON "s5-hyphen".flagged (flag) WHERE flag')
+
+        CloneSchema().clone_schema(base_schema_name='s5-hyphen', new_schema_name='d5-hyphen')
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT indexdef FROM pg_indexes WHERE schemaname = 'd5-hyphen' AND indexname = 'flagged_one_flag'"
+            )
+            row = cursor.fetchone()
+        self.assertIsNotNone(row)
+        self.assertIn('WHERE flag', row[0])
+
+    @staticmethod
+    def _drop_role(role):
+        connection.set_schema_to_public()
+        with connection.cursor() as cursor:
+            for schema in ('s4', 'd4'):
+                cursor.execute('DROP SCHEMA IF EXISTS %s CASCADE' % schema)
+            cursor.execute('REASSIGN OWNED BY "%s" TO CURRENT_USER' % role)
+            cursor.execute('DROP OWNED BY "%s"' % role)
+            cursor.execute('DROP ROLE IF EXISTS "%s"' % role)
+
+
+class TenantBaseSchemaTest(BaseTestCase):
+    """Creating a tenant by cloning a template schema, with TENANT_CREATION_FAKES_MIGRATIONS."""
+
+    def setUp(self):
+        super().setUp()
+        self.created = []
+        self.template = self.create_tenant('template')
+
+    def tearDown(self):
+        connection.set_schema_to_public()
+        for tenant in reversed(self.created):
+            tenant.delete(force_drop=True)
+
+        super().tearDown()
+
+    def create_tenant(self, schema_name):
+        tenant = get_tenant_model()(schema_name=schema_name)
+        tenant.save(verbosity=0)
+        self.created.append(tenant)
+        return tenant
+
+    def test_tenant_is_cloned_from_the_template(self):
+        with tenant_context(self.template):
+            DummyModel(name='from the template').save()
+
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True, TENANT_BASE_SCHEMA='template'):
+            tenant = self.create_tenant('cloned')
+
+        with tenant_context(tenant):
+            self.assertTrue(DummyModel.objects.filter(name='from the template').exists())
+
+    def test_tenant_runs_its_migrations_when_the_template_does_not_exist(self):
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True,
+                               TENANT_BASE_SCHEMA='no_such_template'):
+            self.create_tenant('migrated')
+
+        self.assertIn('dts_test_app_dummymodel', self.get_tables_list_in_schema('migrated'))
+
+    def test_the_public_schema_is_not_cloned_from_a_tenant_template(self):
+        """The public schema holds the shared apps, so no tenant template matches it."""
+        public_tenant = get_tenant_model()(schema_name=get_public_schema_name())
+
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True, TENANT_BASE_SCHEMA='template'):
+            self.assertFalse(public_tenant.get_base_schema())
 
 
 class SchemaMigratedSignalTest(BaseTestCase):

@@ -57,5 +57,7 @@ def colour_admin_apps():
 
 
 @register.simple_tag(takes_context=True)
-def is_public_schema(context, app):
+def is_public_schema(context, app=None):
+    # `app` is unused -- the answer depends only on the request's tenant -- but stays accepted
+    # so `{% is_public_schema app %}` in existing templates keeps working. See issue #339.
     return not hasattr(context.request, 'tenant') or context.request.tenant.schema_name == get_public_schema_name()

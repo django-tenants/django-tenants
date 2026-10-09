@@ -1,13 +1,20 @@
+import copy
+
+from django.apps import apps
 from django.conf import settings
 from django.test.client import RequestFactory
+from django.test.utils import override_settings
 
 from django_tenants.middleware import TenantMainMiddleware
 from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model, get_public_schema_name, tenant_context
 from dts_multi_type2.models import TypeTwoOnly
+from dts_test_app.models import DummyModel
 
 
-class MultiTypeTestCase(BaseTestCase):
+class MultiTypeBaseTestCase(BaseTestCase):
+    """Sets up the multi type tenant configuration, without creating any tenant."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -46,6 +53,14 @@ class MultiTypeTestCase(BaseTestCase):
             installed_apps += [app for app in tenant_types[schema]["APPS"] if app not in installed_apps]
         settings.INSTALLED_APPS = installed_apps
         cls.available_apps = settings.INSTALLED_APPS
+
+        # TransactionTestCase.setUpClass already restricted the app registry for the first
+        # test of the class, back when available_apps still held the single type apps. Redo
+        # it now the types are known, otherwise that first test runs -- and migrates its
+        # tenants -- without the apps of every type.
+        apps.unset_available_apps()
+        apps.set_available_apps(cls.available_apps)
+
         cls.sync_shared()
 
     @classmethod
@@ -58,6 +73,8 @@ class MultiTypeTestCase(BaseTestCase):
         delattr(settings, 'TENANT_TYPES')
         super().tearDownClass()
 
+
+class MultiTypeTestCase(MultiTypeBaseTestCase):
     def setUp(self):
         super().setUp()
         self.factory = RequestFactory()
@@ -157,3 +174,83 @@ class MultiTypeTestCase(BaseTestCase):
     #         TypeTwoOnly(name='hello')
 
 
+class MultiTypeBaseSchemaTestCase(MultiTypeBaseTestCase):
+    """
+    Creating a tenant by cloning a template schema, when the types don't share one.
+
+    A type1 template holds none of a type2 tenant's tables, so each type names its
+    own under TENANT_TYPES[type]['BASE_SCHEMA']. See #533.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.created = []
+        self.type1_template = self.create_tenant('type1_template', 'type1')
+        self.type2_template = self.create_tenant('type2_template', 'type2')
+
+    def tearDown(self):
+        from django.db import connection
+
+        connection.set_schema_to_public()
+        for tenant in reversed(self.created):
+            tenant.delete(force_drop=True)
+
+        super().tearDown()
+
+    def create_tenant(self, schema_name, tenant_type):
+        tenant = get_tenant_model()(schema_name=schema_name, type=tenant_type)
+        tenant.save(verbosity=0)
+        self.created.append(tenant)
+        return tenant
+
+    @staticmethod
+    def tenant_types_with_templates(**base_schemas):
+        tenant_types = copy.deepcopy(settings.TENANT_TYPES)
+        for tenant_type, base_schema in base_schemas.items():
+            tenant_types[tenant_type]['BASE_SCHEMA'] = base_schema
+        return tenant_types
+
+    def test_each_type_is_cloned_from_the_template_of_its_own_type(self):
+        with tenant_context(self.type1_template):
+            DummyModel(name='from the type1 template').save()
+        with tenant_context(self.type2_template):
+            TypeTwoOnly(name='from the type2 template').save()
+
+        tenant_types = self.tenant_types_with_templates(type1='type1_template',
+                                                        type2='type2_template')
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True, TENANT_TYPES=tenant_types):
+            type1_tenant = self.create_tenant('cloned_type1', 'type1')
+            type2_tenant = self.create_tenant('cloned_type2', 'type2')
+
+        with tenant_context(type1_tenant):
+            self.assertTrue(DummyModel.objects.filter(name='from the type1 template').exists())
+        with tenant_context(type2_tenant):
+            self.assertTrue(TypeTwoOnly.objects.filter(name='from the type2 template').exists())
+
+        # neither may have been cloned from the other type's template
+        self.assertNotIn('dts_multi_type2_typetwoonly',
+                         self.get_tables_list_in_schema('cloned_type1'))
+        self.assertNotIn('dts_test_app_dummymodel',
+                         self.get_tables_list_in_schema('cloned_type2'))
+
+    def test_a_type_without_a_template_of_its_own_still_runs_its_migrations(self):
+        tenant_types = self.tenant_types_with_templates(type1='type1_template')
+
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True, TENANT_TYPES=tenant_types):
+            self.create_tenant('migrated_type2', 'type2')
+
+        self.assertIn('dts_multi_type2_typetwoonly',
+                      self.get_tables_list_in_schema('migrated_type2'))
+
+    def test_a_type_without_a_template_of_its_own_falls_back_to_tenant_base_schema(self):
+        with tenant_context(self.type2_template):
+            TypeTwoOnly(name='from the shared template').save()
+
+        tenant_types = self.tenant_types_with_templates(type1='type1_template')
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True,
+                               TENANT_TYPES=tenant_types,
+                               TENANT_BASE_SCHEMA='type2_template'):
+            tenant = self.create_tenant('fallback_type2', 'type2')
+
+        with tenant_context(tenant):
+            self.assertTrue(TypeTwoOnly.objects.filter(name='from the shared template').exists())
