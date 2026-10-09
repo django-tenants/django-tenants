@@ -255,3 +255,53 @@ class DeleteTenantCommandTestCase(BaseTestCase):
                          stderr=io.StringIO())
 
         self.assertFalse(schema_exists(tenant.schema_name))
+
+
+class CreateTenantCommandTestCase(BaseTestCase):
+    """
+    A tenant or domain that can't be saved has to stop the command with the
+    reason, not clear what was typed and ask for it all again. #1194
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(self.drop_tenants)
+
+    @staticmethod
+    def drop_tenants():
+        connection.set_schema_to_public()
+        for tenant in get_tenant_model().objects.filter(schema_name__startswith='create_test'):
+            tenant.delete(force_drop=True)
+
+    def create_tenant(self, schema_name, domain, **kwargs):
+        call_command('create_tenant', schema_name=schema_name, domain_domain=domain,
+                     domain_is_primary='True', **kwargs)
+
+    def test_noinput_creates_the_tenant_and_its_domain(self):
+        self.create_tenant('create_test', 'create.test.com', interactive=False)
+
+        tenant = get_tenant_model().objects.get(schema_name='create_test')
+        self.assertEqual(tenant.domains.get().domain, 'create.test.com')
+
+    def test_noinput_duplicate_schema_reports_why(self):
+        self.create_tenant('create_test', 'first.test.com', interactive=False)
+
+        with self.assertRaisesMessage(CommandError, 'already exists'):
+            self.create_tenant('create_test', 'second.test.com', interactive=False)
+
+    def test_noinput_duplicate_domain_reports_why(self):
+        self.create_tenant('create_test', 'create.test.com', interactive=False)
+
+        with self.assertRaisesMessage(CommandError, 'Could not create domain'):
+            self.create_tenant('create_test_2', 'create.test.com', interactive=False)
+
+    def test_interactive_duplicate_schema_is_not_reprompted(self):
+        self.create_tenant('create_test', 'first.test.com', interactive=False)
+
+        # Blank answers for any field not given. Before the fix the command
+        # cleared everything and asked again until it ran out of answers.
+        with mock.patch('builtins.input', side_effect=[''] * 10) as mocked_input:
+            with self.assertRaisesMessage(CommandError, 'already exists'):
+                self.create_tenant('create_test', 'second.test.com', interactive=True)
+
+        self.assertLess(mocked_input.call_count, 10)
