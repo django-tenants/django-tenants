@@ -8,10 +8,7 @@ from django.utils.functional import lazy
 from django_tenants.utils import (
     get_tenant_domain_model,
     get_subfolder_prefix,
-    clean_tenant_url,
-    has_multi_type_tenants,
-    get_tenant_types,
-    get_public_schema_name,
+    clean_tenant_url, has_multi_type_tenants, get_tenant_types,
 )
 
 
@@ -28,13 +25,14 @@ class TenantPrefixPattern:
 
     @property
     def tenant_prefix(self):
+        # A FakeTenant (set by schema_context or set_schema_to_public, e.g. after
+        # creating a tenant) has no domain_subfolder: there is no prefix. #1005
+        domain_subfolder = getattr(connection.tenant, "domain_subfolder", None)
+        if not domain_subfolder:
+            return "/"
         _DomainModel = get_tenant_domain_model()
         subfolder_prefix = get_subfolder_prefix()
         try:
-            if hasattr(connection.tenant, "domain_subfolder"):
-                domain_subfolder = connection.tenant.domain_subfolder
-            else:
-                domain_subfolder = get_public_schema_name()
             domain = _DomainModel.objects.get(
                 tenant__schema_name=connection.schema_name,
                 domain=domain_subfolder,
