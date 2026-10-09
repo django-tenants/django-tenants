@@ -20,14 +20,28 @@ class Command(BaseCommand):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def add_arguments(self, parser):
-        for field in self.tenant_fields:
-            parser.add_argument('--%s' % field.attname,
-                                help='Specifies the %s for tenant.' % field.attname)
+    def _get_existing_options(self, parser):
+        existing = set()
+        for action in parser._actions:
+            existing.update(action.option_strings)
+        return existing
 
+    def add_arguments(self, parser):
+        existing_options = self._get_existing_options(parser)
+        for field in self.tenant_fields:
+            option = '--%s' % field.attname
+            if option in existing_options:
+                option = '--tenant-%s' % field.attname
+            parser.add_argument(option, dest=field.attname,
+                                help='Specifies the %s for tenant. Use %s to set this value.' % (field.attname, option))
+
+        existing_options = self._get_existing_options(parser)
         for field in self.domain_fields:
-            parser.add_argument('--domain-%s' % field.attname,
-                                help="Specifies the %s for the tenant's domain." % field.attname)
+            option = '--domain-%s' % field.attname
+            if option in existing_options:
+                option = '--domain-tenant-%s' % field.attname
+            parser.add_argument(option, dest='domain_%s' % field.attname,
+                                help="Specifies the %s for the tenant's domain. Use %s to set this value." % (field.attname, option))
 
         parser.add_argument(
             '--noinput', '--no-input', action='store_false', dest='interactive',
@@ -78,7 +92,7 @@ class Command(BaseCommand):
 
                     input_value = input(force_str('%s: ' % input_msg)) or default
                     domain_data[field.attname] = input_value
-        domain = self.store_tenant_domain(**domain_data)
+        self.store_tenant_domain(**domain_data)
 
         if options.get('s', None):
             self.stdout.write("Create superuser for %s" % tenant_data['schema_name'])
@@ -91,10 +105,7 @@ class Command(BaseCommand):
         except exceptions.ValidationError as e:
             raise CommandError('; '.join(e.messages))
         except IntegrityError as e:
-            raise CommandError(
-                "Tenant with this schema_name may already exist. "
-                "Database error: %s" % str(e)
-            )
+            raise CommandError("Could not create tenant: %s" % e)
 
     def store_tenant_domain(self, **fields):
         try:
@@ -104,7 +115,4 @@ class Command(BaseCommand):
         except exceptions.ValidationError as e:
             raise CommandError('; '.join(e.messages))
         except IntegrityError as e:
-            raise CommandError(
-                "Domain may already exist or violate database constraints. "
-                "Database error: %s" % str(e)
-            )
+            raise CommandError("Could not create domain: %s" % e)

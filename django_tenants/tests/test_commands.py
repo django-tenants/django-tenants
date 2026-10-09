@@ -1,12 +1,16 @@
+import contextlib
 import io
 import json
-from unittest import mock, expectedFailure
+from unittest import mock
 
 from django.core.management import call_command
-from django.test import TestCase, TransactionTestCase
+from django.core.management.base import BaseCommand, CommandError, OutputWrapper
+from django.db import connection
 
+from django_tenants.management.commands.all_tenants_command import Command as AllTenantsCommand
 from django_tenants.test.cases import FastTenantTestCase
-from django_tenants.utils import get_tenant_model, get_tenant_domain_model
+from django_tenants.tests.testcases import BaseTestCase
+from django_tenants.utils import get_tenant_model, get_public_schema_name, schema_exists
 from dts_test_app.models import DummyModel
 
 
@@ -50,55 +54,254 @@ class TenantCommandTestCase(FastTenantTestCase):
         )
 
 
-class CreateTenantCommandTestCase(TransactionTestCase):
-    """Tests for the create_tenant management command.
-
-    Uses TransactionTestCase because these tests intentionally trigger
-    IntegrityErrors which break the PostgreSQL transaction state.
+class AllTenantsCommandTestCase(BaseTestCase):
+    """
+    all_tenants_command is documented but had no handle(), so every
+    call_command() of it raised NotImplementedError. #627
     """
 
-    def tearDown(self) -> None:
-        """Clean up tenant schemas created during tests.
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.sync_shared()
 
-        Django's test framework cleans up database rows but not PostgreSQL schemas.
-        We must manually drop tenant schemas to avoid conflicts in subsequent test runs.
-        """
+    def setUp(self):
+        super().setUp()
+        # TransactionTestCase flushes rows between tests, so build the tenants
+        # each time rather than once for the class.
+        self.public_tenant = get_tenant_model().objects.create(schema_name=get_public_schema_name())
+        self.tenant = get_tenant_model().objects.create(schema_name='all_tenants_test')
+
+    def tearDown(self):
+        connection.set_schema_to_public()
+        self.tenant.delete(force_drop=True)
+        # Only the row -- dropping the public schema would take the shared tables
+        # with it. auto_drop_schema is set explicitly because other test cases
+        # flip it on the model class.
+        self.public_tenant.auto_drop_schema = False
+        self.public_tenant.delete()
         super().tearDown()
-        Tenant = get_tenant_model()
-        for schema in ['duplicate_test_schema']:
-            try:
-                tenant = Tenant.objects.filter(schema_name=schema).first()
-                if tenant:
-                    tenant.delete(force_drop=True)
-            except Exception:
-                pass  # Ignore cleanup errors
 
-    def test_create_tenant_with_duplicate_schema_raises_error(self) -> None:
+    @staticmethod
+    def record_schemas():
         """
-        When creating a tenant with a schema_name that already exists,
-        the command should raise CommandError with a descriptive message.
+        Stands in for the wrapped command, noting the schema it was run under.
         """
-        from django.core.management.base import CommandError
+        schemas = []
 
-        # First, create a tenant successfully
-        call_command(
-            "create_tenant",
-            "--schema_name=duplicate_test_schema",
-            "--name=First",
-            "--domain-domain=first.test",
-            "--noinput",
+        def wrapped(*args, **kwargs):
+            schemas.append(connection.schema_name)
+
+        return schemas, mock.patch(
+            'django_tenants.management.commands.all_tenants_command.call_command',
+            side_effect=wrapped,
         )
 
-        # Try to create a duplicate tenant - should raise CommandError
-        with self.assertRaises(CommandError) as cm:
-            call_command(
-                "create_tenant",
-                "--schema_name=duplicate_test_schema",
-                "--name=Duplicate",
-                "--domain-domain=duplicate.test",
-                "--noinput",
-            )
+    def test_call_command_runs_the_wrapped_command_on_every_tenant(self):
+        schemas, patched = self.record_schemas()
 
-        # CommandError message should mention the duplicate/already exists issue
-        error_message = str(cm.exception)
-        self.assertIn("already exist", error_message.lower())
+        with patched:
+            call_command('all_tenants_command', 'check', stdout=io.StringIO())
+
+        self.assertCountEqual(schemas, [get_public_schema_name(), 'all_tenants_test'])
+
+    def test_no_public_excludes_the_public_schema(self):
+        schemas, patched = self.record_schemas()
+
+        with patched:
+            call_command('all_tenants_command', 'check', no_public=True, stdout=io.StringIO())
+
+        self.assertEqual(schemas, ['all_tenants_test'])
+
+    def test_arguments_are_passed_to_the_wrapped_command(self):
+        with mock.patch('django_tenants.management.commands.all_tenants_command.call_command') as mocked:
+            call_command('all_tenants_command', 'dumpdata', 'dts_test_app.DummyModel', stdout=io.StringIO())
+
+        self.assertEqual(mocked.call_count, 2)
+        for call in mocked.call_args_list:
+            self.assertEqual(call.args, ('dumpdata', 'dts_test_app.DummyModel'))
+
+    def test_unknown_command_raises_command_error(self):
+        with self.assertRaisesRegex(CommandError, 'Unknown command'):
+            call_command('all_tenants_command', 'no_such_command', stdout=io.StringIO())
+
+    # The command line goes through run_from_argv() rather than handle(), so it
+    # needs driving separately from the call_command() tests above.
+
+    def run_from_argv(self, *args):
+        """
+        Runs the command the way manage.py does, capturing its own output.
+        """
+        command = AllTenantsCommand()
+        stdout, stderr = io.StringIO(), io.StringIO()
+        command.stdout, command.stderr = OutputWrapper(stdout), OutputWrapper(stderr)
+        command.run_from_argv(['manage.py', 'all_tenants_command', *args])
+        return stdout.getvalue(), stderr.getvalue()
+
+    @staticmethod
+    def wrapped_command(calls):
+        """
+        Stands in for the wrapped command class that run_from_argv() loads.
+        """
+        class Wrapped(BaseCommand):
+            def run_from_argv(self, argv):
+                calls.append((argv, connection.schema_name))
+
+        return Wrapped()
+
+    def test_command_line_runs_the_wrapped_command_on_every_tenant(self):
+        calls = []
+
+        with mock.patch('django_tenants.management.commands.all_tenants_command.load_command_class',
+                        return_value=self.wrapped_command(calls)):
+            self.run_from_argv('dumpdata', '--indent=4')
+
+        self.assertCountEqual([schema for _, schema in calls],
+                              [get_public_schema_name(), 'all_tenants_test'])
+        # The wrapped command's own options are handed straight through.
+        for argv, _ in calls:
+            self.assertEqual(argv, ['manage.py', 'dumpdata', '--indent=4'])
+
+    def test_command_line_no_public_is_stripped_from_anywhere(self):
+        calls = []
+
+        with mock.patch('django_tenants.management.commands.all_tenants_command.load_command_class',
+                        return_value=self.wrapped_command(calls)):
+            self.run_from_argv('dumpdata', '--no-public', 'dts_test_app.DummyModel')
+
+        self.assertEqual([schema for _, schema in calls], ['all_tenants_test'])
+        self.assertEqual(calls[0][0], ['manage.py', 'dumpdata', 'dts_test_app.DummyModel'])
+
+    def test_command_line_uses_an_already_loaded_command(self):
+        calls = []
+        loaded = self.wrapped_command(calls)
+
+        # get_commands() hands back a BaseCommand instance rather than an app
+        # label when a command is already loaded.
+        with mock.patch('django_tenants.management.commands.all_tenants_command.get_commands',
+                        return_value={'preloaded': loaded}):
+            self.run_from_argv('preloaded')
+
+        self.assertEqual(len(calls), 2)
+
+    def test_command_line_unknown_command_exits_non_zero(self):
+        with self.assertRaises(SystemExit) as raised:
+            _, stderr = self.run_from_argv('no_such_command')
+
+        self.assertEqual(raised.exception.code, 1)
+
+    def test_command_line_without_a_command_name_reports_usage(self):
+        # Falls back to Django's parser, which exits 2 on a missing argument.
+        with self.assertRaises(SystemExit) as raised:
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.run_from_argv()
+
+        self.assertEqual(raised.exception.code, 2)
+
+    def test_command_line_help_is_not_treated_as_a_command_name(self):
+        with self.assertRaises(SystemExit) as raised:
+            with contextlib.redirect_stdout(io.StringIO()) as help_text:
+                self.run_from_argv('--help')
+
+        self.assertEqual(raised.exception.code, 0)
+        self.assertIn('--no-public', help_text.getvalue())
+
+
+class DeleteTenantCommandTestCase(BaseTestCase):
+    """
+    Confirming the prompt has to actually delete the tenant. #1058
+    """
+
+    def create_tenant(self, schema_name='delete_test'):
+        tenant = get_tenant_model()(schema_name=schema_name)
+        tenant.save()
+        self.assertTrue(schema_exists(schema_name))
+        return tenant
+
+    def test_answering_yes_at_the_first_prompt_deletes_the_tenant(self):
+        tenant = self.create_tenant()
+
+        with mock.patch('builtins.input', return_value='yes'):
+            call_command('delete_tenant', schema_name=tenant.schema_name, stderr=io.StringIO())
+
+        self.assertFalse(get_tenant_model().objects.filter(pk=tenant.pk).exists())
+        self.assertFalse(schema_exists(tenant.schema_name))
+
+    def test_answering_no_keeps_the_tenant(self):
+        tenant = self.create_tenant()
+        stderr = io.StringIO()
+
+        with mock.patch('builtins.input', return_value='no'):
+            call_command('delete_tenant', schema_name=tenant.schema_name, stderr=stderr)
+
+        self.assertIn('Canceled', stderr.getvalue())
+        self.assertTrue(get_tenant_model().objects.filter(pk=tenant.pk).exists())
+        self.assertTrue(schema_exists(tenant.schema_name))
+
+    def test_unrecognised_answer_is_reprompted_until_valid(self):
+        tenant = self.create_tenant()
+
+        with mock.patch('builtins.input', side_effect=['maybe', '', 'yes']) as mocked_input:
+            call_command('delete_tenant', schema_name=tenant.schema_name, stderr=io.StringIO())
+
+        self.assertEqual(mocked_input.call_count, 3)
+        self.assertFalse(schema_exists(tenant.schema_name))
+
+    def test_noinput_deletes_without_prompting(self):
+        tenant = self.create_tenant()
+
+        with mock.patch('builtins.input', side_effect=AssertionError('should not prompt')):
+            call_command('delete_tenant', schema_name=tenant.schema_name, interactive=False,
+                         stderr=io.StringIO())
+
+        self.assertFalse(schema_exists(tenant.schema_name))
+
+
+class CreateTenantCommandTestCase(BaseTestCase):
+    """
+    A tenant or domain that can't be saved has to stop the command with the
+    reason, not clear what was typed and ask for it all again. #1194
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(self.drop_tenants)
+
+    @staticmethod
+    def drop_tenants():
+        connection.set_schema_to_public()
+        for tenant in get_tenant_model().objects.filter(schema_name__startswith='create_test'):
+            tenant.delete(force_drop=True)
+
+    def create_tenant(self, schema_name, domain, **kwargs):
+        call_command('create_tenant', schema_name=schema_name, domain_domain=domain,
+                     domain_is_primary='True', **kwargs)
+
+    def test_noinput_creates_the_tenant_and_its_domain(self):
+        self.create_tenant('create_test', 'create.test.com', interactive=False)
+
+        tenant = get_tenant_model().objects.get(schema_name='create_test')
+        self.assertEqual(tenant.domains.get().domain, 'create.test.com')
+
+    def test_noinput_duplicate_schema_reports_why(self):
+        self.create_tenant('create_test', 'first.test.com', interactive=False)
+
+        with self.assertRaisesMessage(CommandError, 'already exists'):
+            self.create_tenant('create_test', 'second.test.com', interactive=False)
+
+    def test_noinput_duplicate_domain_reports_why(self):
+        self.create_tenant('create_test', 'create.test.com', interactive=False)
+
+        with self.assertRaisesMessage(CommandError, 'Could not create domain'):
+            self.create_tenant('create_test_2', 'create.test.com', interactive=False)
+
+    def test_interactive_duplicate_schema_is_not_reprompted(self):
+        self.create_tenant('create_test', 'first.test.com', interactive=False)
+
+        # Blank answers for any field not given. Before the fix the command
+        # cleared everything and asked again until it ran out of answers.
+        with mock.patch('builtins.input', side_effect=[''] * 10) as mocked_input:
+            with self.assertRaisesMessage(CommandError, 'already exists'):
+                self.create_tenant('create_test', 'second.test.com', interactive=True)
+
+        self.assertLess(mocked_input.call_count, 10)

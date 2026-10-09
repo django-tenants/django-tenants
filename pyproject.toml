@@ -5,26 +5,23 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "django-tenants"
-version = "3.9.0"
+version = "3.14.0"
 description = "Tenant support for Django using PostgreSQL schemas."
 readme = "README.rst"
 license = "MIT"
 authors = [
   { name = "Thomas Turner", email = "tom@twt.me.uk" },
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Environment :: Web Environment",
   "Framework :: Django",
-  "Framework :: Django :: 4.2",
-  "Framework :: Django :: 5.0",
-  "Framework :: Django :: 5.1",
   "Framework :: Django :: 5.2",
+  "Framework :: Django :: 6.0",
+  "Framework :: Django :: 6.1",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -32,18 +29,19 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-  "django>=2.1,<6",
+  "django>=5.2,<6.2",
 ]
 
 optional-dependencies.dev = [
   "coverage",
-  "gunicorn==23",
+  "gunicorn==26.2.0",
+  "mypy",  # django_tenants/mypy_plugin.py imports mypy's plugin API
   "psycopg>=3.2.1,<3.3",
 ]
 urls."Homepage" = "https://github.com/django-tenants/django-tenants"
 
 [tool.setuptools]
-include-package-data = true
+include-package-data = false
 zip-safe = false
 
 [tool.setuptools.packages.find]
@@ -61,16 +59,10 @@ include = [
   "django_tenants.tests",
   "django_tenants.staticfiles",
   "django_tenants.middleware",
-  "docs",
-  "examples",
-  "dts_test_project",
 ]
 
 [tool.setuptools.package-data]
 "django_tenants" = [ "templates/**/*.html" ]
-"docs" = [ "**/*" ]
-"examples" = [ "**/*" ]
-"dts_test_project" = [ "**/*" ]
 
 [tool.setuptools.exclude-package-data]
 "*" = [ "*.pyc", "*.pyo" ]

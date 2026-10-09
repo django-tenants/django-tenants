@@ -13,47 +13,32 @@ You'll have to make the following modifications to your ``settings.py`` file.
 
 Your ``DATABASE_ENGINE`` setting needs to be changed to
 
-.. code-block:: python
-
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django_tenants.postgresql_backend',
-            # ..
-        }
-    }
+.. literalinclude:: ../dts_test_project/dts_test_project/settings.py
+    :lines: 83-92
+    :emphasize-lines: 3
+    :lineno-match:
 
 Add `django_tenants.routers.TenantSyncRouter` to your `DATABASE_ROUTERS` setting, so that the correct apps can be synced, depending on what's being synced (shared or tenant).
 
-.. code-block:: python
+.. literalinclude:: ../dts_test_project/dts_test_project/settings.py
+    :lines: 94-96
+    :lineno-match:
 
-    DATABASE_ROUTERS = (
-        'django_tenants.routers.TenantSyncRouter',
-    )
 
 Add the middleware ``django_tenants.middleware.main.TenantMainMiddleware`` to the top of ``MIDDLEWARE``, so that each request can be set to use the correct schema.
 
-.. code-block:: python
+.. literalinclude:: ../dts_test_project/dts_test_project/settings.py
+    :lines: 98-105
+    :lineno-match:
+    :emphasize-lines: 2
 
-    MIDDLEWARE = (
-        'django_tenants.middleware.main.TenantMainMiddleware',
-        #...
-    )
 
 Make sure you have ``django.template.context_processors.request`` listed under the ``context_processors`` option of ``TEMPLATES`` otherwise the tenant will not be available on ``request``.
 
-.. code-block:: python
-
-    TEMPLATES = [
-        {
-            #...
-            'OPTIONS': {
-                'context_processors': [
-                    'django.template.context_processors.request',
-                    #...
-                ],
-            },
-        },
-    ]
+.. literalinclude:: ../dts_test_project/dts_test_project/settings.py
+    :lines: 107-121
+    :lineno-match:
+    :emphasize-lines: 9
 
 The Tenant & Domain Model
 =========================
@@ -82,8 +67,8 @@ Here's an example, suppose we have an app named ``customers`` and we want to cre
 Admin Support
 =========================
 TenantAdminMixin is available in order to register the tenant model.
-Here's an example (following the example above), we want to register the ``Client`` model, so we create a the related admin class ``ClientAdmin``.
-The mixin disables save and delete buttons when not in current or public tenant (preventing Exceptions).
+Here's an example (following the example above), we want to register the ``Client`` model, so we create a related admin class ``ClientAdmin``.
+The mixin disables save and delete buttons when not in the current or public tenant (preventing Exceptions).
 
 .. code-block:: python
 
@@ -146,6 +131,34 @@ Now run ``migrate_schemas --shared``, this will create the shared apps on the ``
 .. warning::
 
    You might need to run ``makemigrations`` and then ``migrate_schemas --shared`` again for your ``app.Models`` to be created in the database.
+
+.. warning::
+
+    **Moving apps between SHARED_APPS and TENANT_APPS**
+
+    When you run ``migrate_schemas``, Django tracks all migrations as "applied" in the
+    ``django_migrations`` table in **every schema**, even though it only creates the actual
+    tables in the appropriate schemas. This means:
+
+    - The public schema shows TENANT_APPS migrations as "applied" (but tables don't exist)
+    - Tenant schemas show SHARED_APPS migrations as "applied" (but tables don't exist)
+
+    **If you move an app** between SHARED_APPS and TENANT_APPS, Django sees the migrations
+    as already "applied" in the destination schemas and won't create the tables.
+
+    **To move an app from TENANT_APPS to SHARED_APPS:**
+
+    1. Move the app from TENANT_APPS to SHARED_APPS in your settings **first**
+    2. ``./manage.py migrate_schemas --schema=public <app> zero --fake``
+    3. ``./manage.py migrate_schemas --shared``
+    4. Migrate any data from tenant schemas to public schema as needed
+
+    **To move an app from SHARED_APPS to TENANT_APPS:**
+
+    1. Move the app from SHARED_APPS to TENANT_APPS in your settings **first**
+    2. ``./manage.py migrate_schemas --tenant <app> zero --fake``
+    3. ``./manage.py migrate_schemas --tenant``
+    4. Migrate any data from public schema to tenant schemas as needed
 
 Lastly, you need to create a tenant whose schema is ``public`` and it's address is your domain URL. Please see the section on :doc:`use <use>`.
 
@@ -226,7 +239,7 @@ Optional Settings
 
     Sets if the schemas will be copied from an existing "template" schema instead of running migrations. Useful in the cases where migrations can not be faked and need to be ran individually, or when running migrations takes a long time. Be aware that setting this to `True` may significantly slow down the process of creating tenants.
 
-    When using this option, you must also specify which schema to use as template, under ``TENANT_BASE_SCHEMA``.
+    When using this option, you must also specify which schema to use as template, under ``TENANT_BASE_SCHEMA`` -- or, with multi-types tenants, one per type under ``TENANT_TYPES[type]['BASE_SCHEMA']`` (see :ref:`multi-types-base-schema`).
 
 
 .. attribute:: TENANT_BASE_SCHEMA
@@ -234,6 +247,8 @@ Optional Settings
     :Default: ``None``
 
     The name of the schema to use as a template for creating new tenants. Only used when ``TENANT_CREATION_FAKES_MIGRATIONS`` is enabled.
+
+    With multi-types tenants each type can name a template of its own, under ``TENANT_TYPES[type]['BASE_SCHEMA']``, and the types that don't fall back to this setting. See :ref:`multi-types-base-schema`.
 
 
 .. attribute:: TENANT_SYNC_ROUTER
@@ -297,6 +312,23 @@ If your projects are ran using a WSGI configuration, this can be done by creatin
 If you put this in the same Django project, you can make a new ``settings_public.py`` which points to a different ``urls_public.py``. This has the advantage that you can use the same apps that you use for your tenant websites.
 
 Or you can create a completely separate project for the main website.
+
+
+Mypy Support
+============
+
+django-tenants ships with a mypy plugin that declares the ``tenant`` attribute on ``HttpRequest``. Without it, strict mypy with ``django-stubs >= 6.0`` will report ``attr-defined`` errors on every ``request.tenant`` access.
+
+To enable it, add ``django_tenants.mypy_plugin`` to your mypy plugins in ``pyproject.toml``:
+
+.. code-block:: toml
+
+    [tool.mypy]
+    plugins = [
+        "django_tenants.mypy_plugin",
+    ]
+
+The plugin injects a ``tenant`` attribute (typed as ``TenantMixin``) into ``HttpRequest``, so all subclasses — including DRF's ``Request`` — inherit it automatically.
 
 
 Caching
