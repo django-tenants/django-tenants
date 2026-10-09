@@ -25,12 +25,17 @@ class TenantPrefixPattern:
 
     @property
     def tenant_prefix(self):
+        # A FakeTenant (set by schema_context or set_schema_to_public, e.g. after
+        # creating a tenant) has no domain_subfolder: there is no prefix. #1005
+        domain_subfolder = getattr(connection.tenant, "domain_subfolder", None)
+        if not domain_subfolder:
+            return "/"
         _DomainModel = get_tenant_domain_model()
         subfolder_prefix = get_subfolder_prefix()
         try:
             domain = _DomainModel.objects.get(
                 tenant__schema_name=connection.schema_name,
-                domain=connection.tenant.domain_subfolder,
+                domain=domain_subfolder,
             )
             return (
                 "{}/{}/".format(subfolder_prefix, domain.domain)
