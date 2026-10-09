@@ -15,7 +15,6 @@ from django_tenants.utils import (
 def run_migrations(args, options, executor_codename, schema_name, tenant_type='',
                    allow_atomic=True, idx=None, count=None):
     from django.core.management import color
-    from django.core.management.base import OutputWrapper
     from django.db import connections
     style = color.color_style()
 
@@ -50,15 +49,17 @@ def run_migrations(args, options, executor_codename, schema_name, tenant_type=''
     migration_recorder = MigrationRecorder(connection)
     migration_recorder.ensure_schema()
     connection.set_schema(schema_name, tenant_type=tenant_type)
-                       
-    stdout = OutputWrapper(sys.stdout)
-    stdout.style_func = style_func
-    stderr = OutputWrapper(sys.stderr)
-    stderr.style_func = style_func
+
+    stdout = LinePrefixStream(sys.stdout, style_func)
+    stderr = LinePrefixStream(sys.stderr, style_func)
     if int(options.get('verbosity', 1)) >= 1:
-        stdout.write(style.NOTICE("=== Starting migration"))
+        stdout.write(style.NOTICE("=== Starting migration") + "\n")
     migrate_command_class = get_tenant_base_migrate_command_class()
-    migrate_command_class(stdout=stdout, stderr=stderr).execute(*args, **options)
+    try:
+        migrate_command_class(stdout=stdout, stderr=stderr).execute(*args, **options)
+    finally:
+        stdout.flush()
+        stderr.flush()
 
     try:
         transaction.commit()
@@ -90,3 +91,48 @@ class MigrationExecutor:
 
     def run_multi_type_migrations(self, tenants):
         raise NotImplementedError
+
+
+class LinePrefixStream:
+    """
+    Puts the schema prefix at the start of each line written to the stream.
+
+    The migrate command is handed this rather than an OutputWrapper with a
+    style_func: Django wraps whatever it is given in an OutputWrapper of its
+    own, so a second one ended every partial write ("  Applying x...") with a
+    newline of its own and prefixed what followed (" OK") as a new line. Its
+    style_func also only ran when the stream was a tty, so piped output had no
+    prefix and sent no schema_migrate_message.
+
+    A partial line is written out on flush(), so a long migration still shows
+    what it is applying, and the rest of that line is not prefixed again.
+    """
+
+    def __init__(self, stream, prefix_func):
+        self._stream = stream
+        self._prefix_func = prefix_func
+        self._buffer = ""
+        self._mid_line = False
+
+    def write(self, s):
+        self._buffer += s
+        while "\n" in self._buffer:
+            line, self._buffer = self._buffer.split("\n", 1)
+            self._stream.write(self._prefix(line) + "\n")
+        return len(s)
+
+    def flush(self):
+        if self._buffer:
+            self._stream.write(self._prefix(self._buffer))
+            self._buffer = ""
+            self._mid_line = True
+        self._stream.flush()
+
+    def isatty(self):
+        return hasattr(self._stream, "isatty") and self._stream.isatty()
+
+    def _prefix(self, line):
+        if self._mid_line:
+            self._mid_line = False
+            return line
+        return self._prefix_func(line)

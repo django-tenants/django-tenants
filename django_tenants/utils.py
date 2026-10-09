@@ -80,27 +80,47 @@ def get_subfolder_prefix():
     return subfolder_prefix.strip('/ ')
 
 
+def get_type_base_schemas():
+    """
+    The per tenant type template schemas, as TENANT_TYPES[type]['BASE_SCHEMA'].
+
+    Only the types that name one; falling back to TENANT_BASE_SCHEMA for the
+    others is get_tenant_base_schema's.
+    """
+    if not has_multi_type_tenants():
+        return {}
+    return {tenant_type: config['BASE_SCHEMA']
+            for tenant_type, config in get_tenant_types().items()
+            if config.get('BASE_SCHEMA')}
+
+
 def get_creation_fakes_migrations():
     """
     If TENANT_CREATION_FAKES_MIGRATIONS, tenants will be created by cloning an
-    existing schema specified by TENANT_CLONE_BASE.
+    existing schema specified by TENANT_BASE_SCHEMA.
     """
     faked = getattr(settings, 'TENANT_CREATION_FAKES_MIGRATIONS', False)
     if faked:
-        if not getattr(settings, 'TENANT_BASE_SCHEMA', False):
+        if not getattr(settings, 'TENANT_BASE_SCHEMA', False) and not get_type_base_schemas():
             raise ImproperlyConfigured(
-                'You must specify a schema name in TENANT_BASE_SCHEMA if '
-                'TENANT_CREATION_FAKES_MIGRATIONS is enabled.'
+                'You must specify a schema name in TENANT_BASE_SCHEMA, or one per tenant type in '
+                "TENANT_TYPES[type]['BASE_SCHEMA'], if TENANT_CREATION_FAKES_MIGRATIONS is enabled."
             )
     return faked
 
 
-def get_tenant_base_schema():
+def get_tenant_base_schema(tenant_type=None):
     """
     If TENANT_CREATION_FAKES_MIGRATIONS, tenants will be created by cloning an
-    existing schema specified by TENANT_CLONE_BASE.
+    existing schema specified by TENANT_BASE_SCHEMA.
+
+    Multi type tenants don't share their apps, so a single template can't serve
+    every type. Each type names its own under TENANT_TYPES[type]['BASE_SCHEMA'],
+    and the types that don't fall back to TENANT_BASE_SCHEMA. #533
     """
-    schema = getattr(settings, 'TENANT_BASE_SCHEMA', False)
+    schema = get_type_base_schemas().get(
+        tenant_type, getattr(settings, 'TENANT_BASE_SCHEMA', False)
+    )
     if schema:
         if not getattr(settings, 'TENANT_CREATION_FAKES_MIGRATIONS', False):
             raise ImproperlyConfigured(
@@ -190,12 +210,24 @@ def django_is_in_test_mode():
     return hasattr(mail, 'outbox')
 
 
-def schema_exists(schema_name, database=get_tenant_database_alias()):
+def schema_exists(schema_name, database=get_tenant_database_alias(), case_sensitive=True):
+    """
+    Checks whether `schema_name` exists in the database.
+
+    PostgreSQL schema names are case sensitive -- `CREATE SCHEMA "C2"` and
+    `CREATE SCHEMA "c2"` create two distinct schemas -- so the comparison is
+    exact by default. Pass `case_sensitive=False` to ask the different question
+    of whether any schema would collide with `schema_name` ignoring case, which
+    is what the tenant uniqueness checks need. See #846.
+    """
     _connection = connections[database]
     cursor = _connection.cursor()
 
     # check if this schema already exists in the db
-    sql = 'SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER(%s))'
+    if case_sensitive:
+        sql = 'SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = %s)'
+    else:
+        sql = 'SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER(%s))'
     cursor.execute(sql, (schema_name, ))
 
     row = cursor.fetchone()
@@ -217,7 +249,9 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
     _connection = connections[database]
     cursor = _connection.cursor()
 
-    if schema_exists(new_schema_name):
+    # A name differing only in case collides too -- django-tenants treats such
+    # names as the same tenant, so renaming 'c2' to 'C2' is refused. #846
+    if schema_exists(new_schema_name, database=database, case_sensitive=False):
         raise ValidationError("New schema name already exists")
     if not is_valid_schema_name(new_schema_name):
         raise ValidationError("Invalid string used for the schema name.")
@@ -348,3 +382,17 @@ def get_tenant(request):
     if hasattr(request, 'tenant'):
         return request.tenant
     return None
+
+
+def get_current_tenant(database=None):
+    """Return the tenant the connection is currently set to, or None.
+
+    Unlike :func:`get_tenant` this takes no request, so it also works deep inside helper
+    functions, in Celery tasks, and under ``tenant_context()`` / ``schema_context()``.
+
+    ``tenant_context()`` sets the real tenant instance, so that is what comes back.
+    ``schema_context()`` only ever knows a schema name, so there a ``FakeTenant`` is
+    returned -- read its ``schema_name`` rather than expecting model fields, or use
+    ``tenant_context()`` when you need the model instance.
+    """
+    return getattr(connections[database or get_tenant_database_alias()], 'tenant', None)

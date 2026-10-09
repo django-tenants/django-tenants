@@ -20,14 +20,28 @@ class Command(BaseCommand):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def add_arguments(self, parser):
-        for field in self.tenant_fields:
-            parser.add_argument('--%s' % field.attname,
-                                help='Specifies the %s for tenant.' % field.attname)
+    def _get_existing_options(self, parser):
+        existing = set()
+        for action in parser._actions:
+            existing.update(action.option_strings)
+        return existing
 
+    def add_arguments(self, parser):
+        existing_options = self._get_existing_options(parser)
+        for field in self.tenant_fields:
+            option = '--%s' % field.attname
+            if option in existing_options:
+                option = '--tenant-%s' % field.attname
+            parser.add_argument(option, dest=field.attname,
+                                help='Specifies the %s for tenant. Use %s to set this value.' % (field.attname, option))
+
+        existing_options = self._get_existing_options(parser)
         for field in self.domain_fields:
-            parser.add_argument('--domain-%s' % field.attname,
-                                help="Specifies the %s for the tenant's domain." % field.attname)
+            option = '--domain-%s' % field.attname
+            if option in existing_options:
+                option = '--domain-tenant-%s' % field.attname
+            parser.add_argument(option, dest='domain_%s' % field.attname,
+                                help="Specifies the %s for the tenant's domain. Use %s to set this value." % (field.attname, option))
 
         parser.add_argument(
             '--noinput', '--no-input', action='store_false', dest='interactive',
@@ -56,46 +70,29 @@ class Command(BaseCommand):
                 domain_data[field.attname] = field.clean(input_value, None)
 
         if options['interactive']:
-            while True:
-                for field in self.tenant_fields:
-                    if tenant_data.get(field.attname, '') == '':
-                        input_msg = field.verbose_name
-                        default = field.get_default()
-                        if default:
-                            input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
+            for field in self.tenant_fields:
+                if tenant_data.get(field.attname, '') == '':
+                    input_msg = field.verbose_name
+                    default = field.get_default()
+                    if default:
+                        input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
 
-                        input_value = input(force_str('%s: ' % input_msg)) or default
-                        tenant_data[field.attname] = input_value
-                tenant = self.store_tenant(**tenant_data)
-                if tenant is not None:
-                    break
-                tenant_data = {}
-        else:
-            tenant = self.store_tenant(**tenant_data)
-            if tenant is None:
-                raise CommandError("Missing required fields")
+                    input_value = input(force_str('%s: ' % input_msg)) or default
+                    tenant_data[field.attname] = input_value
+        tenant = self.store_tenant(**tenant_data)
 
+        domain_data['tenant_id'] = tenant.pk
         if options['interactive']:
-            while True:
-                domain_data['tenant_id'] = tenant.pk
-                for field in self.domain_fields:
-                    if domain_data.get(field.attname, '') == '':
-                        input_msg = field.verbose_name
-                        default = field.get_default()
-                        if default:
-                            input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
+            for field in self.domain_fields:
+                if domain_data.get(field.attname, '') == '':
+                    input_msg = field.verbose_name
+                    default = field.get_default()
+                    if default:
+                        input_msg = "%s (leave blank to use '%s')" % (input_msg, default)
 
-                        input_value = input(force_str('%s: ' % input_msg)) or default
-                        domain_data[field.attname] = input_value
-                domain = self.store_tenant_domain(**domain_data)
-                if domain is not None:
-                    break
-                domain_data = {}
-        else:
-            domain_data['tenant_id'] = tenant.pk
-            domain = self.store_tenant_domain(**domain_data)
-            if domain is None:
-                raise CommandError("Missing required domain fields")
+                    input_value = input(force_str('%s: ' % input_msg)) or default
+                    domain_data[field.attname] = input_value
+        self.store_tenant_domain(**domain_data)
 
         if options.get('s', None):
             self.stdout.write("Create superuser for %s" % tenant_data['schema_name'])
@@ -106,10 +103,9 @@ class Command(BaseCommand):
             tenant = get_tenant_model().objects.create(**fields)
             return tenant
         except exceptions.ValidationError as e:
-            self.stderr.write("Error: %s" % '; '.join(e.messages))
-            return None
-        except IntegrityError:
-            return None
+            raise CommandError('; '.join(e.messages))
+        except IntegrityError as e:
+            raise CommandError("Could not create tenant: %s" % e)
 
     def store_tenant_domain(self, **fields):
         try:
@@ -117,7 +113,6 @@ class Command(BaseCommand):
             domain.save()
             return domain
         except exceptions.ValidationError as e:
-            self.stderr.write("Error: %s" % '; '.join(e.messages))
-            return None
-        except IntegrityError:
-            return None
+            raise CommandError('; '.join(e.messages))
+        except IntegrityError as e:
+            raise CommandError("Could not create domain: %s" % e)
