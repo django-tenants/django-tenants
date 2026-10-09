@@ -758,6 +758,38 @@ class CloneSchemaTest(BaseTestCase):
         with schema_context('d4'):
             self.assertTrue(DummyModel.objects.filter(name='Administrator').exists())
 
+    def test_clone_schema_whose_name_needs_quoting_with_a_partial_index(self):
+        """A partial index in a schema whose name needs quoting.
+
+        pg_get_tabledef() -- used for a table with a column CREATE TABLE LIKE cannot copy, such as a
+        user-defined type -- decided whether an index was partial by comparing
+        ``relnamespace::regnamespace::text``, which quotes a hyphenated name, with the raw schema
+        name. It never matched, the index's TABLESPACE was put after its WHERE, and the clone failed
+        with: syntax error at or near "TABLESPACE".
+        """
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s5-hyphen')
+        tenant.save()
+        get_tenant_domain_model()(tenant=tenant, domain='s5.test.com').save()
+
+        with connection.cursor() as cursor:
+            # An enum is information_schema's USER-DEFINED, which sends the table through pg_get_tabledef().
+            cursor.execute('CREATE TYPE "s5-hyphen".flag_kind AS ENUM (\'a\', \'b\')')
+            cursor.execute(
+                'CREATE TABLE "s5-hyphen".flagged (id serial PRIMARY KEY, kind "s5-hyphen".flag_kind, flag boolean)'
+            )
+            cursor.execute('CREATE UNIQUE INDEX flagged_one_flag ON "s5-hyphen".flagged (flag) WHERE flag')
+
+        CloneSchema().clone_schema(base_schema_name='s5-hyphen', new_schema_name='d5-hyphen')
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT indexdef FROM pg_indexes WHERE schemaname = 'd5-hyphen' AND indexname = 'flagged_one_flag'"
+            )
+            row = cursor.fetchone()
+        self.assertIsNotNone(row)
+        self.assertIn('WHERE flag', row[0])
+
     @staticmethod
     def _drop_role(role):
         connection.set_schema_to_public()
