@@ -276,6 +276,9 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
         domain2 = get_tenant_domain_model()(tenant=tenant2, domain='example.com')
         domain2.save()
+        # Set before anything can fail, so a failure here doesn't leave the
+        # schemas behind for the tests that follow.
+        self.created = [domain2, domain1, tenant2, tenant1]
 
         connection.set_tenant(tenant1)
         DummyModel(name="tenant1 row").save()
@@ -290,8 +293,6 @@ class TenantDataAndSettingsTest(BaseTestCase):
             # search_path is back on tenant1. Without clearing the cache this reads
             # tenant1's row while the connection says tenant2.
             self.assertEqual(0, DummyModel.objects.count())
-
-        self.created = [domain2, domain1, tenant2, tenant1]
 
     def test_switching_tenant_without_previous_tenant(self):
         tenant = get_tenant_model()(schema_name='test')
