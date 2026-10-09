@@ -104,6 +104,21 @@ class URLResolversTestCase(SubfolderTenantsTestCase):
                     "/clients/{}{}".format(domain.domain, path),
                 )
 
+    def test_reverse_without_a_subfolder_tenant(self):
+        """
+        schema_context() and set_schema_to_public() leave a FakeTenant, which has
+        no domain_subfolder. Creating a tenant from a subfolder request does that,
+        and the next reverse() raised AttributeError. The prefix no longer comes
+        from the connection. #1005
+        """
+        from django_tenants.utils import schema_context
+
+        tenant = get_tenant_model().objects.get(schema_name="tenant1")
+        tenant.domain_subfolder = "tenant1"  # Normally done by middleware
+        with schema_context("tenant2"):
+            self.assertEqual(self.reverser("public", tenant), "/clients/tenant1/public/")
+        connection.set_schema_to_public()
+        self.assertEqual(self.reverser("public", tenant), "/clients/tenant1/public/")
 
 @override_settings(
     ROOT_URLCONF=__name__,
