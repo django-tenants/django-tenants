@@ -122,12 +122,14 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
     def close(self):
         self.search_path_set_schemas = None
         self._setting_search_path = False
-        # Drop the per-request tenant state so a closed/reopened connection in a
-        # later request does not inherit the previous request's tenant.
-        _TENANT_CONTEXTVAR.set(None)
-        _SCHEMA_NAME_CONTEXTVAR.set(None)
-        _INCLUDE_PUBLIC_SCHEMA_CONTEXTVAR.set(True)
         super().close()
+        # Note: The per-request tenant state (tenant/schema_name/include_public_schema
+        # via contextvars) is intentionally NOT reset here. Tenant state is cleared
+        # at the start of each HTTP request by TenantMainMiddleware.process_request()
+        # (see django_tenants.middleware.main), which calls set_schema_to_public()
+        # followed by set_tenant(). This ensures proper isolation between requests
+        # without breaking connection reuse in tests (Django's TestCase tears down
+        # by calling close() then reusing the same DatabaseWrapper instance).
 
     @async_unsafe
     def rollback(self):
