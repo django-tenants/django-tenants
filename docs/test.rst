@@ -41,6 +41,18 @@ Because Django will not create tenants for you during your tests, we have packed
             self.assertEqual(response.status_code, 200)
 
 
+A request built by ``TenantRequestFactory`` is never passed through the middleware, so the factory sets what
+``TenantMainMiddleware`` would: ``request.tenant`` is the factory's tenant, and its ``domain_url`` is the host the
+request was made to (the tenant's primary domain unless you pass ``HTTP_HOST``).
+
+.. code-block:: python
+
+    from django_tenants.test.client import TenantRequestFactory
+
+    request = TenantRequestFactory(self.tenant).get('/')
+    assert request.tenant.domain_url == self.tenant.get_primary_domain().domain
+
+
 Additional information
 ----------------------
 

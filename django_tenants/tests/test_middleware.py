@@ -3,7 +3,7 @@ from django.test.utils import override_settings
 from django.views import View
 
 from django_tenants.test.cases import FastTenantTestCase
-from django_tenants.test.client import TenantClient
+from django_tenants.test.client import TenantClient, TenantRequestFactory
 
 
 def custom_not_found_view(request):
@@ -58,3 +58,25 @@ class WhenTenantNotFound(FastTenantTestCase):
         response = self.client.get('/', HTTP_HOST='nonexistent.fast-test.com')
         self.assertIsInstance(response, JsonResponse)
         self.assertEqual(response.json(), {'error': 'Custom 404 Not Found'})
+
+
+class TenantRequestFactoryTest(FastTenantTestCase):
+    """
+    A request built by TenantRequestFactory carries the factory's tenant, with
+    domain_url set as TenantMainMiddleware would set it.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.factory = TenantRequestFactory(self.tenant)
+
+    def test_request_has_the_tenant_and_its_domain_url(self):
+        request = self.factory.get('/')
+
+        self.assertIs(request.tenant, self.tenant)
+        self.assertEqual(request.tenant.domain_url, self.get_test_tenant_domain())
+
+    def test_domain_url_follows_the_host_the_request_was_made_to(self):
+        request = self.factory.get('/', HTTP_HOST='www.other.fast-test.com:8000')
+
+        self.assertEqual(request.tenant.domain_url, 'other.fast-test.com')

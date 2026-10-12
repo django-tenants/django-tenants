@@ -259,6 +259,41 @@ class TenantDataAndSettingsTest(BaseTestCase):
 
         self.created = [domain2, domain1, tenant2, tenant1]
 
+    @override_settings(TENANT_LIMIT_SET_CALLS=True)
+    def test_savepoint_rollback_reissues_search_path(self):
+        """ROLLBACK TO SAVEPOINT reverts a SET issued after the savepoint; the cached
+        search_path must not outlive it."""
+        tenant1 = get_tenant_model()(schema_name='tenant1')
+        tenant1.save()
+
+        domain1 = get_tenant_domain_model()(tenant=tenant1, domain='something.test.com')
+        domain1.save()
+
+        connection.set_schema_to_public()
+
+        tenant2 = get_tenant_model()(schema_name='tenant2')
+        tenant2.save()
+
+        domain2 = get_tenant_domain_model()(tenant=tenant2, domain='example.com')
+        domain2.save()
+        # Set before anything can fail, so a failure here doesn't leave the
+        # schemas behind for the tests that follow.
+        self.created = [domain2, domain1, tenant2, tenant1]
+
+        connection.set_tenant(tenant1)
+        DummyModel(name="tenant1 row").save()
+
+        with transaction.atomic():
+            with self.assertRaises(ValueError):
+                with transaction.atomic():          # savepoint
+                    connection.set_tenant(tenant2)  # SET is issued after the savepoint
+                    DummyModel(name="tenant2 row").save()
+                    raise ValueError
+
+            # search_path is back on tenant1. Without clearing the cache this reads
+            # tenant1's row while the connection says tenant2.
+            self.assertEqual(0, DummyModel.objects.count())
+
     def test_switching_tenant_without_previous_tenant(self):
         tenant = get_tenant_model()(schema_name='test')
         tenant.save()
@@ -824,6 +859,38 @@ class CloneSchemaTest(BaseTestCase):
         with schema_context('d4'):
             self.assertTrue(DummyModel.objects.filter(name='Administrator').exists())
 
+    def test_clone_schema_whose_name_needs_quoting_with_a_partial_index(self):
+        """A partial index in a schema whose name needs quoting.
+
+        pg_get_tabledef() -- used for a table with a column CREATE TABLE LIKE cannot copy, such as a
+        user-defined type -- decided whether an index was partial by comparing
+        ``relnamespace::regnamespace::text``, which quotes a hyphenated name, with the raw schema
+        name. It never matched, the index's TABLESPACE was put after its WHERE, and the clone failed
+        with: syntax error at or near "TABLESPACE".
+        """
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s5-hyphen')
+        tenant.save()
+        get_tenant_domain_model()(tenant=tenant, domain='s5.test.com').save()
+
+        with connection.cursor() as cursor:
+            # An enum is information_schema's USER-DEFINED, which sends the table through pg_get_tabledef().
+            cursor.execute('CREATE TYPE "s5-hyphen".flag_kind AS ENUM (\'a\', \'b\')')
+            cursor.execute(
+                'CREATE TABLE "s5-hyphen".flagged (id serial PRIMARY KEY, kind "s5-hyphen".flag_kind, flag boolean)'
+            )
+            cursor.execute('CREATE UNIQUE INDEX flagged_one_flag ON "s5-hyphen".flagged (flag) WHERE flag')
+
+        CloneSchema().clone_schema(base_schema_name='s5-hyphen', new_schema_name='d5-hyphen')
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT indexdef FROM pg_indexes WHERE schemaname = 'd5-hyphen' AND indexname = 'flagged_one_flag'"
+            )
+            row = cursor.fetchone()
+        self.assertIsNotNone(row)
+        self.assertIn('WHERE flag', row[0])
+
     @staticmethod
     def _drop_role(role):
         connection.set_schema_to_public()
@@ -833,6 +900,52 @@ class CloneSchemaTest(BaseTestCase):
             cursor.execute('REASSIGN OWNED BY "%s" TO CURRENT_USER' % role)
             cursor.execute('DROP OWNED BY "%s"' % role)
             cursor.execute('DROP ROLE IF EXISTS "%s"' % role)
+
+
+class TenantBaseSchemaTest(BaseTestCase):
+    """Creating a tenant by cloning a template schema, with TENANT_CREATION_FAKES_MIGRATIONS."""
+
+    def setUp(self):
+        super().setUp()
+        self.created = []
+        self.template = self.create_tenant('template')
+
+    def tearDown(self):
+        connection.set_schema_to_public()
+        for tenant in reversed(self.created):
+            tenant.delete(force_drop=True)
+
+        super().tearDown()
+
+    def create_tenant(self, schema_name):
+        tenant = get_tenant_model()(schema_name=schema_name)
+        tenant.save(verbosity=0)
+        self.created.append(tenant)
+        return tenant
+
+    def test_tenant_is_cloned_from_the_template(self):
+        with tenant_context(self.template):
+            DummyModel(name='from the template').save()
+
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True, TENANT_BASE_SCHEMA='template'):
+            tenant = self.create_tenant('cloned')
+
+        with tenant_context(tenant):
+            self.assertTrue(DummyModel.objects.filter(name='from the template').exists())
+
+    def test_tenant_runs_its_migrations_when_the_template_does_not_exist(self):
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True,
+                               TENANT_BASE_SCHEMA='no_such_template'):
+            self.create_tenant('migrated')
+
+        self.assertIn('dts_test_app_dummymodel', self.get_tables_list_in_schema('migrated'))
+
+    def test_the_public_schema_is_not_cloned_from_a_tenant_template(self):
+        """The public schema holds the shared apps, so no tenant template matches it."""
+        public_tenant = get_tenant_model()(schema_name=get_public_schema_name())
+
+        with override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True, TENANT_BASE_SCHEMA='template'):
+            self.assertFalse(public_tenant.get_base_schema())
 
 
 class SchemaMigratedSignalTest(BaseTestCase):
