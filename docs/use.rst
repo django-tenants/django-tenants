@@ -295,6 +295,38 @@ That's all you need to add the multiple types.
 
 There is an example project called ```tenant_multi_types```
 
+.. _multi-types-base-schema:
+
+A template schema per type
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``TENANT_CREATION_FAKES_MIGRATIONS`` creates a tenant by cloning a template schema instead of running its migrations. Each type has its own apps, so one template can't serve them all -- a type2 tenant cloned from a type1 template would get the type1 tables. Give each type a template of its own with ``BASE_SCHEMA``.
+
+.. code-block:: python
+
+    TENANT_CREATION_FAKES_MIGRATIONS = True
+
+    TENANT_TYPES = {
+        "public": {
+            "APPS": [...],
+            "URLCONF": "tenant_multi_types_tutorial.urls_public",
+        },
+        "type1": {
+            "APPS": [...],
+            "URLCONF": "tenant_multi_types_tutorial.urls_type1",
+            "BASE_SCHEMA": "type1_template",
+        },
+        "type2": {
+            "APPS": [...],
+            "URLCONF": "tenant_multi_types_tutorial.urls_type2",
+            "BASE_SCHEMA": "type2_template",
+        }
+    }
+
+The template schemas are ordinary tenants of their type, so create them the way you create any other tenant and keep them migrated. Any type without a ``BASE_SCHEMA`` uses ``TENANT_BASE_SCHEMA``, and a type with neither runs its migrations as usual.
+
+The public schema is never cloned, so a ``BASE_SCHEMA`` on the public type is ignored. And a tenant whose template schema doesn't exist yet runs its migrations instead -- which is how the templates themselves can be created while ``TENANT_CREATION_FAKES_MIGRATIONS`` is already on.
+
 Other settings
 --------------
 
@@ -409,6 +441,16 @@ The ``multiprocessing`` executor accepts the following settings:
   connection pool)
 * ``TENANT_MULTIPROCESSING_CHUNKS`` (default: 2) - number of migrations to be
   sent at once to every worker
+* ``TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD`` (default: ``None``) - number
+  of tasks a worker completes before it is replaced with a fresh process, to
+  release memory that builds up across tenants. It is passed to
+  ``multiprocessing.Pool`` as ``maxtasksperchild``; ``None`` keeps each worker
+  for the whole run. Each task is one chunk of
+  ``TENANT_MULTIPROCESSING_CHUNKS`` tenants, so a worker is recycled after
+  ``TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD`` x
+  ``TENANT_MULTIPROCESSING_CHUNKS`` tenants (with the defaults, a setting of 1
+  recycles it every 2 tenants). If memory still runs out, see the
+  ``subprocess`` executor below, which starts every tenant in a clean process.
 
 
 migrate_schemas with the subprocess executor
@@ -633,7 +675,7 @@ The hook for ensuring the ``search_path`` is set properly happens inside the ``D
     #in settings.py:
     TENANT_LIMIT_SET_CALLS = True
 
-When set, ``django-tenants`` will set the search path only once per request. The default is ``False``.
+When set, ``django-tenants`` will set the search path only once per request. The default is ``False``. A rollback, including a rollback to a savepoint, makes it set the path again, since PostgreSQL undoes a ``SET`` made inside the rolled-back work.
 
 
 Extra Set Tenant Method

@@ -1,4 +1,5 @@
-from django.test import RequestFactory
+from django.core.exceptions import ImproperlyConfigured
+from django.test import RequestFactory, SimpleTestCase
 
 from django_tenants import utils
 from django_tenants.middleware import TenantMainMiddleware
@@ -70,3 +71,50 @@ class ConfigStringParsingTestCase(TenantTestCase):
     def test_get_current_tenant_returns_the_instance_under_tenant_context(self):
         with utils.tenant_context(self.tenant):
             self.assertEqual(get_current_tenant(), self.tenant)
+
+
+MULTI_TYPE_TEMPLATES = {
+    'public': {'APPS': [], 'URLCONF': ''},
+    'type1': {'APPS': [], 'URLCONF': '', 'BASE_SCHEMA': 'type1_template'},
+    'type2': {'APPS': [], 'URLCONF': ''},
+}
+
+
+@override_settings(TENANT_CREATION_FAKES_MIGRATIONS=True)
+class TenantBaseSchemaTestCase(SimpleTestCase):
+    """Which template schema a new tenant is cloned from. See #533."""
+
+    @override_settings(TENANT_BASE_SCHEMA='template')
+    def test_single_template(self):
+        self.assertEqual(utils.get_tenant_base_schema(), 'template')
+
+    @override_settings(HAS_MULTI_TYPE_TENANTS=True, TENANT_TYPES=MULTI_TYPE_TEMPLATES)
+    def test_the_template_of_the_type_is_used(self):
+        self.assertEqual(utils.get_tenant_base_schema('type1'), 'type1_template')
+
+    @override_settings(HAS_MULTI_TYPE_TENANTS=True, TENANT_TYPES=MULTI_TYPE_TEMPLATES,
+                       TENANT_BASE_SCHEMA='template')
+    def test_the_template_of_the_type_wins_over_the_shared_one(self):
+        self.assertEqual(utils.get_tenant_base_schema('type1'), 'type1_template')
+
+    @override_settings(HAS_MULTI_TYPE_TENANTS=True, TENANT_TYPES=MULTI_TYPE_TEMPLATES,
+                       TENANT_BASE_SCHEMA='template')
+    def test_a_type_without_a_template_falls_back_to_the_shared_one(self):
+        self.assertEqual(utils.get_tenant_base_schema('type2'), 'template')
+
+    @override_settings(HAS_MULTI_TYPE_TENANTS=True, TENANT_TYPES=MULTI_TYPE_TEMPLATES)
+    def test_a_type_without_a_template_and_no_shared_one_has_none(self):
+        self.assertFalse(utils.get_tenant_base_schema('type2'))
+
+    @override_settings(HAS_MULTI_TYPE_TENANTS=True, TENANT_TYPES=MULTI_TYPE_TEMPLATES)
+    def test_the_types_templates_are_enough_to_fake_migrations(self):
+        self.assertTrue(utils.get_creation_fakes_migrations())
+
+    def test_faking_migrations_without_any_template_is_improperly_configured(self):
+        with self.assertRaisesMessage(ImproperlyConfigured, 'TENANT_BASE_SCHEMA'):
+            utils.get_creation_fakes_migrations()
+
+    @override_settings(TENANT_CREATION_FAKES_MIGRATIONS=False, TENANT_BASE_SCHEMA='template')
+    def test_a_template_without_faked_migrations_is_improperly_configured(self):
+        with self.assertRaisesMessage(ImproperlyConfigured, 'TENANT_CREATION_FAKES_MIGRATIONS'):
+            utils.get_tenant_base_schema()

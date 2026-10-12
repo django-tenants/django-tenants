@@ -17,11 +17,12 @@ def get_pool():
     default context elsewhere (e.g. Windows, which has no ``fork``).
     """
     processes = getattr(settings, 'TENANT_MULTIPROCESSING_MAX_PROCESSES', 2)
+    maxtasksperchild = getattr(settings, 'TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD', None)
     if 'fork' in multiprocessing.get_all_start_methods():
         context = multiprocessing.get_context('fork')
     else:
         context = multiprocessing.get_context()
-    return context.Pool(processes=processes)
+    return context.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
 
 
 def run_migrations_percent(args, options, codename, count, idx_schema_name):

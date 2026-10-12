@@ -5,12 +5,17 @@ These tests mock ``subprocess.run`` at the system boundary so no real
 executor selects parallelism, builds the child argv, and propagates failures.
 """
 
+import io
 from unittest import mock
 
+from django.conf import settings
+from django.core.management.base import OutputWrapper
 from django.test import SimpleTestCase, override_settings
 
 from django_tenants.management.commands.migrate_schemas import MigrateSchemasCommand
 from django_tenants.migration_executors import get_executor
+from django_tenants.migration_executors.base import LinePrefixStream
+from django_tenants.migration_executors.multiproc import MultiprocessingExecutor
 from django_tenants.migration_executors.subproc import SubprocessExecutor
 
 
@@ -234,3 +239,76 @@ class SubprocessExecutorMultiTypeTests(SimpleTestCase):
         executor = make_executor()
         with self.assertRaises(NotImplementedError):
             executor.run_multi_type_migrations(tenants=[("schema", "type1")])
+
+
+class LinePrefixStreamTests(SimpleTestCase):
+    """
+    migrate writes "  Applying x..." with no ending, flushes, then writes
+    " OK". That has to come out as one prefixed line. #1216
+    """
+
+    def setUp(self):
+        self.out = io.StringIO()
+        # Django wraps the stream it is given, as migrate does.
+        self.stdout = OutputWrapper(LinePrefixStream(self.out, lambda msg: "[p] " + msg))
+
+    def test_applying_and_ok_are_one_prefixed_line(self):
+        self.stdout.write("  Applying a...", ending="")
+        self.stdout.flush()
+        self.stdout.write(" OK")
+
+        self.assertEqual(self.out.getvalue(), "[p]   Applying a... OK\n")
+
+    def test_a_partial_line_is_shown_on_flush(self):
+        self.stdout.write("  Applying a...", ending="")
+        self.stdout.flush()
+
+        self.assertEqual(self.out.getvalue(), "[p]   Applying a...")
+
+    def test_each_line_is_prefixed(self):
+        self.stdout.write("one\ntwo")
+
+        self.assertEqual(self.out.getvalue(), "[p] one\n[p] two\n")
+
+    def test_a_stream_that_is_not_a_tty_is_still_prefixed(self):
+        # OutputWrapper's style_func only ran on a tty, so piped output went
+        # unprefixed and sent no schema_migrate_message.
+        self.assertFalse(self.out.isatty())
+        self.stdout.write("piped")
+
+        self.assertEqual(self.out.getvalue(), "[p] piped\n")
+
+
+MULTIPROC = "django_tenants.migration_executors.multiproc"
+
+
+class MultiprocessingExecutorMaxTasksPerChildTests(SimpleTestCase):
+    """TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD reaches the worker pool."""
+
+    def pool_kwargs(self, multi_type=False):
+        executor = MultiprocessingExecutor([], {})
+        with mock.patch(f"{MULTIPROC}.multiprocessing.get_context") as get_context, \
+                mock.patch("django.db.connections"):
+            if multi_type:
+                executor.run_multi_type_migrations(tenants=[("s1", "type1"), ("s2", "type2")])
+            else:
+                executor.run_migrations(tenants=["tenant1", "tenant2"])
+        return get_context.return_value.Pool.call_args.kwargs
+
+    def test_default_is_none(self):
+        with override_settings():
+            del settings.TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD
+            self.assertIsNone(self.pool_kwargs()["maxtasksperchild"])
+
+    @override_settings(TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD=5)
+    def test_setting_is_passed_to_the_pool(self):
+        self.assertEqual(self.pool_kwargs()["maxtasksperchild"], 5)
+
+    def test_default_is_none_multi_type(self):
+        with override_settings():
+            del settings.TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD
+            self.assertIsNone(self.pool_kwargs(multi_type=True)["maxtasksperchild"])
+
+    @override_settings(TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD=3)
+    def test_setting_is_passed_to_the_pool_multi_type(self):
+        self.assertEqual(self.pool_kwargs(multi_type=True)["maxtasksperchild"], 3)

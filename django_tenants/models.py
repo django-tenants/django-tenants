@@ -8,7 +8,7 @@ from django.urls import reverse
 from django_tenants.clone import CloneSchema
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
-from .utils import get_creation_fakes_migrations, get_tenant_base_schema
+from .utils import get_creation_fakes_migrations, get_tenant_base_schema, has_multi_type_tenants
 from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias
 
 
@@ -212,11 +212,11 @@ class TenantMixin(models.Model):
             return False
 
         fake_migrations = get_creation_fakes_migrations()
+        base_schema = self.get_base_schema() if fake_migrations else False
 
         if sync_schema:
-            if fake_migrations and schema_exists(get_tenant_base_schema()):
+            if base_schema and schema_exists(base_schema):
                 # copy tables and data from provided model schema
-                base_schema = get_tenant_base_schema()
                 clone_schema = CloneSchema()
                 clone_schema.clone_schema(
                     base_schema, self.schema_name, self.clone_mode
@@ -267,6 +267,21 @@ class TenantMixin(models.Model):
         :return: str
         """
         return getattr(self, settings.MULTI_TYPE_DATABASE_FIELD)
+
+    def get_base_schema(self):
+        """
+        The template schema this tenant is cloned from, or False for none.
+
+        Multi type tenants get the template of their own type, since a type1
+        template holds none of a type2 tenant's tables. #533
+        """
+        if self.schema_name == get_public_schema_name():
+            # the public schema holds the shared apps, no tenant template matches it
+            return False
+
+        tenant_type = self.get_tenant_type() if has_multi_type_tenants() else None
+
+        return get_tenant_base_schema(tenant_type)
 
 
 class DomainMixin(models.Model):

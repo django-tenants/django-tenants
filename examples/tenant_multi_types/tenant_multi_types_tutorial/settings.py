@@ -170,6 +170,8 @@ TENANT_TYPES = {
                  'tenant_type_one_only',
                  'tenant_type_both'],
         "URLCONF": "tenant_multi_types_tutorial.urls_type1",
+        # with TENANT_CREATION_FAKES_MIGRATIONS, new type1 tenants are cloned from this schema
+        # "BASE_SCHEMA": "type1_template",
     },
     "type2": {
         "APPS": ['django.contrib.contenttypes',
@@ -180,6 +182,7 @@ TENANT_TYPES = {
                  'tenant_type_two_only',
                  'tenant_type_both'],
         "URLCONF": "tenant_multi_types_tutorial.urls_type2",
+        # "BASE_SCHEMA": "type2_template",
     }
 }
 
