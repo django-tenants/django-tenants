@@ -6,7 +6,7 @@ from importlib import import_module
 from django.utils.module_loading import import_string
 
 from django_tenants.postgresql_backend.introspection import DatabaseSchemaIntrospection
-from django_tenants.utils import get_public_schema_name, get_limit_set_calls
+from django_tenants.utils import get_public_schema_name, get_limit_set_calls, quote_schema_name
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.asyncio import async_unsafe
@@ -38,12 +38,16 @@ else:
 # Valid PostgreSQL schema name regex
 # Criteria:
 #  1. Cannot start with 'pg_'
-#  2. Can be any valid character, if quoted
+#  2. Can be any valid character, if quoted -- except quotes, backslashes,
+#     line breaks,
+#     semicolons and NUL. Schema names are always quoted when they reach SQL,
+#     but they are also interpolated into the clone_schema() SQL function, so
+#     reject anything that could break out of a quoted name or end a statement.
 #  3. Must be between 1 and 63 characters long
 #
 # Reference:
 # https://www.postgresql.org/docs/13/sql-createschema.html
-PGSQL_VALID_SCHEMA_NAME = re.compile(r'^(?!pg_).{1,63}$', re.IGNORECASE)
+PGSQL_VALID_SCHEMA_NAME = re.compile(r'^(?!pg_)[^"\'\\;\x00\r\n]{1,63}\Z', re.IGNORECASE)
 
 
 def is_valid_schema_name(name):
@@ -209,7 +213,7 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         # if the next instruction is not a rollback it will just fail also, so
         # we do not have to worry that it's not the good one
         try:
-            formatted_search_paths = ['\'{}\''.format(s) for s in search_paths]
+            formatted_search_paths = [quote_schema_name(s) for s in search_paths]
             cursor_for_search_path.execute('SET search_path = {0}'.format(','.join(formatted_search_paths)))
         except (django.db.utils.DatabaseError, psycopg.InternalError):
             self.search_path_set_schemas = None

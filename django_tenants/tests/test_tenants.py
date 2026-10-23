@@ -640,6 +640,44 @@ class TenantRenameSchemaTest(BaseTestCase):
         self.assertFalse(schema_exists('1234_test'))
         self.assertTrue(schema_exists('4321_new_name'))
 
+    def test_rename_schema_rejects_quotes(self):
+        Client = get_tenant_model()
+        tenant = Client(schema_name='rename_quotes')
+        tenant.save()
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+        with self.assertRaises(ValidationError):
+            schema_rename(tenant=Client.objects.filter(pk=tenant.pk).first(),
+                          new_schema_name='new_name" RENAME TO "other')
+        self.assertTrue(schema_exists('rename_quotes'))
+
+        connection.set_schema_to_public()
+        domain.delete()
+        tenant.delete(force_drop=True)
+
+
+class SchemaNameInjectionTest(BaseTestCase):
+
+    def test_search_path_rejects_injected_schema(self):
+        tenant = get_tenant_model()(schema_name='tenant1')
+        tenant.save()
+        domain = get_tenant_domain_model()(tenant=tenant, domain='something.test.com')
+        domain.save()
+
+        # Previously interpolated as SET search_path = 'tenant1', 'public', ...
+        connection.set_schema("tenant1', 'public")
+        try:
+            with self.assertRaises(ValidationError):
+                DummyModel.objects.count()
+        finally:
+            connection.set_schema_to_public()
+
+    def test_create_schema_rejects_injected_sql(self):
+        tenant = get_tenant_model()(schema_name='tenant1"; CREATE SCHEMA "injected')
+        with self.assertRaises(ValidationError):
+            tenant.save()
+        self.assertFalse(schema_exists('injected'))
+
 
 class TenantSchemaNameCaseTest(BaseTestCase):
     """

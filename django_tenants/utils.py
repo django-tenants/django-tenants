@@ -210,6 +210,17 @@ def django_is_in_test_mode():
     return hasattr(mail, 'outbox')
 
 
+def quote_schema_name(schema_name):
+    """
+    Quote a schema name as a PostgreSQL identifier. Unlike
+    connection.ops.quote_name() this escapes embedded double quotes, so the
+    name can't break out of the identifier.
+    """
+    if '\x00' in schema_name:
+        raise ValidationError("Invalid string used for the schema name.")
+    return '"{}"'.format(schema_name.replace('"', '""'))
+
+
 def schema_exists(schema_name, database=get_tenant_database_alias(), case_sensitive=True):
     """
     Checks whether `schema_name` exists in the database.
@@ -255,8 +266,8 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
         raise ValidationError("New schema name already exists")
     if not is_valid_schema_name(new_schema_name):
         raise ValidationError("Invalid string used for the schema name.")
-    sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(connection.ops.quote_name(tenant.schema_name),
-                                                  connection.ops.quote_name(new_schema_name))
+    sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(quote_schema_name(tenant.schema_name),
+                                                  quote_schema_name(new_schema_name))
     cursor.execute(sql)
     cursor.close()
     tenant.schema_name = new_schema_name
