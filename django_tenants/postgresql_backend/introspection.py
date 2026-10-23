@@ -6,6 +6,8 @@
 import django.db.backends.postgresql.base  # noqa: F401
 from django.db.backends.postgresql.introspection import DatabaseIntrospection
 
+from django_tenants.utils import quote_schema_name
+
 
 class DatabaseSchemaIntrospectionSearchPathContext:
     """
@@ -18,19 +20,14 @@ class DatabaseSchemaIntrospectionSearchPathContext:
         self.original_search_path = None
 
     def __enter__(self):
+        # Keep the setting exactly as PostgreSQL reports it: PostgreSQL quotes
+        # any identifier in it that needs quoting, so it can be SET back as is.
         self.cursor.execute('SHOW search_path')
-        self.original_search_path = [
-            search_path.strip().replace('"', '')
-            for search_path in self.cursor.fetchone()[0].split(',')
-        ]
-        self.cursor.execute(f"SET search_path = '{self.connection.schema_name}'")
+        self.original_search_path = self.cursor.fetchone()[0]
+        self.cursor.execute(f'SET search_path = {quote_schema_name(self.connection.schema_name)}')
 
     def __exit__(self, *args, **kwargs):
-        formatted_search_paths = ', '.join(
-            f"'{search_path}'"
-            for search_path in self.original_search_path
-        )
-        self.cursor.execute(f'SET search_path = {formatted_search_paths}')
+        self.cursor.execute(f'SET search_path = {self.original_search_path}')
 
 
 class DatabaseSchemaIntrospection(DatabaseIntrospection):
