@@ -1,4 +1,4 @@
-breathe==4.36.0
+breathe==5.1.0
 docutils==0.23
 Pygments==2.21.0
 pyparsing==3.3.2
