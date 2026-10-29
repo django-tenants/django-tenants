@@ -1,5 +1,7 @@
+import contextvars
 import re
 import warnings
+from types import MappingProxyType
 from django.conf import settings
 from importlib import import_module
 
@@ -59,33 +61,122 @@ def _check_schema_name(name):
         raise ValidationError("Invalid string used for the schema name.")
 
 
+# Per-request tenant state. Async stacks (including ASGI servers) spread
+# database work across multiple threads, so thread-local instance attributes
+# cannot reach the thread that actually runs a query. ContextVars propagate
+# across those threads (asgiref copies/restores the context at sync<->async
+# boundaries), so the currently selected tenant is carried per-request without
+# leaking between concurrent requests.
+#
+# The state is stored per-database-alias to support multiple database connections
+# (e.g., read replicas) where each alias can have a different tenant active.
+#
+# IMPORTANT: the value held by _TENANT_STATE_CONTEXTVAR must be treated as
+# immutable. A copied context shares the same object by reference, so mutating
+# the dict in place would leak tenant state into every other context that
+# copied it (concurrent requests/tasks). All writes go through _set_tenant_state,
+# which copies the dict (copy-on-write) and publishes the new dict via .set().
+# MappingProxyType enforces read-only access: an accidental mutation by
+# external code raises TypeError instead of corrupting the defaults for every
+# uninitialized alias.
+_DEFAULT_TENANT_STATE = MappingProxyType({
+    "tenant": None,
+    "schema_name": None,
+    "include_public_schema": True,
+})
+
+_TENANT_STATE_CONTEXTVAR = contextvars.ContextVar(
+    "django_tenants.tenant_state",
+    default=None,  # Immutable dict keyed by alias:
+                   # {"default": {"tenant": ..., "schema_name": ..., "include_public_schema": ...}, ...}
+)
+
+
+def _get_tenant_state(alias):
+    """Get tenant state dict for a specific database alias (read-only)."""
+    all_states = _TENANT_STATE_CONTEXTVAR.get()
+    if all_states is None:
+        return _DEFAULT_TENANT_STATE
+    return all_states.get(alias, _DEFAULT_TENANT_STATE)
+
+
+def _set_tenant_state(alias, key, value):
+    """
+    Set a specific key in the tenant state for an alias.
+
+    Copy-on-write: publishes a NEW dict via .set() rather than mutating the
+    existing one, so other contexts that copied the current dict keep their
+    own state (concurrent requests/tasks stay isolated).
+    """
+    all_states = _TENANT_STATE_CONTEXTVAR.get()
+    new_states = dict(all_states) if all_states is not None else {}
+    alias_state = dict(new_states.get(alias, _DEFAULT_TENANT_STATE))
+    alias_state[key] = value
+    new_states[alias] = alias_state
+    _TENANT_STATE_CONTEXTVAR.set(new_states)
+
+
 class DatabaseWrapper(original_backend.DatabaseWrapper):
     """
     Adds the capability to manipulate the search_path using set_tenant and set_schema_name
     """
-    include_public_schema = True
     # Use a patched version of the DatabaseIntrospection that only returns the table list for the
     # currently selected schema.
+
+    @property
+    def include_public_schema(self):
+        return _get_tenant_state(self.alias)["include_public_schema"]
+
+    @include_public_schema.setter
+    def include_public_schema(self, value):
+        _set_tenant_state(self.alias, "include_public_schema", value)
+
+    @property
+    def tenant(self):
+        return _get_tenant_state(self.alias)["tenant"]
+
+    @tenant.setter
+    def tenant(self, value):
+        _set_tenant_state(self.alias, "tenant", value)
+
+    @property
+    def schema_name(self):
+        return _get_tenant_state(self.alias)["schema_name"]
+
+    @schema_name.setter
+    def schema_name(self, value):
+        _set_tenant_state(self.alias, "schema_name", value)
 
     def __init__(self, *args, **kwargs):
         self.search_path_set_schemas = None
         # Guards against re-entering _cursor() while we are obtaining a cursor to
         # set the search_path with. See _handle_search_path().
         self._setting_search_path = False
-        self.tenant = None
-        self.schema_name = None
         super().__init__(*args, **kwargs)
 
         # Use a patched version of the DatabaseIntrospection that only returns the table list for the
         # currently selected schema.
         self.introspection = DatabaseSchemaIntrospection(self)
 
-        self.set_schema_to_public()
+        # A connection may be created lazily in the thread that runs the query
+        # (e.g. an async handler), after the tenant was already resolved in a
+        # different thread of the same request. In that case the ContextVar
+        # already carries the tenant and we must not clobber it by resetting to
+        # public. Only fall back to public when no tenant is selected yet.
+        if self.schema_name is None:
+            self.set_schema_to_public()
 
     def close(self):
         self.search_path_set_schemas = None
         self._setting_search_path = False
         super().close()
+        # Note: The per-request tenant state (tenant/schema_name/include_public_schema
+        # via contextvars) is intentionally NOT reset here. Tenant state is cleared
+        # at the start of each HTTP request by TenantMainMiddleware.process_request()
+        # (see django_tenants.middleware.main), which calls set_schema_to_public()
+        # followed by set_tenant(). This ensures proper isolation between requests
+        # without breaking connection reuse in tests (Django's TestCase tears down
+        # by calling close() then reusing the same DatabaseWrapper instance).
 
     @async_unsafe
     def rollback(self):
@@ -194,16 +285,21 @@ class DatabaseWrapper(original_backend.DatabaseWrapper):
         if self._setting_search_path:
             return
 
-        # optionally limit the number of executions - under load, the execution
-        # of `set search_path` can be quite time consuming
-        if get_limit_set_calls() and self.search_path_set_schemas:
-            return
-
         if not self.schema_name:
             raise ImproperlyConfigured("Database schema not set. Did you forget "
                                        "to call set_schema() or set_tenant()?")
 
         search_paths = self._get_cursor_search_paths()
+
+        # optionally limit the number of executions - under load, the execution
+        # of `set search_path` can be quite time consuming.
+        # Compare the cached paths against the ones the current tenant state
+        # produces, rather than just checking that the cache is filled in: the
+        # tenant can have changed in the meantime (e.g. via the contextvars from
+        # another thread of the same request) while this connection instance
+        # still holds a stale cache from a previous tenant.
+        if get_limit_set_calls() and self.search_path_set_schemas == search_paths:
+            return
 
         self._setting_search_path = True
         cursor_for_search_path = self.connection.cursor() if cursor is None else cursor
