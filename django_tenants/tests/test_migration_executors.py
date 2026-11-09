@@ -312,3 +312,33 @@ class MultiprocessingExecutorMaxTasksPerChildTests(SimpleTestCase):
     @override_settings(TENANT_MULTIPROCESSING_MAX_TASKS_PER_CHILD=3)
     def test_setting_is_passed_to_the_pool_multi_type(self):
         self.assertEqual(self.pool_kwargs(multi_type=True)["maxtasksperchild"], 3)
+
+
+class MultiprocessingExecutorPoolCleanupTests(SimpleTestCase):
+    """The worker pool is closed and joined once the migrations have run."""
+
+    def pool_calls(self, multi_type=False):
+        executor = MultiprocessingExecutor([], {})
+        with mock.patch(f"{MULTIPROC}.get_pool") as get_pool, \
+                mock.patch("django.db.connections"):
+            if multi_type:
+                executor.run_multi_type_migrations(tenants=[("s1", "type1"), ("s2", "type2")])
+            else:
+                executor.run_migrations(tenants=["tenant1", "tenant2"])
+        return [name for name, args, kwargs in get_pool.return_value.method_calls]
+
+    def test_pool_is_closed_and_joined(self):
+        self.assertEqual(self.pool_calls(), ["map", "close", "join"])
+
+    def test_pool_is_closed_and_joined_multi_type(self):
+        self.assertEqual(self.pool_calls(multi_type=True), ["map", "close", "join"])
+
+    def test_pool_is_closed_and_joined_when_a_migration_fails(self):
+        executor = MultiprocessingExecutor([], {})
+        with mock.patch(f"{MULTIPROC}.get_pool") as get_pool, \
+                mock.patch("django.db.connections"):
+            pool = get_pool.return_value
+            pool.map.side_effect = RuntimeError("migration failed")
+            with self.assertRaisesMessage(RuntimeError, "migration failed"):
+                executor.run_migrations(tenants=["tenant1", "tenant2"])
+        self.assertEqual([name for name, args, kwargs in pool.method_calls], ["map", "close", "join"])
