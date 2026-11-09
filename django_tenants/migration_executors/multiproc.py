@@ -25,6 +25,20 @@ def get_pool():
     return context.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
 
 
+def map_in_pool(func, tenants, chunks):
+    """Run ``func`` over the enumerated tenants in a worker pool.
+
+    The pool is closed and joined afterwards, so its worker processes exit
+    instead of staying alive until the pool is garbage-collected.
+    """
+    pool = get_pool()
+    try:
+        pool.map(func, enumerate(tenants), chunks)
+    finally:
+        pool.close()
+        pool.join()
+
+
 def run_migrations_percent(args, options, codename, count, idx_schema_name):
     idx, schema_name = idx_schema_name
     return run_migrations(
@@ -82,12 +96,7 @@ class MultiprocessingExecutor(MigrationExecutor):
                 self.codename,
                 len(tenants)
             )
-            p = get_pool()
-            p.map(
-                run_migrations_p,
-                enumerate(tenants),
-                chunks
-            )
+            map_in_pool(run_migrations_p, tenants, chunks)
 
     def run_multi_type_migrations(self, tenants):
         tenants = tenants or []
@@ -110,9 +119,4 @@ class MultiprocessingExecutor(MigrationExecutor):
             self.codename,
             len(tenants)
         )
-        p = get_pool()
-        p.map(
-            run_migrations_p,
-            enumerate(tenants),
-            chunks
-        )
+        map_in_pool(run_migrations_p, tenants, chunks)
