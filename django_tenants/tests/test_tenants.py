@@ -572,7 +572,7 @@ class SharedAuthTest(BaseTestCase):
         Tests that a reverse relationship through a foreign keys to public from a model inside TENANT_APPS works.
         """
         with tenant_context(self.tenant):
-            users = User.objects.all().select_related().order_by('id')
+            users = User.objects.all().order_by('id')
             self.assertEqual(ModelWithFkToPublicUser.objects.get(pk=self.d1.id),
                              users[0].modelwithfktopublicuser_set.all()[:1].get())
             self.assertEqual(ModelWithFkToPublicUser.objects.get(pk=self.d2.id),
