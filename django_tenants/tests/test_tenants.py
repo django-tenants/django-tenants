@@ -6,6 +6,8 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.db import connection, transaction
+from django.db.migrations.exceptions import MigrationSchemaMissing
+from django.db.migrations.recorder import MigrationRecorder
 from django.test.utils import override_settings
 
 from django_tenants.clone import CloneSchema
@@ -117,6 +119,25 @@ class TenantDataAndSettingsTest(BaseTestCase):
             # to assert atomic transactions when creating a tenant
             with self.assertRaises(transaction.TransactionManagementError):
                 atomically_create_tenant()
+
+    def test_failed_schema_creation_raises_the_original_error(self):
+        """
+        If migrate_schemas fails while only the new schema is on the search
+        path, the cleanup must not run from there and hide the real error.
+        """
+        tenant = get_tenant_model()(schema_name='test')
+
+        with (
+            mock.patch.object(
+                MigrationRecorder, 'ensure_schema', side_effect=MigrationSchemaMissing('boom')
+            ),
+            self.assertRaises(MigrationSchemaMissing),
+        ):
+            tenant.save()
+
+        self.assertEqual(connection.schema_name, get_public_schema_name())
+        self.assertFalse(get_tenant_model().objects.filter(schema_name='test').exists())
+        self.assertFalse(schema_exists('test'))
 
     def test_non_auto_sync_tenant(self):
         """

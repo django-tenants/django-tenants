@@ -147,7 +147,9 @@ class TenantMixin(models.Model):
                 post_schema_sync.send(sender=TenantMixin, tenant=self.serializable_fields())
             except Exception:
                 # We failed creating the tenant, delete what we created and
-                # re-raise the exception
+                # re-raise the exception. migrate_schemas may have left the
+                # connection on the new schema, so clean up from public.
+                connection.set_schema_to_public()
                 self.delete(force_drop=True)
                 raise
         elif is_new:
