@@ -43,11 +43,14 @@ else:
 #     semicolons and NUL. Schema names are always quoted when they reach SQL,
 #     but they are also interpolated into the clone_schema() SQL function, so
 #     reject anything that could break out of a quoted name or end a statement.
-#  3. Must be between 1 and 63 characters long
+#  3. Cannot contain '/' and cannot be '.' or '..'. The schema name is also used
+#     as a directory name for tenant media, static files and templates (see
+#     parse_tenant_config_path), so it must not be able to traverse paths.
+#  4. Must be between 1 and 63 characters long
 #
 # Reference:
 # https://www.postgresql.org/docs/13/sql-createschema.html
-PGSQL_VALID_SCHEMA_NAME = re.compile(r'^(?!pg_)[^"\'\\;\x00\r\n]{1,63}\Z', re.IGNORECASE)
+PGSQL_VALID_SCHEMA_NAME = re.compile(r'^(?!pg_)(?!\.{1,2}\Z)[^"\'\\/;\x00\r\n]{1,63}\Z', re.IGNORECASE)
 
 
 def is_valid_schema_name(name):

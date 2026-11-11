@@ -1,4 +1,7 @@
-from django.core.exceptions import ImproperlyConfigured
+from types import SimpleNamespace
+from unittest import mock
+
+from django.core.exceptions import ImproperlyConfigured, SuspiciousFileOperation
 from django.test import RequestFactory, SimpleTestCase
 
 from django_tenants import utils
@@ -32,6 +35,24 @@ class ConfigStringParsingTestCase(TenantTestCase):
             utils.parse_tenant_config_path("foo/%s/bar/"),
             "foo/{}/bar/".format(self.tenant.schema_name),
         )
+
+    def test_path_traversal_schema_name_is_rejected(self):
+        for schema_name in ('x/../victim', '../../app', '..', '.', 'a\\b', ''):
+            for config_path in ('foo', 'foo/%s/bar'):
+                with self.subTest(schema_name=schema_name, config_path=config_path):
+                    with mock.patch('django_tenants.utils.connection',
+                                    SimpleNamespace(schema_name=schema_name)):
+                        with self.assertRaises(SuspiciousFileOperation):
+                            utils.parse_tenant_config_path(config_path)
+
+    def test_windows_unsafe_schema_name_is_rejected_on_windows(self):
+        for schema_name in ('D:x', 'victim.', 'victim '):
+            with self.subTest(schema_name=schema_name):
+                with mock.patch('django_tenants.utils.connection',
+                                SimpleNamespace(schema_name=schema_name)), \
+                        mock.patch('django_tenants.utils.os.name', 'nt'):
+                    with self.assertRaises(SuspiciousFileOperation):
+                        utils.parse_tenant_config_path('foo/%s')
 
     def test_get_tenant_base_migrate_command_class_default(self):
         self.assertEqual(

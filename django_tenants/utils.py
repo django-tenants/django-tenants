@@ -4,7 +4,7 @@ from functools import lru_cache, wraps
 from types import ModuleType
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.core.exceptions import ImproperlyConfigured, SuspiciousFileOperation, ValidationError
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.utils.module_loading import import_string
 
@@ -319,12 +319,23 @@ def parse_tenant_config_path(config_path):
 
     :return: The formatted string containing the schema name
     """
+    schema_name = connection.schema_name
+    # The schema name becomes a path component, so it must not be able to
+    # escape the configured directory (e.g. '../other_tenant').
+    # is_valid_schema_name() already rejects these; check again here so the
+    # path is safe even if a tenant row bypassed model validation.
+    # On Windows, 'D:x' resets the drive and 'victim.' / 'victim ' resolve to
+    # 'victim', so those are rejected there too.
+    if (schema_name in ('', '.', '..') or any(c in schema_name for c in ('/', '\\', '\x00'))
+            or (os.name == 'nt' and (':' in schema_name or schema_name[-1] in '. '))):
+        raise SuspiciousFileOperation(
+            "Schema name %r cannot be used as a path component." % schema_name)
     try:
         # Insert schema name
-        return config_path % connection.schema_name
+        return config_path % schema_name
     except (TypeError, ValueError):
         # No %s in string; append schema name at the end
-        return os.path.join(config_path, connection.schema_name)
+        return os.path.join(config_path, schema_name)
 
 
 def validate_extra_extensions():
