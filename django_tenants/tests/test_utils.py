@@ -37,7 +37,7 @@ class ConfigStringParsingTestCase(TenantTestCase):
         )
 
     def test_path_traversal_schema_name_is_rejected(self):
-        for schema_name in ('x/../victim', '../../app', '..', '.', 'a\\b', ''):
+        for schema_name in ('x/../victim', '../../app', '..', '.', 'a\\b', '', None):
             for config_path in ('foo', 'foo/%s/bar'):
                 with self.subTest(schema_name=schema_name, config_path=config_path):
                     with mock.patch('django_tenants.utils.connection',
