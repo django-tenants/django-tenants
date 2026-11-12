@@ -333,7 +333,7 @@ def parse_tenant_config_path(config_path):
     # path is safe even if a tenant row bypassed model validation.
     # On Windows, 'D:x' resets the drive and 'victim.' / 'victim ' resolve to
     # 'victim', so those are rejected there too.
-    if (schema_name in ('', '.', '..') or any(c in schema_name for c in ('/', '\\', '\x00'))
+    if (not schema_name or schema_name in ('.', '..') or any(c in schema_name for c in ('/', '\\', '\x00'))
             or (os.name == 'nt' and (':' in schema_name or schema_name[-1] in '. '))):
         raise SuspiciousFileOperation(
             "Schema name %r cannot be used as a path component." % schema_name)
