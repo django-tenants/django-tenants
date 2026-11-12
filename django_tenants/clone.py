@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import connection
 
+from django_tenants.postgresql_backend.base import _check_schema_name
 from django_tenants.utils import schema_exists
 
 CLONE_SCHEMA_FUNCTION = r"""
@@ -4607,6 +4608,10 @@ class CloneSchema:
         Creates a new schema `new_schema_name` as a clone of an existing schema
         `old_schema_name`.
         """
+        # The new name reaches CREATE SCHEMA inside the clone_schema() SQL
+        # function, so it must be a valid (at most 63-byte) schema name.
+        _check_schema_name(new_schema_name)
+
         if set_connection:
             connection.set_schema_to_public()
         cursor = connection.cursor()

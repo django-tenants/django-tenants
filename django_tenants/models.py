@@ -101,6 +101,13 @@ class TenantMixin(models.Model):
         connection = connections[get_tenant_database_alias()]
         connection.set_schema_to_public()
 
+    def _schema_name_changed(self):
+        # _base_manager: not filtered by a custom default manager, and present
+        # even if the model has no manager called 'objects'.
+        stored = (self.__class__._base_manager.using(self._state.db).filter(pk=self.pk)
+                  .values_list('schema_name', flat=True).first())
+        return stored != self.schema_name
+
     def _check_schema_name_is_unique(self):
         """
         Rejects a schema name that only differs in case from an existing tenant's.
@@ -136,7 +143,16 @@ class TenantMixin(models.Model):
                             "the public schema. Current schema is %s."
                             % connection.schema_name)
 
-        if is_new:
+        # A row is inserted when adding, and also when pk has been cleared to
+        # copy an existing tenant (as clone_tenant --clone_tenant_fields does).
+        inserting = is_new or self.pk is None
+        if inserting or self._schema_name_changed():
+            # Validate before the row is written: a name rejected later, in
+            # create_schema(), is cleaned up with delete(force_drop=True), and
+            # dropping a name PostgreSQL truncates could drop another tenant's
+            # schema.
+            _check_schema_name(self.schema_name)
+        if inserting:
             self._check_schema_name_is_unique()
 
         super().save(*args, **kwargs)
@@ -176,6 +192,12 @@ class TenantMixin(models.Model):
             raise Exception("Can't delete tenant outside it's own schema or "
                             "the public schema. Current schema is %s."
                             % connection.schema_name)
+
+        if has_schema and (self.auto_drop_schema or force_drop):
+            # Never drop a schema by an invalid name: PostgreSQL truncates
+            # identifiers to 63 bytes, so DROP SCHEMA on a longer name would drop
+            # whichever schema it truncates to -- possibly another tenant's.
+            _check_schema_name(self.schema_name)
 
         if has_schema and schema_exists(self.schema_name) and (self.auto_drop_schema or force_drop):
             self.pre_drop()

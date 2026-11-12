@@ -658,6 +658,107 @@ class TenantRenameSchemaTest(BaseTestCase):
 
 class SchemaNameInjectionTest(BaseTestCase):
 
+    def test_tenant_with_legacy_invalid_name_can_be_saved_and_renamed(self):
+        # Names that later versions reject (here one containing '/') must not
+        # lock the tenant out of unrelated saves, and rename_schema must still
+        # work as the documented way to recover.
+        tenant = get_tenant_model()(schema_name='legacy_slash')
+        tenant.save()
+        cursor = connection.cursor()
+        cursor.execute('ALTER SCHEMA "legacy_slash" RENAME TO "legacy/slash"')
+        get_tenant_model().objects.filter(pk=tenant.pk).update(schema_name='legacy/slash')
+        tenant.refresh_from_db()
+        try:
+            tenant.name = 'unrelated change'
+            tenant.save()
+            schema_rename(tenant, 'legacy_fixed')
+            self.assertTrue(schema_exists('legacy_fixed'))
+            self.assertFalse(schema_exists('legacy/slash'))
+            self.assertEqual(get_tenant_model().objects.get(pk=tenant.pk).schema_name, 'legacy_fixed')
+        finally:
+            connection.set_schema_to_public()
+            tenant.delete(force_drop=True)
+
+    def test_copy_made_by_clearing_pk_checks_case_insensitive_uniqueness(self):
+        tenant = get_tenant_model()(schema_name='casecopy')
+        tenant.save()
+        try:
+            copy = get_tenant_model().objects.get(pk=tenant.pk)
+            copy.pk = None
+            copy.schema_name = 'CASECOPY'
+            copy.auto_create_schema = False
+            with self.assertRaises(ValidationError):
+                copy.save()
+            self.assertEqual(get_tenant_model().objects.filter(schema_name__iexact='casecopy').count(), 1)
+        finally:
+            connection.set_schema_to_public()
+            tenant.delete(force_drop=True)
+
+    def test_multibyte_name_truncating_to_existing_schema_is_rejected(self):
+        # PostgreSQL truncates identifiers to 63 bytes. 'victim' + 'b' is 64
+        # bytes and would truncate to 'victim', giving the new tenant the
+        # existing tenant's schema.
+        victim_name = '\u00e9' * 31 + 'a'
+        victim = get_tenant_model()(schema_name=victim_name)
+        victim.save()
+        domain = get_tenant_domain_model()(tenant=victim, domain='victim.test.com')
+        domain.save()
+        try:
+            with self.assertRaises(ValidationError):
+                get_tenant_model()(schema_name=victim_name + 'b').save()
+            self.assertFalse(get_tenant_model().objects.filter(schema_name=victim_name + 'b').exists())
+            # Rejecting the new tenant must not drop the existing tenant's schema.
+            self.assertTrue(schema_exists(victim_name))
+
+            # A tenant row that already has such a name (e.g. created before
+            # upgrading) must not be able to drop the existing tenant's schema.
+            attacker = get_tenant_model()(schema_name='placeholder')
+            attacker.auto_create_schema = False
+            attacker.save()
+            get_tenant_model().objects.filter(pk=attacker.pk).update(schema_name=victim_name + 'b')
+            attacker.refresh_from_db()
+            with self.assertRaises(ValidationError):
+                attacker.delete(force_drop=True)
+            self.assertTrue(schema_exists(victim_name))
+            get_tenant_model().objects.filter(pk=attacker.pk).delete()
+
+            # Nor rename it: ALTER SCHEMA on the truncated name would rename
+            # the existing tenant's schema to the attacker's new name.
+            attacker = get_tenant_model()(schema_name='placeholder2')
+            attacker.auto_create_schema = False
+            attacker.save()
+            get_tenant_model().objects.filter(pk=attacker.pk).update(schema_name=victim_name + 'b')
+            attacker.refresh_from_db()
+            with self.assertRaises(ValidationError):
+                schema_rename(attacker, 'attacker_new_name')
+            self.assertTrue(schema_exists(victim_name))
+            self.assertFalse(schema_exists('attacker_new_name'))
+            get_tenant_model().objects.filter(pk=attacker.pk).delete()
+
+            # Copying a tenant row by clearing pk (clone_tenant
+            # --clone_tenant_fields) is an insert and must be validated too.
+            copy = get_tenant_model().objects.get(pk=victim.pk)
+            copy.pk = None
+            copy.schema_name = victim_name + 'b'
+            copy.auto_create_schema = False
+            with self.assertRaises(ValidationError):
+                copy.save()
+
+            # Renaming an existing tenant's schema_name through save() is
+            # validated, and so is cloning into an invalid name.
+            renamed = get_tenant_model().objects.get(pk=victim.pk)
+            renamed.schema_name = victim_name + 'b'
+            with self.assertRaises(ValidationError):
+                renamed.save()
+            with self.assertRaises(ValidationError):
+                CloneSchema().clone_schema(victim_name, victim_name + 'b')
+            self.assertTrue(schema_exists(victim_name))
+        finally:
+            connection.set_schema_to_public()
+            domain.delete()
+            victim.delete(force_drop=True)
+
+
     def test_search_path_rejects_injected_schema(self):
         tenant = get_tenant_model()(schema_name='tenant1')
         tenant.save()

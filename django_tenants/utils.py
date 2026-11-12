@@ -256,7 +256,7 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
     """
     This renames a schema to a new name. It checks to see if it exists first
     """
-    from django_tenants.postgresql_backend.base import is_valid_schema_name
+    from django_tenants.postgresql_backend.base import PGSQL_MAX_IDENTIFIER_BYTES, is_valid_schema_name
     _connection = connections[database]
     cursor = _connection.cursor()
 
@@ -266,6 +266,13 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
         raise ValidationError("New schema name already exists")
     if not is_valid_schema_name(new_schema_name):
         raise ValidationError("Invalid string used for the schema name.")
+    # The old name is interpolated too. Only its length matters here --
+    # quote_schema_name() escapes it, and renaming is how a tenant with a name
+    # that is no longer allowed (e.g. containing '/') is recovered -- but a name
+    # over 63 bytes is truncated by PostgreSQL and could rename another
+    # tenant's schema.
+    if len(tenant.schema_name.encode('utf-8', 'surrogatepass')) > PGSQL_MAX_IDENTIFIER_BYTES:
+        raise ValidationError("The current schema name is longer than 63 bytes and cannot be renamed safely.")
     sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(quote_schema_name(tenant.schema_name),
                                                   quote_schema_name(new_schema_name))
     cursor.execute(sql)
