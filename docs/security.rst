@@ -158,3 +158,29 @@ The same rules apply when using ``HAS_MULTI_TYPE_TENANTS``: for every type in
 ``TENANT_TYPES``, keep auth and sessions together in that type's ``APPS`` list
 (or rely on shared auth with an explicit membership check). Do not give a type
 tenant-specific auth while leaving sessions only on the public / shared side.
+
+
+Letting users choose schema names
+---------------------------------
+
+If users can choose or influence a tenant's ``schema_name`` -- for example a
+self-service sign-up that derives it from a company name -- treat it as untrusted
+input:
+
+- Validate it against a strict allow-list such as ``^[a-z0-9][a-z0-9_-]*$``
+  before creating the tenant, and reject your public schema name
+  (``PUBLIC_SCHEMA_NAME``, ``public`` by default). django-tenants' own
+  validator is deliberately permissive: PostgreSQL accepts almost any quoted
+  identifier.
+- Set ``TENANT_REJECT_EXISTING_SCHEMA = True``. Otherwise a tenant created with
+  the name of a schema that already exists (one that isn't a tenant's, such as
+  another application's) uses that schema, can read its tables, and drops it
+  when deleted with ``auto_drop_schema``. ``information_schema`` and the
+  schemas in ``PG_EXTRA_SEARCH_PATHS`` are always rejected.
+- Create and rename tenants through ``save()``, ``schema_rename()`` or the
+  management commands. ``bulk_create()`` and ``QuerySet.update()`` skip
+  model validation, including these checks.
+- Don't create schemas outside django-tenants while tenants are being created.
+  The existence check runs just before the schema is created, so a schema
+  created in between can still be taken over.
+

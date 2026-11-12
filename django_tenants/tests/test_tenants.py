@@ -5,18 +5,19 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db import connection, transaction
 from django.test.utils import override_settings
 
 from django_tenants.clone import CloneSchema
-from django_tenants.signals import schema_migrated, schema_migrate_message, schema_pre_migration
+from django_tenants.signals import post_schema_sync, schema_migrated, schema_migrate_message, schema_pre_migration
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 
 from django_tenants.migration_executors import get_executor
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.tests.testcases import BaseTestCase
 from django_tenants.utils import tenant_context, schema_context, schema_exists, get_tenant_model, \
-    get_public_schema_name, get_tenant_domain_model, schema_rename
+    get_public_schema_name, get_tenant_domain_model, schema_rename, quote_schema_name
 
 
 @contextmanager
@@ -1277,3 +1278,258 @@ class MigrationOrderTestTest(BaseTestCase):
                 mock.call(schema_name="test", sender=mock.ANY, signal=schema_migrated),
             ]
         )
+
+
+class SchemaAdoptionTest(BaseTestCase):
+    """A tenant must not be able to take over a schema that isn't its own."""
+
+    def _drop(self, tenant):
+        connection.set_schema_to_public()
+        get_tenant_model()._base_manager.filter(pk=tenant.pk).delete()
+
+    def _create_plain_schema(self, name):
+        cursor = connection.cursor()
+        cursor.execute('CREATE SCHEMA %s' % quote_schema_name(name))
+        cursor.execute('CREATE TABLE %s.secret (value text)' % quote_schema_name(name))
+        self.addCleanup(lambda: connection.cursor().execute(
+            'DROP SCHEMA IF EXISTS %s CASCADE' % quote_schema_name(name)))
+
+    def test_information_schema_is_reserved(self):
+        for schema_name in ('information_schema', 'Information_Schema'):
+            with self.subTest(schema_name=schema_name):
+                with self.assertRaisesRegex(ValidationError, 'reserved'):
+                    get_tenant_model()(schema_name=schema_name).save()
+                self.assertFalse(get_tenant_model().objects.filter(schema_name=schema_name).exists())
+        self.assertTrue(schema_exists('information_schema'))
+
+    def test_extra_search_path_schema_is_reserved(self):
+        self._create_plain_schema('shared_ext')
+        with override_settings(PG_EXTRA_SEARCH_PATHS=['shared_ext']):
+            with self.assertRaisesRegex(ValidationError, 'reserved'):
+                get_tenant_model()(schema_name='shared_ext').save()
+
+            # Nor can an existing tenant be renamed to it by saving.
+            tenant = get_tenant_model()(schema_name='adopt_rename')
+            tenant.auto_create_schema = False
+            tenant.save()
+            self.addCleanup(self._drop, tenant)
+            tenant.schema_name = 'shared_ext'
+            with self.assertRaisesRegex(ValidationError, 'reserved'):
+                tenant.save()
+
+            # And a tenant row that already has the name cannot drop it: the
+            # delete is refused and nothing is deleted.
+            get_tenant_model().objects.filter(pk=tenant.pk).update(schema_name='shared_ext')
+            tenant.refresh_from_db()
+            with self.assertRaisesRegex(ValidationError, 'never dropped'):
+                tenant.delete(force_drop=True)
+            self.assertTrue(get_tenant_model().objects.filter(pk=tenant.pk).exists())
+            self.assertTrue(schema_exists('shared_ext'))
+            # Deleting only the row, without dropping, still works.
+            tenant.delete()
+            self.assertFalse(get_tenant_model().objects.filter(pk=tenant.pk).exists())
+        self.assertTrue(schema_exists('shared_ext'))
+
+    def test_reject_existing_schema_setting(self):
+        self._create_plain_schema('other_app')
+
+        # Off by default: a tenant can still be created for an existing schema
+        # (e.g. one restored from a backup).
+        tenant = get_tenant_model()(schema_name='other_app')
+        tenant.auto_create_schema = False
+        tenant.save()
+        self._drop(tenant)
+
+        with override_settings(TENANT_REJECT_EXISTING_SCHEMA=True):
+            for schema_name in ('other_app', 'OTHER_APP'):
+                with self.subTest(schema_name=schema_name):
+                    with self.assertRaisesRegex(ValidationError, 'already exists'):
+                        get_tenant_model()(schema_name=schema_name).save()
+
+            tenant = get_tenant_model()(schema_name='adopt_by_save')
+            tenant.save()
+            self.addCleanup(lambda: get_tenant_model().objects.get(pk=tenant.pk).delete(force_drop=True))
+            tenant.schema_name = 'other_app'
+            with self.assertRaisesRegex(ValidationError, 'already exists'):
+                tenant.save()
+        self.assertTrue(schema_exists('other_app'))
+        self.assertEqual(get_tenant_model().objects.get(pk=tenant.pk).schema_name, 'adopt_by_save')
+
+    def test_rename_by_save_checks_case_insensitive_uniqueness(self):
+        first = get_tenant_model()(schema_name='casefirst')
+        first.auto_create_schema = False
+        first.save()
+        self.addCleanup(self._drop, first)
+        second = get_tenant_model()(schema_name='casesecond')
+        second.auto_create_schema = False
+        second.save()
+        self.addCleanup(self._drop, second)
+
+        second.schema_name = 'CASEFIRST'
+        with self.assertRaisesRegex(ValidationError, 'already exists'):
+            second.save()
+
+        # Changing only the case of its own name by saving is rejected too: the
+        # row would point at a schema that doesn't exist.
+        second.schema_name = 'CaseSecond'
+        with self.assertRaisesRegex(ValidationError, 'already exists'):
+            second.save()
+
+        # Saving a tenant without changing its name is still allowed, even if
+        # it already collides (so upgrading doesn't lock anyone out).
+        get_tenant_model().objects.filter(pk=second.pk).update(schema_name='CASEFIRST')
+        second.refresh_from_db()
+        second.name = 'unrelated change'
+        second.save()
+
+    def test_schema_rename_works_with_reject_existing_schema(self):
+        tenant = get_tenant_model()(schema_name='rename_setting_a')
+        tenant.save()
+        self.addCleanup(lambda: get_tenant_model().objects.get(pk=tenant.pk).delete(force_drop=True))
+        with override_settings(TENANT_REJECT_EXISTING_SCHEMA=True):
+            schema_rename(tenant, 'rename_setting_b')
+        self.assertEqual(get_tenant_model().objects.get(pk=tenant.pk).schema_name, 'rename_setting_b')
+        self.assertTrue(schema_exists('rename_setting_b'))
+        self.assertFalse(schema_exists('rename_setting_a'))
+
+    def test_schema_rename_to_reserved_name_is_rejected_before_renaming(self):
+        tenant = get_tenant_model()(schema_name='rename_reserved')
+        tenant.save()
+        self.addCleanup(lambda: get_tenant_model().objects.get(pk=tenant.pk).delete(force_drop=True))
+        with override_settings(PG_EXTRA_SEARCH_PATHS=['not_created_yet']):
+            for save in (True, False):
+                with self.subTest(save=save):
+                    with self.assertRaisesRegex(ValidationError, 'reserved'):
+                        schema_rename(tenant, 'not_created_yet', save=save)
+        self.assertTrue(schema_exists('rename_reserved'))
+        self.assertFalse(schema_exists('not_created_yet'))
+        self.assertEqual(tenant.schema_name, 'rename_reserved')
+
+    def test_schema_rename_is_rolled_back_if_save_fails(self):
+        tenant = get_tenant_model()(schema_name='rename_rollback')
+        tenant.save()
+        self.addCleanup(lambda: get_tenant_model().objects.get(pk=tenant.pk).delete(force_drop=True))
+        with mock.patch.object(tenant, 'save', side_effect=ValidationError('boom')):
+            with self.assertRaises(ValidationError):
+                schema_rename(tenant, 'rename_rollback_new')
+        self.assertEqual(tenant.schema_name, 'rename_rollback')
+        self.assertFalse(hasattr(tenant, '_renamed_to_schema_name'))
+        self.assertTrue(schema_exists('rename_rollback'))
+        self.assertFalse(schema_exists('rename_rollback_new'))
+
+    def test_public_tenant_name_is_allowed_with_reject_existing_schema(self):
+        with override_settings(TENANT_REJECT_EXISTING_SCHEMA=True):
+            self.assertIsNone(
+                get_tenant_model()(schema_name=get_public_schema_name())._check_schema_name_is_available())
+
+    def test_public_schema_is_never_dropped_or_renamed_through_a_tenant(self):
+        tenant = get_tenant_model()(schema_name='holds_public')
+        tenant.auto_create_schema = False
+        tenant.save()
+        self.addCleanup(self._drop, tenant)
+        get_tenant_model().objects.filter(pk=tenant.pk).update(schema_name=get_public_schema_name())
+        tenant.refresh_from_db()
+        with self.assertRaisesRegex(ValidationError, 'reserved'):
+            schema_rename(tenant, 'moved_public', save=False)
+        self.assertFalse(schema_exists('moved_public'))
+        # Deleting it with force_drop, or via a queryset with
+        # auto_drop_schema, is refused and deletes nothing.
+        with self.assertRaisesRegex(ValidationError, 'never dropped'):
+            tenant.delete(force_drop=True)
+        self.assertTrue(get_tenant_model().objects.filter(pk=tenant.pk).exists())
+        self.assertTrue(schema_exists(get_public_schema_name()))
+        with mock.patch.object(get_tenant_model(), 'auto_drop_schema', True):
+            with self.assertRaisesRegex(ValidationError, 'never dropped'):
+                with transaction.atomic():
+                    get_tenant_model().objects.filter(pk=tenant.pk).delete()
+        self.assertTrue(get_tenant_model().objects.filter(pk=tenant.pk).exists())
+        self.assertTrue(schema_exists(get_public_schema_name()))
+        # Deleting only the row, without dropping, still works.
+        tenant.delete()
+        self.assertFalse(get_tenant_model().objects.filter(pk=tenant.pk).exists())
+
+        # A case variant is a different schema in PostgreSQL and is dropped
+        # normally.
+        variant = get_tenant_model()(schema_name='Public')
+        variant.save()
+        self.assertTrue(schema_exists('Public'))
+        variant.delete(force_drop=True)
+        self.assertFalse(schema_exists('Public'))
+
+    def test_failed_public_tenant_create_keeps_schema_and_original_error(self):
+        # Cleaning up after a failed create must not drop the public schema,
+        # nor hide the original error by refusing.
+        get_tenant_model().objects.filter(schema_name=get_public_schema_name()).update(
+            schema_name='public_was_here')
+        self.addCleanup(lambda: get_tenant_model().objects.filter(
+            schema_name='public_was_here').update(schema_name=get_public_schema_name()))
+
+        def fail(**kwargs):
+            raise RuntimeError('original failure')
+        post_schema_sync.connect(fail, dispatch_uid='test_failed_public_create')
+        self.addCleanup(post_schema_sync.disconnect, dispatch_uid='test_failed_public_create')
+
+        tenant = get_tenant_model()(schema_name=get_public_schema_name())
+        with self.assertRaisesRegex(RuntimeError, 'original failure'):
+            tenant.save()
+        self.assertFalse(get_tenant_model().objects.filter(schema_name=get_public_schema_name()).exists())
+        self.assertTrue(schema_exists(get_public_schema_name()))
+        self.assertFalse(hasattr(tenant, '_in_failed_create_cleanup'))
+
+    def test_failed_create_never_drops_a_schema_it_did_not_create(self):
+        self._create_plain_schema('adopted_then_failed')
+
+        def fail(**kwargs):
+            raise RuntimeError('original failure')
+        post_schema_sync.connect(fail, dispatch_uid='test_failed_adopt')
+        self.addCleanup(post_schema_sync.disconnect, dispatch_uid='test_failed_adopt')
+
+        # The schema already existed: the row is removed, the schema is kept.
+        tenant = get_tenant_model()(schema_name='adopted_then_failed')
+        with self.assertRaisesRegex(RuntimeError, 'original failure'):
+            tenant.save()
+        self.assertFalse(get_tenant_model().objects.filter(schema_name='adopted_then_failed').exists())
+        self.assertTrue(schema_exists('adopted_then_failed'))
+        self.assertFalse(hasattr(tenant, '_in_failed_create_cleanup'))
+
+        # A schema this save created is still cleaned up.
+        tenant = get_tenant_model()(schema_name='created_then_failed')
+        with self.assertRaisesRegex(RuntimeError, 'original failure'):
+            tenant.save()
+        self.assertFalse(get_tenant_model().objects.filter(schema_name='created_then_failed').exists())
+        self.assertFalse(schema_exists('created_then_failed'))
+
+    def test_delete_tenant_command_refuses_the_public_tenant(self):
+        tenant = get_tenant_model()(schema_name='cmd_holds_public')
+        tenant.auto_create_schema = False
+        tenant.save()
+        self.addCleanup(self._drop, tenant)
+        get_tenant_model().objects.filter(pk=tenant.pk).update(schema_name=get_public_schema_name())
+        with self.assertRaisesRegex(CommandError, 'never dropped'):
+            call_command('delete_tenant', schema_name=get_public_schema_name(), interactive=False)
+        self.assertTrue(get_tenant_model().objects.filter(pk=tenant.pk).exists())
+        self.assertTrue(schema_exists(get_public_schema_name()))
+
+    def test_schema_rename_from_reserved_name_is_rejected(self):
+        self._create_plain_schema('shared_ext2')
+        tenant = get_tenant_model()(schema_name='holds_ext')
+        tenant.auto_create_schema = False
+        tenant.save()
+        self.addCleanup(self._drop, tenant)
+        get_tenant_model().objects.filter(pk=tenant.pk).update(schema_name='shared_ext2')
+        tenant.refresh_from_db()
+        with override_settings(PG_EXTRA_SEARCH_PATHS=['shared_ext2']):
+            with self.assertRaisesRegex(ValidationError, 'reserved'):
+                schema_rename(tenant, 'moved_ext')
+        self.assertTrue(schema_exists('shared_ext2'))
+        self.assertFalse(schema_exists('moved_ext'))
+
+    def test_schema_rename_without_save_then_save_with_reject_existing_schema(self):
+        tenant = get_tenant_model()(schema_name='rename_nosave_a')
+        tenant.save()
+        self.addCleanup(lambda: get_tenant_model().objects.get(pk=tenant.pk).delete(force_drop=True))
+        with override_settings(TENANT_REJECT_EXISTING_SCHEMA=True):
+            schema_rename(tenant, 'rename_nosave_b', save=False)
+            tenant.save()
+        self.assertEqual(get_tenant_model().objects.get(pk=tenant.pk).schema_name, 'rename_nosave_b')
+

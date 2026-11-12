@@ -5,7 +5,7 @@ from types import ModuleType
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, SuspiciousFileOperation, ValidationError
-from django.db import DEFAULT_DB_ALIAS, connection, connections
+from django.db import DEFAULT_DB_ALIAS, connection, connections, transaction
 from django.utils.module_loading import import_string
 
 try:
@@ -92,6 +92,30 @@ def get_type_base_schemas():
     return {tenant_type: config['BASE_SCHEMA']
             for tenant_type, config in get_tenant_types().items()
             if config.get('BASE_SCHEMA')}
+
+
+def get_reject_existing_schema():
+    """
+    If TENANT_REJECT_EXISTING_SCHEMA, a tenant cannot be created with (or have
+    its schema_name changed to) the name of a schema that already exists in the
+    database. Off by default, so that a tenant can still be created for a schema
+    that exists already, e.g. one restored from a backup.
+    """
+    return getattr(settings, 'TENANT_REJECT_EXISTING_SCHEMA', False)
+
+
+def get_reserved_schema_names():
+    """
+    Lower-cased names of schemas that are never a tenant's: PostgreSQL's
+    information_schema and the shared schemas in PG_EXTRA_SEARCH_PATHS. A tenant
+    given one of these names would take over that schema -- read its tables,
+    and drop it when deleted. pg_* names are rejected by the schema name
+    validator. The public schema name is not reserved, because the public
+    tenant itself is created with it; once that row exists the uniqueness
+    check stops another tenant taking the name.
+    """
+    extra = getattr(settings, 'PG_EXTRA_SEARCH_PATHS', [])
+    return {'information_schema'} | {name.lower() for name in extra}
 
 
 def get_creation_fakes_migrations():
@@ -273,13 +297,35 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
     # tenant's schema.
     if len(tenant.schema_name.encode('utf-8', 'surrogatepass')) > PGSQL_MAX_IDENTIFIER_BYTES:
         raise ValidationError("The current schema name is longer than 63 bytes and cannot be renamed safely.")
-    sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(quote_schema_name(tenant.schema_name),
+    # Checked here, before ALTER SCHEMA, rather than left to tenant.save():
+    # by then the schema would already have been renamed. Neither name may be
+    # reserved or the public schema's: renaming one of those away would move a
+    # schema that isn't the tenant's own (and let it be dropped afterwards).
+    reserved = get_reserved_schema_names()
+    for name in (tenant.schema_name, new_schema_name):
+        if name == get_public_schema_name() or name.lower() in reserved:
+            raise ValidationError("The schema name '%s' is reserved." % name)
+    old_schema_name = tenant.schema_name
+    sql = 'ALTER SCHEMA {0} RENAME TO {1}'.format(quote_schema_name(old_schema_name),
                                                   quote_schema_name(new_schema_name))
-    cursor.execute(sql)
-    cursor.close()
-    tenant.schema_name = new_schema_name
-    if save:
-        tenant.save()
+    # Rename the schema and save the row together, so a failed save can't
+    # leave the row naming a schema that no longer exists.
+    try:
+        with transaction.atomic(using=database):
+            cursor.execute(sql)
+            cursor.close()
+            tenant.schema_name = new_schema_name
+            # The new schema now exists because we just renamed it, which is
+            # not the "already exists" TENANT_REJECT_EXISTING_SCHEMA guards
+            # against -- that was checked above, before the rename. Recorded
+            # by name so it also covers a caller's own save after save=False.
+            tenant._renamed_to_schema_name = new_schema_name
+            if save:
+                tenant.save()
+    except Exception:
+        tenant.schema_name = old_schema_name
+        tenant.__dict__.pop('_renamed_to_schema_name', None)
+        raise
 
 
 @lru_cache(maxsize=128)

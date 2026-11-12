@@ -258,6 +258,15 @@ Optional Settings
     With multi-types tenants each type can name a template of its own, under ``TENANT_TYPES[type]['BASE_SCHEMA']``, and the types that don't fall back to this setting. See :ref:`multi-types-base-schema`.
 
 
+.. attribute:: TENANT_REJECT_EXISTING_SCHEMA
+
+    :Default: ``False``
+
+    If ``True``, a tenant cannot be created with, or have its ``schema_name`` changed to, the name of a schema that already exists in the database (compared ignoring case). Turn this on if users can choose or influence schema names, so a new tenant can never take over an existing schema. The public schema name is the exception, since the public tenant is created with it; keep it out of user-chosen names (django-tenants never drops or renames the public schema through a tenant). Leave it off if you deliberately create tenants for schemas that already exist, for example ones restored from a backup.
+
+    ``information_schema`` and the schemas in ``PG_EXTRA_SEARCH_PATHS`` are always rejected, whatever this setting. See :doc:`security`.
+
+
 .. attribute:: TENANT_SYNC_ROUTER
 
     :Default: ``django_tenants.routers.TenantSyncRouter``
