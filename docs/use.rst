@@ -585,7 +585,7 @@ The command ``delete_tenant`` deletes a schema
 
     ./manage.py delete_tenant
 
-Warning this command will delete a tenant and PostgreSQL schema regardless if ``auto_drop_schema`` is set to False.
+Warning this command will delete a tenant and PostgreSQL schema regardless if ``auto_drop_schema`` is set to False. The public schema, ``information_schema`` and the schemas in ``PG_EXTRA_SEARCH_PATHS`` are never dropped through a tenant: deleting such a tenant with this command is refused, and nothing is deleted.
 
 
 clone_tenant

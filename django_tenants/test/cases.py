@@ -178,4 +178,7 @@ class SubfolderTenantTestCase(TenantTestCase):
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
+        # Delete only the row: the public schema is never dropped through a
+        # tenant, and asking to would raise.
+        cls.public_tenant.auto_drop_schema = False
         cls.public_tenant.delete()

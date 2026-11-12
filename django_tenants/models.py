@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ValidationError
@@ -9,6 +11,7 @@ from django_tenants.clone import CloneSchema
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
 from .utils import get_creation_fakes_migrations, get_tenant_base_schema, has_multi_type_tenants
+from .utils import get_reject_existing_schema, get_reserved_schema_names
 from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias
 from .utils import quote_schema_name
 
@@ -119,17 +122,40 @@ class TenantMixin(models.Model):
         accepted by the database and leaves two tenants fighting over one schema.
         #846
 
-        Only called when adding a tenant, which is the only way to introduce a
-        collision -- renames go through schema_rename(), which checks for itself.
-        Saves on tenants that already collide are left alone so that upgrading
-        doesn't lock anyone out of their own data. Since the row does not exist
-        yet there is nothing to exclude from the query.
+        Called when adding a tenant and when a save changes its schema_name
+        (schema_rename() also checks for itself). Saves that leave the name
+        alone are not checked, so tenants that already collide aren't locked
+        out of their own data by upgrading. The tenant's own row is not
+        excluded: changing only the case of its name by saving would leave the
+        row pointing at a schema that doesn't exist.
         """
-        if self.__class__.objects.filter(schema_name__iexact=self.schema_name).exists():
+        if self.__class__._base_manager.using(self._state.db).filter(
+                schema_name__iexact=self.schema_name).exists():
             raise ValidationError(
                 "A tenant with the schema name '%s' already exists. Schema names are "
                 "compared ignoring case." % self.schema_name
             )
+
+    def _check_schema_name_is_available(self):
+        """
+        Rejects a schema name that would make this tenant take over a schema that
+        isn't a tenant's: always for information_schema and PG_EXTRA_SEARCH_PATHS,
+        and for any existing schema when TENANT_REJECT_EXISTING_SCHEMA is set.
+        Without this, create_schema(check_if_exists=True) finds the schema,
+        skips creating it and leaves the tenant using it.
+        """
+        if self.schema_name.lower() in get_reserved_schema_names():
+            raise ValidationError("The schema name '%s' is reserved." % self.schema_name)
+        # The public schema always exists, and the public tenant is created
+        # with its name (django-tenants never drops or renames it through a
+        # tenant). schema_rename() checks existence itself, before it renames
+        # the schema this check would then find.
+        if (get_reject_existing_schema()
+                and self.schema_name != get_public_schema_name()
+                and self.schema_name != getattr(self, '_renamed_to_schema_name', None)
+                and schema_exists(self.schema_name, case_sensitive=False)):
+            raise ValidationError("A schema named '%s' already exists. Schema names are "
+                                  "compared ignoring case." % self.schema_name)
 
     def save(self, verbosity=1, *args, **kwargs):
         connection = connections[get_tenant_database_alias()]
@@ -152,19 +178,25 @@ class TenantMixin(models.Model):
             # dropping a name PostgreSQL truncates could drop another tenant's
             # schema.
             _check_schema_name(self.schema_name)
-        if inserting:
             self._check_schema_name_is_unique()
+            self._check_schema_name_is_available()
 
         super().save(*args, **kwargs)
+        # Set by schema_rename(); only meant for the save that follows it.
+        self.__dict__.pop('_renamed_to_schema_name', None)
 
         if has_schema and is_new and self.auto_create_schema:
+            # A schema that already existed wasn't created by this save, so a
+            # failure must not drop it.
+            schema_existed = schema_exists(self.schema_name)
             try:
                 self.create_schema(check_if_exists=True, verbosity=verbosity)
                 post_schema_sync.send(sender=TenantMixin, tenant=self.serializable_fields())
             except Exception:
                 # We failed creating the tenant, delete what we created and
                 # re-raise the exception
-                self.delete(force_drop=True)
+                with self._cleaning_up_failed_create(keep_schema=schema_existed):
+                    self.delete(force_drop=True)
                 raise
         elif is_new:
             # although we are not using the schema functions directly, the signal might be registered by a listener
@@ -177,7 +209,8 @@ class TenantMixin(models.Model):
             except Exception:
                 # We failed creating the schema, delete what we created and
                 # re-raise the exception
-                self._drop_schema()
+                with self._cleaning_up_failed_create():
+                    self._drop_schema()
                 raise
 
     def serializable_fields(self):
@@ -193,7 +226,24 @@ class TenantMixin(models.Model):
                             "the public schema. Current schema is %s."
                             % connection.schema_name)
 
+        cleanup = self.__dict__.get('_in_failed_create_cleanup')
         if has_schema and (self.auto_drop_schema or force_drop):
+            if cleanup is not None and cleanup['keep_schema']:
+                return
+            # The public schema and schemas that are never a tenant's own are
+            # never dropped through a tenant. Refuse, so that neither the
+            # schema nor the row is deleted -- except when cleaning up after a
+            # failed create, where raising would hide the original error.
+            if (self.schema_name == get_public_schema_name()
+                    or self.schema_name.lower() in get_reserved_schema_names()):
+                if cleanup is not None:
+                    return
+                raise ValidationError(
+                    "Refusing to drop the schema '%s': the public schema and "
+                    "reserved schemas are never dropped through a tenant. To "
+                    "delete only the tenant's row, delete it without "
+                    "force_drop and with auto_drop_schema off."
+                    % self.schema_name)
             # Never drop a schema by an invalid name: PostgreSQL truncates
             # identifiers to 63 bytes, so DROP SCHEMA on a longer name would drop
             # whichever schema it truncates to -- possibly another tenant's.
@@ -203,6 +253,14 @@ class TenantMixin(models.Model):
             self.pre_drop()
             cursor = connection.cursor()
             cursor.execute('DROP SCHEMA %s CASCADE' % quote_schema_name(self.schema_name))
+
+    @contextmanager
+    def _cleaning_up_failed_create(self, keep_schema=False):
+        self.__dict__['_in_failed_create_cleanup'] = {'keep_schema': keep_schema}
+        try:
+            yield
+        finally:
+            self.__dict__.pop('_in_failed_create_cleanup', None)
 
     def pre_drop(self):
         """

@@ -1,4 +1,5 @@
-from django.core.management.base import BaseCommand
+from django.core.exceptions import ValidationError
+from django.core.management.base import BaseCommand, CommandError
 from django_tenants.management.commands import InteractiveTenantOption
 
 
@@ -42,7 +43,10 @@ class Command(InteractiveTenantOption, BaseCommand):
     def delete_tenant(self, tenant):
         self.print_info(f"Deleting '{tenant.schema_name}'" )
         tenant.auto_drop_schema = True
-        tenant.delete()
+        try:
+            tenant.delete()
+        except ValidationError as e:
+            raise CommandError(' '.join(e.messages))
         self.print_info(f"Deleted '{tenant.schema_name}'")
 
     def print_warning(self, message):
