@@ -2229,13 +2229,16 @@ BEGIN
     -- INCLUDING ALL creates new index names, we restore them to the old name.
     -- There should be no conflicts since they live in different schemas
     FOR ix_old_name, ix_new_name IN
+      -- Each side is narrowed to its own schema and table before the join. OFFSET 0 keeps the planner
+      -- from flattening the subqueries back into one pg_indexes self-join, which with stale catalog
+      -- statistics can be planned as pairing this table's indexes across every schema and running
+      -- pg_get_indexdef() on all of those pairs before filtering by schema (slow with many tenants).
       SELECT old.indexname, new.indexname
-      FROM pg_indexes old, pg_indexes new
-      WHERE old.schemaname = source_schema
-        AND new.schemaname = dest_schema
-        AND old.tablename = new.tablename
-        AND old.tablename = tblname
-        AND old.indexname <> new.indexname
+      FROM (SELECT indexname, indexdef FROM pg_indexes
+            WHERE schemaname = source_schema AND tablename = tblname OFFSET 0) old,
+           (SELECT indexname, indexdef FROM pg_indexes
+            WHERE schemaname = dest_schema AND tablename = tblname OFFSET 0) new
+      WHERE old.indexname <> new.indexname
         AND regexp_replace(old.indexdef, E'.*USING','') = regexp_replace(new.indexdef, E'.*USING','')
         ORDER BY old.indexdef, new.indexdef
     LOOP
@@ -2751,13 +2754,16 @@ BEGIN
     -- INCLUDING ALL creates new index names, we restore them to the old name.
     -- There should be no conflicts since they live in different schemas
     FOR ix_old_name, ix_new_name IN
+      -- Each side is narrowed to its own schema and table before the join. OFFSET 0 keeps the planner
+      -- from flattening the subqueries back into one pg_indexes self-join, which with stale catalog
+      -- statistics can be planned as pairing this table's indexes across every schema and running
+      -- pg_get_indexdef() on all of those pairs before filtering by schema (slow with many tenants).
       SELECT old.indexname, new.indexname
-      FROM pg_indexes old, pg_indexes new
-      WHERE old.schemaname = source_schema
-        AND new.schemaname = dest_schema
-        AND old.tablename = new.tablename
-        AND old.tablename = tblname
-        AND old.indexname <> new.indexname
+      FROM (SELECT indexname, indexdef FROM pg_indexes
+            WHERE schemaname = source_schema AND tablename = tblname OFFSET 0) old,
+           (SELECT indexname, indexdef FROM pg_indexes
+            WHERE schemaname = dest_schema AND tablename = tblname OFFSET 0) new
+      WHERE old.indexname <> new.indexname
         AND regexp_replace(old.indexdef, E'.*USING','') = regexp_replace(new.indexdef, E'.*USING','')
         ORDER BY old.indexdef, new.indexdef
     LOOP
