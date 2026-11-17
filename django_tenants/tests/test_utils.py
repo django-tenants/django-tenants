@@ -139,3 +139,134 @@ class TenantBaseSchemaTestCase(SimpleTestCase):
     def test_a_template_without_faked_migrations_is_improperly_configured(self):
         with self.assertRaisesMessage(ImproperlyConfigured, 'TENANT_CREATION_FAKES_MIGRATIONS'):
             utils.get_tenant_base_schema()
+
+
+class _FakeTenantConnection:
+    def __init__(self, tenant):
+        self.tenant = tenant
+
+    def set_schema(self, schema_name):
+        self.tenant = SimpleNamespace(schema_name=schema_name)
+
+    def set_tenant(self, tenant):
+        self.tenant = tenant
+
+    def set_schema_to_public(self):
+        self.tenant = 'public'
+
+
+class ContextRestoresSelectedAliasTestCase(SimpleTestCase):
+    """schema_context() and tenant_context() on a non-default alias restore
+    that alias's own tenant, not the default connection's."""
+
+    def _check(self, context, arg, **kwargs):
+        default = _FakeTenantConnection('tenant_a')
+        other = _FakeTenantConnection('tenant_z')
+        fake_connections = {'default': default, 'other': other}
+        with mock.patch.object(utils, 'connections', fake_connections), \
+                mock.patch.object(utils, 'connection', default):
+            with context(arg, **kwargs):
+                self.assertNotEqual(other.tenant, 'tenant_z')
+            self.assertEqual(other.tenant, 'tenant_z')
+            self.assertEqual(default.tenant, 'tenant_a')
+
+    def test_schema_context_with_database(self):
+        self._check(utils.schema_context, 'tenant_b', database='other')
+
+    def test_tenant_context_with_database(self):
+        self._check(utils.tenant_context, 'tenant_b', database='other')
+
+    @override_settings(TENANT_DB_ALIAS='other')
+    def test_schema_context_with_tenant_db_alias(self):
+        self._check(utils.schema_context, 'tenant_b')
+
+    @override_settings(TENANT_DB_ALIAS='other')
+    def test_tenant_context_with_tenant_db_alias(self):
+        self._check(utils.tenant_context, 'tenant_b')
+
+    def test_restores_public_when_selected_alias_had_no_tenant(self):
+        default = _FakeTenantConnection('tenant_a')
+        other = _FakeTenantConnection(None)
+        with mock.patch.object(utils, 'connections', {'default': default, 'other': other}), \
+                mock.patch.object(utils, 'connection', default):
+            with utils.tenant_context('tenant_b', database='other'):
+                pass
+        self.assertEqual(other.tenant, 'public')
+        self.assertEqual(default.tenant, 'tenant_a')
+
+
+class ContextDecoratorStateTestCase(SimpleTestCase):
+    """Used as decorators, schema_context() and tenant_context() keep no state
+    shared between calls, so nested calls and threads restore correctly."""
+
+    def _run(self, context):
+        conn = _FakeTenantConnection('caller')
+        with mock.patch.object(utils, 'connections', {'default': conn}), \
+                mock.patch.object(utils, 'connection', conn):
+
+            @context
+            def recurse(depth):
+                if depth:
+                    conn.set_tenant('in_between')
+                    recurse(depth - 1)
+
+            recurse(2)
+        self.assertEqual(conn.tenant, 'caller')
+
+    def test_schema_context_decorator_nested_calls(self):
+        self._run(utils.schema_context('x'))
+
+    def test_tenant_context_decorator_nested_calls(self):
+        self._run(utils.tenant_context('x'))
+
+    def test_same_instance_nested_with(self):
+        conn = _FakeTenantConnection('caller')
+        with mock.patch.object(utils, 'connections', {'default': conn}):
+            for cm in (utils.schema_context('x'), utils.tenant_context('x')):
+                with cm:
+                    conn.set_tenant('in_between')
+                    with cm:
+                        pass
+                    self.assertEqual(conn.tenant, 'in_between')
+                self.assertEqual(conn.tenant, 'caller')
+
+    def test_subclass_with_its_own_init_still_works_as_decorator(self):
+        class public_context(utils.schema_context):
+            def __init__(self):
+                super().__init__('public')
+
+        conn = _FakeTenantConnection('caller')
+        with mock.patch.object(utils, 'connections', {'default': conn}):
+            @public_context()
+            def f():
+                return conn.tenant.schema_name
+            self.assertEqual(f(), 'public')
+        self.assertEqual(conn.tenant, 'caller')
+
+
+class TenantMixinContextStateTestCase(SimpleTestCase):
+    """with tenant: keeps the tenant to restore on the connection (one per
+    thread), not on a list shared by every tenant instance and thread."""
+
+    def test_interleaved_connections_restore_their_own_tenant(self):
+        from django_tenants import models as tenant_models
+        Tenant = utils.get_tenant_model()
+        conn_1 = _FakeTenantConnection('request_tenant_1')
+        conn_2 = _FakeTenantConnection('request_tenant_2')
+        tenant_a, tenant_b = Tenant(schema_name='a'), Tenant(schema_name='b')
+
+        def on(conn):
+            return mock.patch.object(tenant_models, 'connections', {'default': conn})
+
+        # Thread 1 enters A, thread 2 enters B, then thread 1 exits first.
+        with on(conn_1):
+            tenant_a.__enter__()
+        with on(conn_2):
+            tenant_b.__enter__()
+        with on(conn_1):
+            tenant_a.__exit__(None, None, None)
+        with on(conn_2):
+            tenant_b.__exit__(None, None, None)
+
+        self.assertEqual(conn_1.tenant, 'request_tenant_1')
+        self.assertEqual(conn_2.tenant, 'request_tenant_2')

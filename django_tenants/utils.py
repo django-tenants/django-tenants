@@ -158,6 +158,24 @@ def get_tenant_migration_order():
     return getattr(settings, 'TENANT_MIGRATION_ORDER', None)
 
 
+def _previous_tenants(connection):
+    """
+    The tenants to restore when leaving schema_context(), tenant_context() or
+    ``with tenant:``. Kept on the connection, which is per thread, rather than
+    on the context manager or tenant instance: an instance can be shared by
+    nested calls (e.g. when used as a decorator) and by threads.
+    """
+    return connection.__dict__.setdefault('_django_tenants_previous_tenants', [])
+
+
+def _restore_previous_tenant(connection):
+    previous_tenant = _previous_tenants(connection).pop()
+    if previous_tenant is None:
+        connection.set_schema_to_public()
+    else:
+        connection.set_tenant(previous_tenant)
+
+
 class schema_context(ContextDecorator):
     # Please do not try and merge this with tenant_context as they are not the same. As pointed out in #501
     def __init__(self, *args, **kwargs):
@@ -166,15 +184,16 @@ class schema_context(ContextDecorator):
         super().__init__()
 
     def __enter__(self):
-        self.connection = connections[self.database]
-        self.previous_tenant = connection.tenant
-        self.connection.set_schema(self.schema_name)
+        # The tenant to restore is the one on the connection being switched,
+        # not on the default connection.
+        self.connection = connection = connections[self.database]
+        # previous_tenant is kept for subclasses; restoring uses the stack.
+        self.previous_tenant = previous_tenant = connection.tenant
+        connection.set_schema(self.schema_name)
+        _previous_tenants(connection).append(previous_tenant)
 
     def __exit__(self, *exc):
-        if self.previous_tenant is None:
-            self.connection.set_schema_to_public()
-        else:
-            self.connection.set_tenant(self.previous_tenant)
+        _restore_previous_tenant(connections[self.database])
 
 
 class tenant_context(ContextDecorator):
@@ -185,15 +204,16 @@ class tenant_context(ContextDecorator):
         super().__init__()
 
     def __enter__(self):
-        self.connection = connections[self.database]
-        self.previous_tenant = connection.tenant
-        self.connection.set_tenant(self.tenant)
+        # The tenant to restore is the one on the connection being switched,
+        # not on the default connection.
+        self.connection = connection = connections[self.database]
+        # previous_tenant is kept for subclasses; restoring uses the stack.
+        self.previous_tenant = previous_tenant = connection.tenant
+        connection.set_tenant(self.tenant)
+        _previous_tenants(connection).append(previous_tenant)
 
     def __exit__(self, *exc):
-        if self.previous_tenant is None:
-            self.connection.set_schema_to_public()
-        else:
-            self.connection.set_tenant(self.previous_tenant)
+        _restore_previous_tenant(connections[self.database])
 
 
 def clean_tenant_url(url_string):
