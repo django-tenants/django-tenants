@@ -108,8 +108,8 @@ class SubprocessExecutor(MigrationExecutor):
             _manage_py(),
             "migrate_schemas",
             "--executor=standard",
-            "--schema",
-            schema_name,
+            # One argument, so a name starting with '-' isn't read as an option.
+            f"--schema={schema_name}",
         ]
         cmd += list(self.args)
         cmd += _options_to_argv(self.options)

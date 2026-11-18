@@ -78,12 +78,22 @@ class SubprocessExecutorArgvTests(SimpleTestCase):
         for cmd, schema in ((first_cmd, "tenant_a"), (second_cmd, "tenant_b")):
             self.assertIn("migrate_schemas", cmd)
             self.assertIn("--executor=standard", cmd)
-            self.assertTrue(_contains_subsequence(cmd, ["--schema", schema]))
+            self.assertIn(f"--schema={schema}", cmd)
             self.assertIn("myapp", cmd)
             self.assertIn("--noinput", cmd)
             self.assertIn("--fake", cmd)
             self.assertTrue(_contains_subsequence(cmd, ["--verbosity", "2"]))
             self.assertTrue(_contains_subsequence(cmd, ["--database", "default"]))
+
+    def test_schema_starting_with_dash_is_one_argument(self):
+        executor = make_executor()
+        completed = mock.Mock(returncode=0)
+        with mock.patch.object(executor, "_close_connections"), \
+                mock.patch(f"{SUBPROC}.subprocess.run", return_value=completed) as run:
+            executor.run_migrations(tenants=["-legacy"])
+        cmd = run.call_args.args[0]
+        self.assertIn("--schema=-legacy", cmd)
+        self.assertNotIn("-legacy", cmd)
 
     def test_parallel_flag_not_forwarded_to_child(self):
         executor = make_executor(parallel=5)
