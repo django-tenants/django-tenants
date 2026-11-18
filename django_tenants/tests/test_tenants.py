@@ -3,7 +3,7 @@ from unittest import mock
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import connection, transaction
@@ -1533,3 +1533,150 @@ class SchemaAdoptionTest(BaseTestCase):
             tenant.save()
         self.assertEqual(get_tenant_model().objects.get(pk=tenant.pk).schema_name, 'rename_nosave_b')
 
+
+
+class TenantDataChangeGuardTest(BaseTestCase):
+    """From a tenant's schema (e.g. a tenant's own admin), other tenants and
+    their domains can't be deleted or taken over."""
+
+    def setUp(self):
+        super().setUp()
+        connection.set_schema_to_public()
+        Tenant, Domain = get_tenant_model(), get_tenant_domain_model()
+        self.t1 = Tenant(schema_name='guard_one')
+        self.t2 = Tenant(schema_name='guard_two')
+        for tenant in (self.t1, self.t2):
+            tenant.auto_create_schema = False
+            tenant.save()
+        self.d1 = Domain.objects.create(domain='guard-one.test.com', tenant=self.t1)
+        self.d2 = Domain.objects.create(domain='guard-two.test.com', tenant=self.t2)
+        self.addCleanup(self._cleanup)
+
+    def _cleanup(self):
+        connection.set_schema_to_public()
+        get_tenant_domain_model().objects.filter(tenant__schema_name__in=['guard_one', 'guard_two']).delete()
+        get_tenant_model().objects.filter(schema_name__in=['guard_one', 'guard_two']).delete()
+
+    def _as_t1(self):
+        connection.set_schema(self.t1.schema_name)
+
+    def test_other_tenant_cannot_be_deleted(self):
+        self._as_t1()
+        with self.assertRaises(Exception):
+            self.t2.delete()
+        with self.assertRaises(PermissionDenied):
+            with transaction.atomic():
+                get_tenant_model().objects.filter(pk=self.t2.pk).delete()
+        connection.set_schema_to_public()
+        public = get_tenant_model()(schema_name=get_public_schema_name())
+        public.save()
+        self.addCleanup(lambda: get_tenant_model().objects.filter(pk=public.pk).delete())
+        self._as_t1()
+        with self.assertRaises(PermissionDenied):
+            with transaction.atomic():
+                get_tenant_model().objects.filter(pk=public.pk).delete()
+        connection.set_schema_to_public()
+        self.assertTrue(get_tenant_model().objects.filter(pk=public.pk).exists())
+        self.assertTrue(get_tenant_model().objects.filter(pk=self.t2.pk).exists())
+        self.assertTrue(get_tenant_domain_model().objects.filter(pk=self.d2.pk).exists())
+
+    def test_other_tenants_domains_cannot_be_taken_over(self):
+        Domain = get_tenant_domain_model()
+        self._as_t1()
+        # Move another tenant's domain to this tenant.
+        hijack = Domain.objects.get(pk=self.d2.pk)
+        hijack.tenant = self.t1
+        with self.assertRaises(PermissionDenied):
+            hijack.save()
+        # Add or change a domain for another tenant.
+        with self.assertRaises(PermissionDenied):
+            Domain(domain='new-for-two.test.com', tenant=self.t2).save()
+        other = Domain.objects.get(pk=self.d2.pk)
+        other.domain = 'renamed-two.test.com'
+        with self.assertRaises(PermissionDenied):
+            other.save()
+        # Delete another tenant's domain.
+        with self.assertRaises(PermissionDenied):
+            Domain.objects.get(pk=self.d2.pk).delete()
+        with self.assertRaises(PermissionDenied):
+            with transaction.atomic():
+                Domain.objects.filter(pk=self.d2.pk).delete()
+        connection.set_schema_to_public()
+        d2 = Domain.objects.get(pk=self.d2.pk)
+        self.assertEqual((d2.domain, d2.tenant_id), ('guard-two.test.com', self.t2.pk))
+
+    def test_own_domains_can_be_managed_from_own_schema(self):
+        Domain = get_tenant_domain_model()
+        self._as_t1()
+        extra = Domain.objects.create(domain='extra-one.test.com', tenant=self.t1, is_primary=False)
+        own = Domain.objects.get(pk=self.d1.pk)
+        own.domain = 'renamed-one.test.com'
+        own.save()
+        extra.delete()
+        connection.set_schema_to_public()
+        self.assertEqual(Domain.objects.get(pk=self.d1.pk).domain, 'renamed-one.test.com')
+
+    def test_everything_is_allowed_from_public(self):
+        Domain = get_tenant_domain_model()
+        connection.set_schema_to_public()
+        moved = Domain.objects.get(pk=self.d2.pk)
+        moved.tenant = self.t1
+        moved.is_primary = False
+        moved.save()
+        get_tenant_model().objects.filter(pk=self.t2.pk).delete()
+        self.assertFalse(get_tenant_model().objects.filter(pk=self.t2.pk).exists())
+
+
+    def test_deletes_work_without_a_domain_model_setting(self):
+        Domain = get_tenant_domain_model()
+        self._as_t1()
+        with override_settings(TENANT_DOMAIN_MODEL=None):
+            with self.assertRaises(PermissionDenied):
+                Domain.objects.filter(pk=self.d2.pk).delete()
+            Domain.objects.filter(pk=self.d1.pk).delete()
+        connection.set_schema_to_public()
+        self.assertFalse(get_tenant_domain_model().objects.filter(pk=self.d1.pk).exists())
+
+
+class TenantAdminMixinTest(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        from django_tenants.admin import TenantAdminMixin
+
+        class Base:
+            def get_queryset(self, request):
+                return get_tenant_model().objects.all()
+
+            def has_add_permission(self, request):
+                return True
+
+            def has_delete_permission(self, request, obj=None):
+                return True
+
+        class ClientAdmin(TenantAdminMixin, Base):
+            pass
+
+        self.admin = ClientAdmin()
+        connection.set_schema_to_public()
+        self.t1 = get_tenant_model()(schema_name='admin_one')
+        self.t2 = get_tenant_model()(schema_name='admin_two')
+        for tenant in (self.t1, self.t2):
+            tenant.auto_create_schema = False
+            tenant.save()
+        self.addCleanup(lambda: (connection.set_schema_to_public(), get_tenant_model().objects.filter(
+            schema_name__in=['admin_one', 'admin_two']).delete()))
+
+    def test_public_admin_is_unchanged(self):
+        names = set(self.admin.get_queryset(None).values_list('schema_name', flat=True))
+        self.assertTrue({'admin_one', 'admin_two'} <= names)
+        self.assertTrue(self.admin.has_add_permission(None))
+        self.assertTrue(self.admin.has_delete_permission(None))
+        self.assertTrue(self.admin.has_delete_permission(None, self.t2))
+
+    def test_tenant_admin_sees_and_deletes_only_itself(self):
+        connection.set_schema('admin_one')
+        self.assertEqual(list(self.admin.get_queryset(None).values_list('schema_name', flat=True)), ['admin_one'])
+        self.assertFalse(self.admin.has_add_permission(None))
+        self.assertFalse(self.admin.has_delete_permission(None))  # no bulk "delete selected"
+        self.assertFalse(self.admin.has_delete_permission(None, self.t2))
+        self.assertTrue(self.admin.has_delete_permission(None, self.t1))
