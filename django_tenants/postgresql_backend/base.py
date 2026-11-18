@@ -46,14 +46,18 @@ else:
 #  3. Cannot contain '/' and cannot be '.' or '..'. The schema name is also used
 #     as a directory name for tenant media, static files and templates (see
 #     parse_tenant_config_path), so it must not be able to traverse paths.
-#  4. Must be between 1 and 63 characters long, and at most 63 bytes once
+#  4. Cannot be '$user'. In a search_path, PostgreSQL replaces "$user" -- even
+#     quoted -- with the schema named after the current database role, so a
+#     tenant by that name would read and write that schema (possibly another
+#     tenant's) while its own literal "$user" schema was created and dropped.
+#  5. Must be between 1 and 63 characters long, and at most 63 bytes once
 #     encoded as UTF-8 (checked in is_valid_schema_name). PostgreSQL silently
 #     truncates identifiers to 63 bytes, so a longer name made of multi-byte
 #     characters would become another tenant's schema name.
 #
 # Reference:
 # https://www.postgresql.org/docs/13/sql-createschema.html
-PGSQL_VALID_SCHEMA_NAME = re.compile(r'^(?!pg_)(?!\.{1,2}\Z)[^"\'\\/;\x00\r\n]{1,63}\Z', re.IGNORECASE)
+PGSQL_VALID_SCHEMA_NAME = re.compile(r'^(?!pg_)(?!\.{1,2}\Z)(?!\$user\Z)[^"\'\\/;\x00\r\n]{1,63}\Z', re.IGNORECASE)
 
 
 # PostgreSQL's NAMEDATALEN - 1. Identifiers longer than this are truncated.
