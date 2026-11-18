@@ -14,6 +14,7 @@ from .utils import get_creation_fakes_migrations, get_tenant_base_schema, has_mu
 from .utils import get_reject_existing_schema, get_reserved_schema_names
 from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias
 from .utils import quote_schema_name, _previous_tenants, _restore_previous_tenant
+from .utils import check_tenant_data_change_allowed
 
 
 class TenantMixin(models.Model):
@@ -379,6 +380,15 @@ class DomainMixin(models.Model):
 
     @transaction.atomic
     def save(self, *args, **kwargs):
+        # From a tenant's schema, only that tenant's domains can be added or
+        # changed, and a domain can't be moved from another tenant.
+        if self.tenant_id is not None:
+            check_tenant_data_change_allowed(self.tenant.schema_name, 'add or change a domain of')
+        if self.pk is not None:
+            original = self.__class__._base_manager.filter(pk=self.pk).values_list(
+                'tenant__schema_name', flat=True).first()
+            if original is not None:
+                check_tenant_data_change_allowed(original, 'move a domain away from')
         # Get all other primary domains with the same tenant
         domain_list = self.__class__.objects.filter(tenant=self.tenant, is_primary=True).exclude(pk=self.pk)
         # If we have no primary domain yet, set as primary domain by default

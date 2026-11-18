@@ -1,6 +1,9 @@
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_delete, pre_delete
 from django.dispatch import Signal, receiver
-from django_tenants.utils import get_tenant_model, schema_exists
+from django_tenants.utils import (
+    check_tenant_data_change_allowed, get_current_schema_name, get_public_schema_name,
+    get_tenant_model, schema_exists,
+)
 
 post_schema_sync = Signal()
 post_schema_sync.__doc__ = """
@@ -41,6 +44,25 @@ Sent when a message is generated in run migration
 
 Argument Required = message
 """
+
+
+@receiver(pre_delete)
+def tenant_or_domain_pre_delete_guard(sender, instance, **kwargs):
+    # Covers QuerySet.delete() and cascades (e.g. the admin's "delete
+    # selected"), which never go through the model's own delete().
+    current = get_current_schema_name()
+    if current is None or current == get_public_schema_name():
+        return
+    if isinstance(instance, get_tenant_model()):
+        check_tenant_data_change_allowed(instance.schema_name, 'delete')
+        return
+    # Any DomainMixin model, whether or not it is TENANT_DOMAIN_MODEL (which
+    # is optional for projects that resolve tenants without the stock
+    # middleware), so a domain can't be deleted and then claimed.
+    from django_tenants.models import DomainMixin
+    if isinstance(instance, DomainMixin):
+        if instance.tenant_id is not None:
+            check_tenant_data_change_allowed(instance.tenant.schema_name, 'delete a domain of')
 
 
 @receiver(post_delete)

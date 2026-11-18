@@ -68,7 +68,9 @@ Admin Support
 =========================
 TenantAdminMixin is available in order to register the tenant model.
 Here's an example (following the example above), we want to register the ``Client`` model, so we create a related admin class ``ClientAdmin``.
-The mixin disables save and delete buttons when not in the current or public tenant (preventing Exceptions).
+On the public schema the mixin changes nothing. In an admin reached through a tenant's own site, it lists only that tenant, and doesn't allow adding tenants or deleting any tenant but the current one; save and delete buttons are disabled for other tenants.
+
+Whatever the admin allows, the tenant and domain models themselves refuse, from a tenant's schema, to delete another tenant or to add, change, move or delete another tenant's domains (raising ``PermissionDenied``). Changes like these are only possible from the public schema or the tenant's own schema. ``QuerySet.update()``, ``bulk_create()``, ``bulk_update()`` and related managers' ``add()`` / ``set()`` (which use ``update()``) bypass these checks, as they bypass ``save()``. A tenant can still add to itself any domain no other tenant has; restrict that in your own forms if tenants shouldn't choose hostnames. Ideally, only register the tenant and domain models in an admin served on the public schema.
 
 .. code-block:: python
 

@@ -4,7 +4,7 @@ from functools import lru_cache, wraps
 from types import ModuleType
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured, SuspiciousFileOperation, ValidationError
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied, SuspiciousFileOperation, ValidationError
 from django.db import DEFAULT_DB_ALIAS, connection, connections, transaction
 from django.utils.module_loading import import_string
 
@@ -102,6 +102,28 @@ def get_reject_existing_schema():
     that exists already, e.g. one restored from a backup.
     """
     return getattr(settings, 'TENANT_REJECT_EXISTING_SCHEMA', False)
+
+
+def get_current_schema_name():
+    """The schema the tenant database connection is on, or None if the
+    connection isn't tenant-aware."""
+    return getattr(connections[get_tenant_database_alias()], 'schema_name', None)
+
+
+def check_tenant_data_change_allowed(schema_name, what):
+    """
+    Tenant and domain rows live in the public schema, but can be reached from
+    a tenant's own site (for example through an admin). Only allow changing
+    a tenant's rows from the public schema or from that tenant's own schema,
+    so one tenant can't delete another or take over its domains.
+    """
+    current = get_current_schema_name()
+    if current is None or current == get_public_schema_name() or current == schema_name:
+        return
+    raise PermissionDenied(
+        "Can't %s tenant '%s' from the schema '%s'. Tenants and their domains "
+        "can only be changed from the public schema or the tenant's own schema."
+        % (what, schema_name, current))
 
 
 def get_reserved_schema_names():
