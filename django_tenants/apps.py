@@ -44,3 +44,6 @@ class DjangoTenantsConfig(AppConfig):
                                        "'%s'." % tenant_sync_router)
 
         validate_extra_extensions()
+
+        from django_tenants.migration_recorder import install_has_table
+        install_has_table()
