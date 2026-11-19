@@ -55,3 +55,44 @@ class BaseTestCase(TransactionTestCase):
                      schema_name=get_public_schema_name(),
                      interactive=False,
                      verbosity=0)
+
+
+class TestConnectionClosePreservesSchema(BaseTestCase):
+    """
+    Regression test: close() should not wipe tenant/schema state.
+
+    Django's TestCase.tearDown() force-closes connections via
+    _post_teardown() -> conn.close() and then reuses the same
+    DatabaseWrapper instance. If close() cleared the schema to None,
+    the next query would raise "Database schema not set".
+
+    The middleware already resets the schema at the start of each
+    request, so no tenant can leak between requests.
+    """
+
+    def test_close_preserves_schema_name(self):
+        """Schema name should persist after close() for reuse."""
+        connection.set_schema_to_public()
+        self.assertEqual(connection.schema_name, get_public_schema_name())
+
+        connection.close()
+
+        # After close, schema_name should still be available (not None)
+        # so that queries don't raise "Database schema not set"
+        self.assertIsNotNone(connection.schema_name)
+
+        # Verify we can execute a query without setting the schema again
+        cursor = connection.cursor()
+        cursor.execute("SELECT 1")
+        self.assertEqual(cursor.fetchone()[0], 1)
+        cursor.close()
+
+    def test_close_preserves_tenant(self):
+        """Tenant object should persist after close() for reuse."""
+        connection.set_schema_to_public()
+        self.assertIsNotNone(connection.tenant)
+
+        connection.close()
+
+        # Tenant should still be available after close
+        self.assertIsNotNone(connection.tenant)
