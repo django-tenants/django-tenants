@@ -25,9 +25,6 @@ class Command(BaseCommand):
         parser.add_argument('--clone_tenant_fields',
                             help='Clone the tenant fields.')
 
-        parser.add_argument('--db_user',
-                            help='the user for the database the default is postgres')
-
         for field in self.tenant_fields:
             parser.add_argument('--%s' % field.attname,
                                 help='Specifies the %s for tenant.' % field.attname)
