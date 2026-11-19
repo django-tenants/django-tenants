@@ -1456,6 +1456,37 @@ class SchemaAdoptionTest(BaseTestCase):
         variant.delete(force_drop=True)
         self.assertFalse(schema_exists('Public'))
 
+    def test_dollar_user_schema_name_is_rejected(self):
+        with self.assertRaisesRegex(ValidationError, 'Invalid string'):
+            get_tenant_model()(schema_name='$user').save()
+        self.assertFalse(get_tenant_model().objects.filter(schema_name='$user').exists())
+        self.assertFalse(schema_exists('$user'))
+
+        tenant = get_tenant_model()(schema_name='rename_to_dollar_user')
+        tenant.save()
+        self.addCleanup(lambda: get_tenant_model().objects.filter(
+            schema_name='rename_to_dollar_user').first().delete(force_drop=True))
+        with self.assertRaises(ValidationError):
+            schema_rename(tenant, '$user')
+        tenant.refresh_from_db()
+        self.assertEqual(tenant.schema_name, 'rename_to_dollar_user')
+        self.assertTrue(schema_exists('rename_to_dollar_user'))
+
+    def test_failed_migration_on_create_cleans_up_from_public(self):
+        # A failure while migrating leaves the connection on the new schema
+        # (without public); the cleanup must still delete the tenant's row.
+        def migrate_then_fail(*args, **kwargs):
+            connection.set_schema(kwargs['schema_name'], include_public=False)
+            raise RuntimeError('original failure')
+
+        tenant = get_tenant_model()(schema_name='failed_migration')
+        with mock.patch('django_tenants.models.call_command', side_effect=migrate_then_fail):
+            with self.assertRaisesRegex(RuntimeError, 'original failure'):
+                tenant.save()
+        self.assertEqual(connection.schema_name, get_public_schema_name())
+        self.assertFalse(get_tenant_model().objects.filter(schema_name='failed_migration').exists())
+        self.assertFalse(schema_exists('failed_migration'))
+
     def test_failed_public_tenant_create_keeps_schema_and_original_error(self):
         # Cleaning up after a failed create must not drop the public schema,
         # nor hide the original error by refusing.

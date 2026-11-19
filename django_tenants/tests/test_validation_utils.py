@@ -32,6 +32,17 @@ class TestValidationUtils(unittest.TestCase):
                                     'Invalid string used for the schema name.'):
             base._check_schema_name('pg_tenant1')
 
+    def test_check_schema_name_dollar_user_is_invalid(self):
+        # PostgreSQL substitutes "$user" in a search_path even when quoted.
+        for schema_name in ('$user', '$USER', '$User'):
+            with self.subTest(schema_name=schema_name):
+                with self.assertRaisesRegex(ValidationError,
+                                            'Invalid string used for the schema name.'):
+                    base._check_schema_name(schema_name)
+        for schema_name in ('$user2', 'my$user', '$'):
+            with self.subTest(schema_name=schema_name):
+                self.assertIsNone(base._check_schema_name(schema_name))
+
     def test_check_schema_name_with_quote_or_statement_characters_is_invalid(self):
         for schema_name in ("tenant1', 'other", 'tenant1"; DROP SCHEMA other; --',
                             'tenant1\\', 'tenant1;', 'tenant\x001', 'tenant1\n'):
