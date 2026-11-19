@@ -13,6 +13,7 @@ from django_tenants.clone import CloneSchema
 from django_tenants.signals import post_schema_sync, schema_migrated, schema_migrate_message, schema_pre_migration
 from dts_test_app.models import DummyModel, ModelWithFkToPublicUser
 
+from django_tenants.management.commands import InteractiveTenantOption
 from django_tenants.migration_executors import get_executor
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.tests.testcases import BaseTestCase
@@ -1540,6 +1541,81 @@ class SchemaAdoptionTest(BaseTestCase):
             call_command('delete_tenant', schema_name=get_public_schema_name(), interactive=False)
         self.assertTrue(get_tenant_model().objects.filter(pk=tenant.pk).exists())
         self.assertTrue(schema_exists(get_public_schema_name()))
+
+    def test_dash_names_are_rejected_for_new_tenants(self):
+        for name in ('-1', '-x', '--schema'):
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValidationError, "start with '-'"):
+                    get_tenant_model()(schema_name=name).save()
+                self.assertFalse(get_tenant_model().objects.filter(schema_name=name).exists())
+                self.assertFalse(schema_exists(name))
+        # Numbers, and names that merely contain a dash, are fine.
+        for name in ('1', '42', 't1', 'a-b', 'x1-2'):
+            with self.subTest(name=name):
+                tenant = get_tenant_model()(schema_name=name)
+                tenant.auto_create_schema = False
+                tenant.save()
+                self._drop(tenant)
+
+    def test_existing_dash_tenant_keeps_working(self):
+        tenant = get_tenant_model()(schema_name='was_dash')
+        tenant.auto_create_schema = False
+        tenant.save()
+        self.addCleanup(self._drop, tenant)
+        get_tenant_model().objects.filter(pk=tenant.pk).update(schema_name='-old')
+        tenant.refresh_from_db()
+        tenant.save()  # unchanged name: no new-name checks
+        tenant.schema_name = '-new'
+        with self.assertRaisesRegex(ValidationError, "start with '-'"):
+            tenant.save()
+        tenant.schema_name = '-old'
+        with self.assertRaisesRegex(ValidationError, "start with '-'"):
+            schema_rename(tenant, '-x', save=False)
+
+    def _command_tenants(self, names):
+        tenants = []
+        for name in names:
+            t = get_tenant_model()(schema_name=name)
+            t.auto_create_schema = False
+            t.save()
+            tenants.append(t)
+            self.addCleanup(self._drop, t)
+        command = InteractiveTenantOption()
+        command.stdout = mock.Mock()
+        command.style = mock.Mock()
+        return tenants, command
+
+    def test_commands_select_tenant_by_position_when_no_name_is_a_number(self):
+        tenants, command = self._command_tenants(['cmd_first', 'cmd_second'])
+        listed = list(get_tenant_model().objects.order_by('pk'))
+        self.assertFalse(any(t.schema_name.isdigit() for t in listed))
+        with mock.patch('builtins.input', return_value='0'):
+            self.assertEqual(command.get_tenant_from_options_or_interactive().pk, listed[0].pk)
+        with mock.patch('builtins.input', return_value='cmd_second'):
+            self.assertEqual(command.get_tenant_from_options_or_interactive().pk, tenants[1].pk)
+        with mock.patch('builtins.input', return_value='999'):
+            with self.assertRaises(CommandError):
+                command.get_tenant_from_options_or_interactive()
+        # --schema is always an exact name, never a position.
+        with self.assertRaises(CommandError):
+            command.get_tenant_from_options_or_interactive(schema_name='0')
+
+    def test_commands_select_only_by_exact_name_when_a_name_is_a_number(self):
+        tenants, command = self._command_tenants(['cmd_first', '1'])
+        self.assertEqual(command.get_tenant_from_options_or_interactive(schema_name='1').pk, tenants[1].pk)
+        with mock.patch('builtins.input', return_value='1'):
+            self.assertEqual(command.get_tenant_from_options_or_interactive().pk, tenants[1].pk)
+        # Positions are switched off, so '0' is just an unknown name...
+        with mock.patch('builtins.input', return_value='0'):
+            with self.assertRaises(CommandError):
+                command.get_tenant_from_options_or_interactive()
+        # ...and the '?' list doesn't number the tenants.
+        with mock.patch('builtins.input', side_effect=['?', 'cmd_first']), \
+                mock.patch('builtins.print') as printed:
+            self.assertEqual(command.get_tenant_from_options_or_interactive().pk, tenants[0].pk)
+        listing = printed.call_args_list[0].args[0]
+        self.assertIn('cmd_first - ', listing)
+        self.assertNotIn(') cmd_first', listing)
 
     def test_schema_rename_from_reserved_name_is_rejected(self):
         self._create_plain_schema('shared_ext2')

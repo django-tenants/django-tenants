@@ -90,27 +90,40 @@ To learn how create a tenant, see:
 https://django-tenants.readthedocs.org/en/latest/use.html#creating-a-tenant""")
 
         if options.get('schema_name'):
+            # Given on the command line: only ever an exact schema name, never
+            # a position in the list (a schema name can itself be a number).
             tenant_schema = options['schema_name']
-        else:
-            while True:
-                tenant_schema = input("Enter Tenant Schema ('?' to list schemas): ")
-                if tenant_schema == '?':
-                    print('\n'.join(
-                        [f"{i}) {t.schema_name} - {t.get_primary_domain()}" for i, t in enumerate(all_tenants)]))
-                else:
-                    break
+            try:
+                return TenantModel.objects.get(schema_name=tenant_schema)
+            except TenantModel.DoesNotExist:
+                raise CommandError(f"Invalid tenant schema, '{tenant_schema}'")
 
-        try:
-            selected_tenant = all_tenants[int(tenant_schema)]
+        listed = list(all_tenants.order_by('pk'))
+        # Tenants can also be picked by their position in the '?' list, unless
+        # a schema name is itself a number: then '3' could mean either, so only
+        # exact names are accepted.
+        by_position = not any(t.schema_name.isdigit() for t in listed)
+        while True:
+            tenant_schema = input("Enter Tenant Schema ('?' to list schemas): ")
+            if tenant_schema == '?':
+                if by_position:
+                    print('\n'.join(
+                        [f"{i}) {t.schema_name} - {t.get_primary_domain()}" for i, t in enumerate(listed)]))
+                else:
+                    print('\n'.join(
+                        [f"{t.schema_name} - {t.get_primary_domain()}" for t in listed]))
+            else:
+                break
+
+        for tenant in listed:
+            if tenant.schema_name == tenant_schema:
+                return tenant
+        if (by_position and tenant_schema.isascii() and tenant_schema.isdigit()
+                and int(tenant_schema) < len(listed)):
+            selected_tenant = listed[int(tenant_schema)]
             self.stdout.write(self.style.SUCCESS(f'Selected Tenant: {selected_tenant.schema_name}'))
             return selected_tenant
-        except (ValueError, IndexError):
-            pass
-
-        if tenant_schema not in [t.schema_name for t in all_tenants]:
-            raise CommandError(f"Invalid tenant schema, '{tenant_schema}'")
-
-        return TenantModel.objects.get(schema_name=tenant_schema)
+        raise CommandError(f"Invalid tenant schema, '{tenant_schema}'")
 
 
 class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):

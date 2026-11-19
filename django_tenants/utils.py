@@ -126,6 +126,16 @@ def check_tenant_data_change_allowed(schema_name, what):
         % (what, schema_name, current))
 
 
+def check_new_schema_name_shape(schema_name):
+    """
+    Rejects a new schema name starting with '-', which a command line would
+    read as an option. Applied to new names only, so existing tenants with
+    such names keep working.
+    """
+    if schema_name.startswith('-'):
+        raise ValidationError("The schema name '%s' cannot start with '-'." % schema_name)
+
+
 def get_reserved_schema_names():
     """
     Lower-cased names of schemas that are never a tenant's: PostgreSQL's
@@ -332,6 +342,7 @@ def schema_rename(tenant, new_schema_name, database=get_tenant_database_alias(),
         raise ValidationError("New schema name already exists")
     if not is_valid_schema_name(new_schema_name):
         raise ValidationError("Invalid string used for the schema name.")
+    check_new_schema_name_shape(new_schema_name)
     # The old name is interpolated too. Only its length matters here --
     # quote_schema_name() escapes it, and renaming is how a tenant with a name
     # that is no longer allowed (e.g. containing '/') is recovered -- but a name

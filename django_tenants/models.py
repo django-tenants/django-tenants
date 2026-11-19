@@ -11,7 +11,7 @@ from django_tenants.clone import CloneSchema
 from .postgresql_backend.base import _check_schema_name
 from .signals import post_schema_sync, schema_needs_to_be_sync
 from .utils import get_creation_fakes_migrations, get_tenant_base_schema, has_multi_type_tenants
-from .utils import get_reject_existing_schema, get_reserved_schema_names
+from .utils import get_reject_existing_schema, get_reserved_schema_names, check_new_schema_name_shape
 from .utils import schema_exists, get_tenant_domain_model, get_public_schema_name, get_tenant_database_alias
 from .utils import quote_schema_name, _previous_tenants, _restore_previous_tenant
 from .utils import check_tenant_data_change_allowed
@@ -148,6 +148,7 @@ class TenantMixin(models.Model):
         """
         if self.schema_name.lower() in get_reserved_schema_names():
             raise ValidationError("The schema name '%s' is reserved." % self.schema_name)
+        check_new_schema_name_shape(self.schema_name)
         # The public schema always exists, and the public tenant is created
         # with its name (django-tenants never drops or renames it through a
         # tenant). schema_rename() checks existence itself, before it renames
