@@ -1032,6 +1032,36 @@ class CloneSchemaTest(BaseTestCase):
         self.assertIsNotNone(row)
         self.assertIn('WHERE flag', row[0])
 
+    def test_clone_schema_restores_index_names_when_other_schemas_have_the_same_table(self):
+        """The cloned indexes get the source's names, matched only against the source schema.
+
+        CREATE TABLE ... LIKE ... INCLUDING ALL gives the copied indexes generated names, and
+        clone_schema() renames them back by pairing the source and destination indexes of each table.
+        With many schemas holding a table of the same name (one per tenant), that pairing has to be
+        narrowed to the two schemas before it compares index definitions.
+        """
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s6')
+        tenant.save()
+        get_tenant_domain_model()(tenant=tenant, domain='s6.test.com').save()
+
+        with connection.cursor() as cursor:
+            for schema, prefix in (('s6', 'src'), ('other6', 'other')):
+                cursor.execute('CREATE SCHEMA IF NOT EXISTS %s' % schema)
+                cursor.execute('CREATE TABLE %s.widget (id serial PRIMARY KEY, a int, b text)' % schema)
+                cursor.execute('CREATE INDEX %s_widget_a ON %s.widget (a)' % (prefix, schema))
+                cursor.execute('CREATE UNIQUE INDEX %s_widget_ab ON %s.widget (a, b)' % (prefix, schema))
+
+        CloneSchema().clone_schema(base_schema_name='s6', new_schema_name='d6')
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT indexname FROM pg_indexes WHERE schemaname = 'd6' AND tablename = 'widget' ORDER BY 1"
+            )
+            names = [row[0] for row in cursor.fetchall()]
+            cursor.execute('DROP SCHEMA other6 CASCADE')
+        self.assertEqual(names, ['src_widget_a', 'src_widget_ab', 'widget_pkey'])
+
     @staticmethod
     def _drop_role(role):
         connection.set_schema_to_public()
