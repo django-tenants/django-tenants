@@ -44,9 +44,11 @@ class TenantTestCase(TestCase):
         cls.domain.save()
 
         connection.set_tenant(cls.tenant)
+        super().setUpClass()
 
     @classmethod
     def tearDownClass(cls):
+        super().tearDownClass()
         connection.set_schema_to_public()
         cls.domain.delete()
         cls.tenant.delete(force_drop=True)
@@ -153,9 +155,14 @@ class FastTenantTestCase(TenantTestCase):
             cls.setup_test_tenant_and_domain()
 
         connection.set_tenant(cls.tenant)
+        # Skip TenantTestCase.setUpClass() to avoid running the full tenant
+        # setup again, but still run Django's TestCase.setUpClass().
+        super(TenantTestCase, cls).setUpClass()
 
     @classmethod
     def tearDownClass(cls):
+        # Skip TenantTestCase.tearDownClass() like in setUpClass() above.
+        super(TenantTestCase, cls).tearDownClass()
         connection.set_schema_to_public()
 
     def _fixture_teardown(self):
