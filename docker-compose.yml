@@ -12,7 +12,7 @@ services:
       - POSTGRES_DB=django_tenants
       - DATABASE_PORT=5433
     ports:
-      - "5433:5432"
+      - "${HOST_DB_PORT:-5433}:5432"
   web:
     build: .
     command: gunicorn dts_test_project.wsgi:application --bind 0.0.0.0:8088
@@ -20,7 +20,7 @@ services:
     volumes:
       - .:/code:z
     ports:
-      - "8088:8088"
+      - "${HOST_WEB_PORT:-8088}:8088"
     depends_on:
       - db
     environment:
@@ -28,6 +28,7 @@ services:
       - DATABASE_PASSWORD=django_tenants
       - DATABASE_DB=django_tenants
       - DATABASE_HOST=db
+
   django-tenants-test:
     build: .
     links:
@@ -45,7 +46,7 @@ services:
       - DATABASE_DB=django_tenants
       - DATABASE_HOST=db
     ports:
-      - "8080:8080"
+      - "${HOST_TEST_PORT:-8080}:8080"
     stdin_open: true
     tty: true
     restart: "no"
@@ -64,4 +65,4 @@ services:
   redis:
     image: redis:6.0.10
     ports:
-      - "6379:6379"
+      - "${HOST_REDIS_PORT:-6379}:6379"
