@@ -1032,6 +1032,56 @@ class CloneSchemaTest(BaseTestCase):
         self.assertIsNotNone(row)
         self.assertIn('WHERE flag', row[0])
 
+    def test_clone_schema_keeps_unique_constraint_names(self):
+        """A clone's unique constraints carry their source's names.
+
+        ``CREATE TABLE ... (LIKE ... INCLUDING ALL)`` names a copied index after the default rules, and
+        clone_schema() put the source's names back on every index except a unique constraint's. A clone's
+        unique constraints were therefore all named differently from its source's, and a later migration
+        dropping one by name -- Django's ``RemoveConstraint`` -- failed on the clone alone with
+        ``constraint ... does not exist``.
+
+        Every index must also keep its own name: indexes are paired with the source's by definition, and
+        a definition does not say whether an index backs a constraint.
+        """
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s7')
+        tenant.save()
+        get_tenant_domain_model()(tenant=tenant, domain='s7.test.com').save()
+
+        table = DummyModel._meta.db_table
+        with connection.cursor() as cursor:
+            cursor.execute('ALTER TABLE s7.%s ADD CONSTRAINT dummy_named_unique UNIQUE (name)' % table)
+            # Indexes on the same column that the comparison of index definitions cannot tell from the
+            # constraint's: a plain index differs only in UNIQUE, and a standalone unique index not at all.
+            # The constraint's name sorts first, the order in which the two used to swap names
+            # (pg-clone-schema Issue#133).
+            cursor.execute('CREATE INDEX dummy_plain_name ON s7.%s (name)' % table)
+            cursor.execute('CREATE UNIQUE INDEX zz_unique_name ON s7.%s (name)' % table)
+            # A primary key left with a name its table no longer gives it (as after a table rename), and a
+            # unique constraint on the same column, named to sort after it, the order in which they swap.
+            cursor.execute('ALTER INDEX s7.%s_pkey RENAME TO legacy_dummy_pkey' % table)
+            cursor.execute('ALTER TABLE s7.%s ADD CONSTRAINT zz_dummy_id_unique UNIQUE (id)' % table)
+
+        CloneSchema().clone_schema(base_schema_name='s7', new_schema_name='d7')
+
+        def indexes(schema):
+            """Each index's name, whether it is unique, and the kind of constraint it backs."""
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT ic.relname, x.indisunique, co.conname, co.contype::text FROM pg_index x "
+                    "JOIN pg_class ic ON ic.oid = x.indexrelid JOIN pg_namespace n ON n.oid = ic.relnamespace "
+                    "LEFT JOIN pg_constraint co ON co.conindid = x.indexrelid AND co.contype IN ('p', 'u', 'x') "
+                    "WHERE n.nspname = %s ORDER BY 1", [schema]
+                )
+                return cursor.fetchall()
+
+        source = indexes('s7')
+        self.assertIn(('dummy_named_unique', True, 'dummy_named_unique', 'u'), source)
+        self.assertIn(('zz_unique_name', True, None, None), source)
+        self.assertIn(('legacy_dummy_pkey', True, 'legacy_dummy_pkey', 'p'), source)
+        self.assertEqual(indexes('d7'), source)
+
     @staticmethod
     def _drop_role(role):
         connection.set_schema_to_public()
