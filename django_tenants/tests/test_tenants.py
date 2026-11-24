@@ -1032,6 +1032,46 @@ class CloneSchemaTest(BaseTestCase):
         self.assertIsNotNone(row)
         self.assertIn('WHERE flag', row[0])
 
+    def test_clone_schema_keeps_unique_constraint_names(self):
+        """A clone's unique constraints carry their source's names.
+
+        ``CREATE TABLE ... (LIKE ... INCLUDING ALL)`` names a copied index after the default rules, and
+        clone_schema() put the source's names back on every index except a unique constraint's. A clone's
+        unique constraints were therefore all named differently from its source's, and a later migration
+        dropping one by name -- Django's ``RemoveConstraint`` -- failed on the clone alone with
+        ``constraint ... does not exist``.
+        """
+        Client = get_tenant_model()
+        tenant = Client(schema_name='s7')
+        tenant.save()
+        get_tenant_domain_model()(tenant=tenant, domain='s7.test.com').save()
+
+        table = DummyModel._meta.db_table
+        with connection.cursor() as cursor:
+            cursor.execute('ALTER TABLE s7.%s ADD CONSTRAINT dummy_named_unique UNIQUE (name)' % table)
+            # A plain index on the same column: the index definitions compared differ only in UNIQUE.
+            cursor.execute('CREATE INDEX dummy_plain_name ON s7.%s (name)' % table)
+
+        CloneSchema().clone_schema(base_schema_name='s7', new_schema_name='d7')
+
+        def names(schema):
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT co.conname FROM pg_constraint co JOIN pg_namespace n ON n.oid = co.connamespace "
+                    "WHERE n.nspname = %s AND co.contype IN ('p', 'u')", [schema]
+                )
+                constraints = sorted(r[0] for r in cursor.fetchall())
+                cursor.execute(
+                    "SELECT indexname, indexdef LIKE 'CREATE UNIQUE %%' FROM pg_indexes WHERE schemaname = %s",
+                    [schema]
+                )
+                indexes = sorted(cursor.fetchall())
+            return constraints, indexes
+
+        source_constraints, source_indexes = names('s7')
+        self.assertIn('dummy_named_unique', source_constraints)
+        self.assertEqual(names('d7'), (source_constraints, source_indexes))
+
     @staticmethod
     def _drop_role(role):
         connection.set_schema_to_public()
