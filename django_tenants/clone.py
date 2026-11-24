@@ -2240,13 +2240,16 @@ BEGIN
         -- What is cut away above includes UNIQUE, and says nothing of whether the index backs a constraint. Without
         -- these two, a unique constraint and a plain or standalone unique index on the same columns could pair up
         -- and swap names (pg-clone-schema Issue#133), as could a primary key and a unique constraint on one column.
+        -- conrelid is there for pg_constraint's index on it: conindid has none, and alone would scan every schema's.
         AND (old.indexdef LIKE 'CREATE UNIQUE %') = (new.indexdef LIKE 'CREATE UNIQUE %')
         AND (SELECT ct.contype FROM pg_constraint ct
-             WHERE ct.conindid = (quote_ident(old.schemaname) || '.' || quote_ident(old.indexname))::regclass
+             WHERE ct.conrelid = (quote_ident(old.schemaname) || '.' || quote_ident(old.tablename))::regclass
+               AND ct.conindid = (quote_ident(old.schemaname) || '.' || quote_ident(old.indexname))::regclass
                AND ct.contype IN ('p', 'u', 'x'))
             IS NOT DISTINCT FROM
             (SELECT ct.contype FROM pg_constraint ct
-             WHERE ct.conindid = (quote_ident(new.schemaname) || '.' || quote_ident(new.indexname))::regclass
+             WHERE ct.conrelid = (quote_ident(new.schemaname) || '.' || quote_ident(new.tablename))::regclass
+               AND ct.conindid = (quote_ident(new.schemaname) || '.' || quote_ident(new.indexname))::regclass
                AND ct.contype IN ('p', 'u', 'x'))
         ORDER BY old.indexdef, new.indexdef
     LOOP
@@ -2777,13 +2780,16 @@ BEGIN
         -- What is cut away above includes UNIQUE, and says nothing of whether the index backs a constraint. Without
         -- these two, a unique constraint and a plain or standalone unique index on the same columns could pair up
         -- and swap names (pg-clone-schema Issue#133), as could a primary key and a unique constraint on one column.
+        -- conrelid is there for pg_constraint's index on it: conindid has none, and alone would scan every schema's.
         AND (old.indexdef LIKE 'CREATE UNIQUE %') = (new.indexdef LIKE 'CREATE UNIQUE %')
         AND (SELECT ct.contype FROM pg_constraint ct
-             WHERE ct.conindid = (quote_ident(old.schemaname) || '.' || quote_ident(old.indexname))::regclass
+             WHERE ct.conrelid = (quote_ident(old.schemaname) || '.' || quote_ident(old.tablename))::regclass
+               AND ct.conindid = (quote_ident(old.schemaname) || '.' || quote_ident(old.indexname))::regclass
                AND ct.contype IN ('p', 'u', 'x'))
             IS NOT DISTINCT FROM
             (SELECT ct.contype FROM pg_constraint ct
-             WHERE ct.conindid = (quote_ident(new.schemaname) || '.' || quote_ident(new.indexname))::regclass
+             WHERE ct.conrelid = (quote_ident(new.schemaname) || '.' || quote_ident(new.tablename))::regclass
+               AND ct.conindid = (quote_ident(new.schemaname) || '.' || quote_ident(new.indexname))::regclass
                AND ct.contype IN ('p', 'u', 'x'))
         ORDER BY old.indexdef, new.indexdef
     LOOP

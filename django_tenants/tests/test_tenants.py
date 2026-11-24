@@ -1059,9 +1059,9 @@ class CloneSchemaTest(BaseTestCase):
             cursor.execute('CREATE INDEX dummy_plain_name ON s7.%s (name)' % table)
             cursor.execute('CREATE UNIQUE INDEX zz_unique_name ON s7.%s (name)' % table)
             # A primary key left with a name its table no longer gives it (as after a table rename), and a
-            # unique constraint on the same column.
+            # unique constraint on the same column, named to sort after it, the order in which they swap.
             cursor.execute('ALTER INDEX s7.%s_pkey RENAME TO legacy_dummy_pkey' % table)
-            cursor.execute('ALTER TABLE s7.%s ADD CONSTRAINT aa_dummy_id_unique UNIQUE (id)' % table)
+            cursor.execute('ALTER TABLE s7.%s ADD CONSTRAINT zz_dummy_id_unique UNIQUE (id)' % table)
 
         CloneSchema().clone_schema(base_schema_name='s7', new_schema_name='d7')
 
